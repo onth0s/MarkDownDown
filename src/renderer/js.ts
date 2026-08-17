@@ -70,7 +70,8 @@ export function buildJs(accent: string): string {
   setTheme(store.get('clds-theme', 'dark'));
 
   // ── TOC ────────────────────────────────────────────────────────────────────
-  const headings = [...article.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')];
+  const headings = [...article.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')]
+    .filter(h => !h.closest('.hero'));
 
   toc.replaceChildren();
   headings.forEach((heading) => {
@@ -126,7 +127,7 @@ export function buildJs(accent: string): string {
     searchToggle.setAttribute('aria-expanded', String(on));
     searchToggle.setAttribute('aria-label', on ? 'Close search' : 'Search');
     requestAnimationFrame(() => {
-      searchToggle.innerHTML = on ? '\\u00d7' : searchIconSvg;
+      searchToggle.innerHTML = on ? '×' : searchIconSvg;
       if (on) search.focus();
     });
   }

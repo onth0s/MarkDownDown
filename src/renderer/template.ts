@@ -54,7 +54,7 @@ export function assembleHtml(opts: AssembleOptions): string {
 
   template = template.replace(/\{\{title\}\}/g, escAttr(opts.title));
   template = template.replace(/\{\{meta_description\}\}/g, escAttr(opts.metaDescription));
-  template = template.replace('{{body}}', opts.body);
+  template = template.replace('{{body}}', () => opts.body);
 
   if (opts.outputMode === 'single') {
     let css = opts.css;
@@ -63,8 +63,8 @@ export function assembleHtml(opts: AssembleOptions): string {
     if (opts.customJs) js += '\n' + opts.customJs;
     template = template.replace('<!-- SPLIT_LINK_CSS -->', '');
     template = template.replace('<!-- SPLIT_SCRIPT_SRC -->', '');
-    template = template.replace('{{css}}', css);
-    template = template.replace('{{js}}', js);
+    template = template.replace('{{css}}', () => css);
+    template = template.replace('{{js}}', () => js);
   } else {
     template = template.replace(
       '<!-- SPLIT_LINK_CSS -->',
