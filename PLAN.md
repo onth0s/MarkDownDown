@@ -43,8 +43,19 @@ Inside fenced code blocks and inline code, `[[str]]` is always literal
 
 **Resolution order (first match wins):**
 
-1. **Heading match** — `str` is run through the 4-pass fuzzy heading resolver.
-   If a unique match is found → `<a href="#slug">display</a>`.
+0. **Extension fast-path** — If `str` contains a `.` (i.e. it looks like a
+   filename with an extension), heading resolution is **skipped entirely** and
+   the resolver jumps directly to step 2 (file match). This is unambiguous:
+   `[[logo.png]]` always means the file, never a heading named `"logo.png"`.
+
+1. **Heading match** — (only when `str` has no extension) `str` is run through
+   the 4-pass fuzzy heading resolver. If a unique match is found →
+   `<a href="#slug">display</a>`.
+
+   > **Heading-first is intentional.** When `str` has no extension, headings
+   > take priority over same-named files. A user with a heading `"Logo"` and
+   > an asset `logo.png` who writes `[[logo]]` gets the heading. To link the
+   > image they must write `[[logo.png]]`. This is unambiguous and expected.
 
 2. **File match** — `str` is checked against the adjacent assets directory:
    - No extension → probe `.png`, `.jpg`, `.jpeg`, `.svg`, `.gif`, `.webp`,
@@ -56,7 +67,8 @@ Inside fenced code blocks and inline code, `[[str]]` is always literal
      relative `src` in `--split`).
 
 3. **Collision** — >1 match at any step → compiler error, stderr, exit 1.
-   No silent guessing.
+   No silent guessing. Cross-step collisions are **not** raised; the priority
+   order is definitive.
 
 4. **Not found** — Neither heading nor file matches → compiler error.
 
@@ -182,6 +194,7 @@ Resolve to a unique string or use the full heading text.
 | Runtime | Node.js + TypeScript |
 | Markdown parser | `markdown-it` (extensible, plugin ecosystem) |
 | CLI | `commander` |
+| Frontmatter parser | `js-yaml` |
 | Fuzzy heading solver | Custom multi-pass algorithm (§2.5) |
 | Diagram renderer | Port from `scratch/CLDS_interactive_v15.html` |
 | Table renderer | Port from `scratch/CLDS_interactive_v15.html` |
@@ -361,12 +374,6 @@ document structure as `CLDS_interactive_v15.html`:
     </aside>
     <main class="main">
       <article class="article" id="article">
-        <section class="hero">
-          <div class="kicker">{{subtitle}}</div>
-          <h1>{{title}}</h1>
-          <p>{{description}}</p>
-          <div class="meta">{{pills}}</div>
-        </section>
         {{body}}                        <!-- markdown-it output -->
       </article>
     </main>
@@ -376,6 +383,9 @@ document structure as `CLDS_interactive_v15.html`:
 </body>
 </html>
 ```
+
+Placeholders: `{{title}}` (from frontmatter or filename), `{{css}}`, `{{js}}`,
+`{{body}}` (markdown-it HTML output). No other placeholders.
 
 The `{{body}}` contains the full markdown-rendered article with:
 - `<div class="code-wrap diagram" data-title="...">` for diagram blocks
@@ -395,19 +405,28 @@ The existing `scratch/CLDS_interactive_v15.html` becomes the golden reference.
    literal parameterized by `accent` color and `theme`.
 
 2. **Extract JS** from lines 2423–3674 into `src/renderer/js.ts` as a template
-   literal. Remove CLDS-specific title references; parameterize the
-   `faviconTemplate` accent substitution.
+   literal. **Strip all client-side diagram and table rendering logic** — the
+   compiled output already contains pre-rendered SVGs in `{{body}}`. Only
+   interactive runtime behaviors are retained: TOC generation, scroll
+   spy, full-text search, theme switching, accent picker, and diagram/table
+   interactivity (zoom, pan, copy) that operates on already-rendered SVG nodes.
+   Remove CLDS-specific title references; parameterize the `faviconTemplate`
+   accent substitution.
 
 3. **Extract diagram renderer** — port `diagramParse`/`diagramLayout`/
    `diagramBuildSvg`/`diagramTextWidth`/`diagramWrap` (lines 2790–3109)
    into `src/renderer/diagram-svg.ts`. Same logic, TypeScript types,
-   no DOM dependency (measures text width via canvas).
+   no DOM dependency. Text width is **not measured** — a single constant
+   `CHAR_WIDTH_PX` (e.g. 7.5) is defined and all node/label sizing is derived
+   from it (`nodeWidth = label.length * CHAR_WIDTH_PX + PADDING`, etc.).
 
 4. **Extract table renderer** — port `tableParse`/`tableBuildSvg` (lines
-   3187–3283) into `src/renderer/table-svg.ts`.
+   3187–3283) into `src/renderer/table-svg.ts`. Same constant-width approach.
 
-5. **Extract shell HTML** — the topbar, sidebar, settings, hero section
+5. **Extract shell HTML** — the topbar, sidebar, and settings panel
    (lines 401–470) into `templates/shell.html` with `{{placeholders}}`.
+   The hero section is **dropped**; `{{body}}` is placed directly inside
+   `<article>`. Frontmatter `title` is injected into `<title>` only.
 
 6. **Create `CLDS.mdd`** — the article content (lines 472–2416) converted
    back to Markdown. Diagram/table code blocks get ` ```diagram ` /

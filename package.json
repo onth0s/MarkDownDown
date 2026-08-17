@@ -1,0 +1,33 @@
+{
+  "name": "markdown-pp",
+  "version": "0.1.0",
+  "description": "Markdown++ — GFM extended with wikilinks, diagram DSL, and SVG tables",
+  "type": "module",
+  "bin": {
+    "markdown++": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "node --input-type=module -e \"import{build}from'esbuild';await build({entryPoints:['src/cli.ts'],bundle:true,platform:'node',format:'cjs',outfile:'dist/cli.cjs'})\"",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --testPathPattern='tests/'"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "js-yaml": "^4.1.0",
+    "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^22.5.0",
+    "esbuild": "^0.23.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

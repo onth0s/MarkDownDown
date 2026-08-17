@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="{{meta_description}}">
+<title>{{title}}</title>
+<link id="dynamicFavicon" rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%233b82f6'/%3E%3Ctext x='16' y='22' font-size='18' font-family='monospace' text-anchor='middle' fill='white'%3EM%2B%3C/text%3E%3C/svg%3E">
+<!-- SPLIT_LINK_CSS -->
+<style>{{css}}</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<header class="topbar">
+  <button class="icon-btn mobile-nav" id="navBtn" aria-label="Toggle navigation">☰</button>
+  <div class="brand">
+    <svg class="brand-logo" aria-hidden="true" focusable="false" width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="32" height="32" rx="6" fill="var(--accent)"/>
+      <text x="16" y="22" font-size="14" font-family="monospace" font-weight="bold" text-anchor="middle" fill="white">M+</text>
+    </svg>
+    <span>{{title}}</span>
+  </div>
+  <button class="icon-btn search-toggle" id="searchToggle" type="button" aria-label="Search" aria-expanded="false" title="Search">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+  </button>
+  <div class="search-box">
+    <input class="search" id="search" type="search" placeholder="Search document." aria-label="Search document">
+    <button class="search-clear" id="clearSearchBtn" type="button" aria-label="Clear search" title="Clear search">x</button>
+    <button class="search-opt" id="caseBtn" type="button" aria-label="Toggle case sensitivity" title="Match case">Aa</button>
+    <button class="search-nav" id="prevBtn" type="button" aria-label="Previous match" title="Previous match">↑</button>
+    <button class="search-nav" id="nextBtn" type="button" aria-label="Next match" title="Next match">↓</button>
+  </div>
+  <div class="toolbar">
+    <span class="search-count" id="searchCount"></span>
+    <button class="tool-btn" id="themeBtn" title="Toggle light/dark">☀ / ☾</button>
+    <button class="tool-btn" id="settingsBtn" title="Customize appearance">Accent</button>
+  </div>
+</header>
+
+<div class="settings" id="settings">
+  <h3>Appearance</h3>
+  <div class="setting-row color-row">
+    <span>Accent color</span>
+    <label class="rainbow-picker" title="Choose any accent color">
+      <span class="rainbow-ring"></span>
+      <input id="colorPicker" type="color" value="#3b82f6" aria-label="Custom accent color">
+    </label>
+  </div>
+  <div class="swatches" id="swatches">
+    <button class="swatch" data-color="#3b82f6" style="background:#3b82f6" aria-label="Blue"></button>
+    <button class="swatch" data-color="#8b5cf6" style="background:#8b5cf6" aria-label="Violet"></button>
+    <button class="swatch" data-color="#06b6d4" style="background:#06b6d4" aria-label="Cyan"></button>
+    <button class="swatch" data-color="#10b981" style="background:#10b981" aria-label="Green"></button>
+    <button class="swatch" data-color="#f59e0b" style="background:#f59e0b" aria-label="Amber"></button>
+    <button class="swatch" data-color="#f43f5e" style="background:#f43f5e" aria-label="Rose"></button>
+  </div>
+</div>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-title">Contents</div>
+    <ul class="toc" id="toc"></ul>
+  </aside>
+  <main class="main">
+    <article class="article" id="article">
+      <div class="no-results" id="noResults">No matching content found.</div>
+      {{body}}
+    </article>
+  </main>
+</div>
+
+<button class="backtop" id="backtop" aria-label="Back to top">↑</button>
+
+<!-- SPLIT_SCRIPT_SRC -->
+<script>{{js}}</script>
+</body>
+</html>

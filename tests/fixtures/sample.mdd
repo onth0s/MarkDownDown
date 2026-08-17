@@ -1,0 +1,28 @@
+---
+title: "Test Document"
+accent: "#10b981"
+---
+
+# Hello World
+
+This is a **Markdown++** document.
+
+## Features
+
+- Wikilinks like [[Features]]
+- Diagrams and tables
+
+```diagram
+TITLE: Test Flow
+flowchart TB
+  A[Start] --> B[Process]
+  B --> C[End]
+```
+
+```table
+TITLE: Data Table
+| Name | Value |
+|------|-------|
+| Foo  | 42    |
+| Bar  | 99    |
+|
