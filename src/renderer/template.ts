@@ -61,17 +61,17 @@ export function assembleHtml(opts: AssembleOptions): string {
     if (opts.customCss) css += '\n' + opts.customCss;
     let js = opts.js;
     if (opts.customJs) js += '\n' + opts.customJs;
-    template = template.replace('<!-- SPLIT_LINK_CSS -->', '');
-    template = template.replace('<!-- SPLIT_SCRIPT_SRC -->', '');
+    template = template.replace(/<!-- SPLIT_LINK_CSS -->\n?/, '');
+    template = template.replace(/<!-- SPLIT_SCRIPT_SRC -->\n?/, '');
     template = template.replace('{{css}}', () => css);
     template = template.replace('{{js}}', () => js);
   } else {
     template = template.replace(
-      '<!-- SPLIT_LINK_CSS -->',
+      /<!-- SPLIT_LINK_CSS -->\n?/,
       `<link rel="stylesheet" href="${opts.cssHref ?? 'style.css'}">`
     );
     template = template.replace(
-      '<!-- SPLIT_SCRIPT_SRC -->',
+      /<!-- SPLIT_SCRIPT_SRC -->\n?/,
       `<script src="${opts.jsSrc ?? 'app.js'}"></script>`
     );
     template = template.replace(/<style>\{\{css\}\}<\/style>/, '');
