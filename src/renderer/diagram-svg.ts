@@ -344,7 +344,7 @@ export function diagramBuildSvg(model: DiagramModel, title: string): string {
     }
     const label = e.label;
     let labelSvg = '';
-    if (label != null) {
+    if (label) {
       const lw = textWidth(label, EDGE_LABEL_SIZE, false) + 14;
       const ly = my;
       labelSvg =

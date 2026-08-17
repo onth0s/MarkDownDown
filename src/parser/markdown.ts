@@ -10,7 +10,7 @@ import { tablePlugin } from './table.js';
 export function createMarkdownParser(): MarkdownIt {
   const md = new MarkdownIt({
     html: false,
-    linkify: true,
+    linkify: false,
     typographer: true,
   });
 

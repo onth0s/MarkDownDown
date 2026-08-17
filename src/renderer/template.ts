@@ -42,6 +42,7 @@ export interface AssembleOptions {
   css: string;
   js: string;
   body: string;
+  hero?: string;
   outputMode: 'single' | 'split';
   cssHref?: string;
   jsSrc?: string;
@@ -55,6 +56,7 @@ export function assembleHtml(opts: AssembleOptions): string {
   template = template.replace(/\{\{title\}\}/g, escAttr(opts.title));
   template = template.replace(/\{\{meta_description\}\}/g, escAttr(opts.metaDescription));
   template = template.replace('{{body}}', () => opts.body);
+  template = template.replace('{{hero}}', () => opts.hero ?? '');
 
   if (opts.outputMode === 'single') {
     let css = opts.css;

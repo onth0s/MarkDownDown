@@ -334,7 +334,7 @@ export function buildJs(accent: string): string {
   let currentMatch = -1;
 
   function escapeRegex(s) {
-    return s.replace(/[.*+?^\$\\{}()|[\\]\\\\]/g, '\\\\$&');
+    return s.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&');
   }
 
   function restoreSearchDOM() {
@@ -414,6 +414,9 @@ export function buildJs(accent: string): string {
     toc.hidden = true;
     searchResultsLabel.hidden = false;
     searchResults.hidden = false;
+
+    // Pass 1: highlight and hide non-matching nodes.
+    const headingMatches = new Set();
     for (const node of searchableNodes) {
       const plain = node.textContent || '';
       const haystack = caseSensitive ? plain : plain.toLocaleLowerCase();
@@ -424,6 +427,21 @@ export function buildJs(accent: string): string {
       }
       const found = highlightNode(node, query);
       node.hidden = found === 0;
+      if (found > 0) {
+        const h = node.closest('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]');
+        if (h) headingMatches.add(h.id);
+      }
+    }
+
+    // Pass 2: unhide content under headings that have matches.
+    let currentHeading = null;
+    for (const node of searchableNodes) {
+      const h = node.querySelector?.('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]')
+        || (node.matches?.('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]') ? node : null);
+      if (h) currentHeading = h.id;
+      if (currentHeading && headingMatches.has(currentHeading) && node.hidden) {
+        node.hidden = false;
+      }
     }
     const resultGroups = new Map();
     for (const mark of article.querySelectorAll('mark[data-search-match="true"]')) {

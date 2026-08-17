@@ -10,7 +10,11 @@ import type { Options } from '../types.js';
 
 export interface FrontmatterResult {
   /** Parsed option overrides from frontmatter */
-  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'customCss' | 'customJs'>>;
+  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'customCss' | 'customJs'>> & {
+    kicker?: string;
+    subtitle?: string;
+    pills?: string[];
+  };
   /** The markdown body with frontmatter stripped */
   body: string;
 }
@@ -42,6 +46,11 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
   if (typeof parsed['title'] === 'string') meta.title = parsed['title'];
   if (typeof parsed['author'] === 'string') meta.author = parsed['author'];
   if (typeof parsed['accent'] === 'string') meta.accent = parsed['accent'];
+  if (typeof parsed['kicker'] === 'string') meta.kicker = parsed['kicker'];
+  if (typeof parsed['subtitle'] === 'string') meta.subtitle = parsed['subtitle'];
+  if (Array.isArray(parsed['pills']) && parsed['pills'].every((p: unknown) => typeof p === 'string')) {
+    meta.pills = parsed['pills'] as string[];
+  }
 
   if (typeof parsed['assets_dir'] === 'string') {
     meta.assetsDir = path.resolve(inputDir, parsed['assets_dir']);

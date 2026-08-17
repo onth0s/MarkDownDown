@@ -47,6 +47,24 @@ export async function compile(options: Options): Promise<CompileResult> {
   const accentRgb = hexToRgb(accent);
   const assetsDir = meta.assetsDir ?? options.assetsDir;
 
+  // ── 2b. Hero section from frontmatter ───────────────────────────────────────
+  let heroHtml = '';
+  if (meta.kicker || meta.subtitle || meta.pills?.length) {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    heroHtml = '<section class="hero">';
+    if (meta.kicker) heroHtml += `<div class="kicker">${esc(meta.kicker)}</div>`;
+    if (title) heroHtml += `<h1>${esc(title)}</h1>`;
+    if (meta.subtitle) heroHtml += `<p>${esc(meta.subtitle)}</p>`;
+    if (meta.pills?.length) {
+      heroHtml += '<div class="meta">';
+      for (const pill of meta.pills) {
+        heroHtml += `<span class="pill">${esc(pill)}</span>`;
+      }
+      heroHtml += '</div>';
+    }
+    heroHtml += '</section>';
+  }
+
   // ── 3. Lex ──────────────────────────────────────────────────────────────────
   const md = createMarkdownParser();
   const tokens = md.parse(markdownBody, {});
@@ -190,7 +208,23 @@ export async function compile(options: Options): Promise<CompileResult> {
     );
   }
 
-  // ── 11. Build CSS / JS ───────────────────────────────────────────────────────
+  // ── 11. Wrap code blocks + copy buttons ──────────────────────────────────────
+  // Insert copy button into diagram/table code-wrap divs.
+  bodyHtml = bodyHtml.replace(
+    /(<div class="code-wrap (?:diagram|table)"[^>]*>)(<pre><code)/g,
+    '$1<button class="copy-btn" type="button">Copy</button>$2'
+  );
+  // Wrap bare <pre><code> (not inside a code-wrap) in new code-wrap with copy button.
+  bodyHtml = bodyHtml.replace(
+    /(?<!>)<pre><code/g,
+    '<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code'
+  );
+  bodyHtml = bodyHtml.replace(
+    /(?<!<\/div>)<\/code><\/pre>(?!\s*<div)/g,
+    '</code></pre></div>'
+  );
+
+  // ── 12. Build CSS / JS ───────────────────────────────────────────────────────
   const css = buildCss(accent, accentRgb);
   const js = buildJs(accent);
 
@@ -210,6 +244,7 @@ export async function compile(options: Options): Promise<CompileResult> {
     css,
     js,
     body: bodyHtml,
+    hero: heroHtml,
     outputMode: options.outputMode,
     cssHref: 'style.css',
     jsSrc: 'app.js',
