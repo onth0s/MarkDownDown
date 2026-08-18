@@ -55,7 +55,7 @@ describe('TOC generation', () => {
     expect(js).toMatch(/toc\.replaceChildren\(\)/);
   });
 
-  test('creates document title entry with __doc-title__ target', () => {
+  test('creates document title entry with __doc-title__ target when hero is present', () => {
     expect(js).toMatch(/titleA\.dataset\.target = '__doc-title__'/);
   });
 
@@ -87,24 +87,16 @@ describe('Scroll spy', () => {
     expect(js).toMatch(/const tocLinks = \[\.\.\.toc\.querySelectorAll\('a'\)\]/);
   });
 
-  test('detectActiveHeading returns __doc-title__ at scrollY 0', () => {
-    expect(js).toMatch(/if \(window\.scrollY === 0\) return '__doc-title__'/);
+  test('detectActiveHeading returns __doc-title__ at scrollY 0 when hero is present', () => {
+    expect(js).toMatch(/if \(window\.scrollY === 0\) return hasHero \? '__doc-title__' :/);
   });
 
   test('detectActiveHeading uses THRESHOLD constant', () => {
-    expect(js).toMatch(/const THRESHOLD = 100/);
+    expect(js).toMatch(/const THRESHOLD = 92/);
   });
 
-  test('detectActiveHeading iterates headingOffsets', () => {
-    expect(js).toMatch(/headingOffsets\[i\] <= window\.scrollY \+ THRESHOLD/);
-  });
-
-  test('precomputes heading offsets', () => {
-    expect(js).toMatch(/const headingOffsets = headings\.map\(h => headingOffsetTop\(h\)\)/);
-  });
-
-  test('headingOffsetTop walks offsetParent chain', () => {
-    expect(js).toMatch(/while \(el\) \{ top \+= el\.offsetTop; el = el\.offsetParent; \}/);
+  test('headingOffsetTop calculates element top relative to document', () => {
+    expect(js).toMatch(/return el\.getBoundingClientRect\(\)\.top \+ window\.scrollY/);
   });
 
   test('setActive guards against duplicate calls', () => {
@@ -158,7 +150,7 @@ describe('Scroll spy', () => {
   });
 
   test('updateScrollUI called once on init', () => {
-    expect(js).toMatch(/setTimeout\(\(\) => \{[\s\S]*?doScrollUpdate\(\);[\s\S]*?initialScrollDone = true/);
+    expect(js).toMatch(/doScrollUpdate\(\);[\s\S]*?initialScrollDone = true/);
   });
 });
 
@@ -190,7 +182,15 @@ describe('Hash navigation', () => {
   });
 
   test('initial hash scrolls to target on load', () => {
-    expect(js).toMatch(/if \(location\.hash\)[\s\S]*?target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+    expect(js).toMatch(/if \(initialHash\)[\s\S]*?window\.scrollTo/);
+  });
+
+  test('saves active section and scroll state to sessionStorage', () => {
+    expect(js).toMatch(/sessionStorage\.setItem\(scrollStateKey, JSON\.stringify\(\{ id, y: window\.scrollY \}\)\)/);
+  });
+
+  test('restores saved state from sessionStorage on page load', () => {
+    expect(js).toMatch(/savedState = JSON\.parse\(sessionStorage\.getItem\(scrollStateKey\) \|\| 'null'\)/);
   });
 });
 
@@ -365,7 +365,7 @@ describe('Section title heading anchors', () => {
 
   test('heading anchor click copies section URL to clipboard and temporarily displays Copied label', () => {
     expect(js).toMatch(/navigator\.clipboard\.writeText\(url\)/);
-    expect(js).toMatch(/anchor\.textContent = 'Copied'/);
+    expect(js).toMatch(/anchor\.textContent = 'Link copied!'/);
     expect(js).toMatch(/anchor\.classList\.add\('copied'\)/);
   });
 

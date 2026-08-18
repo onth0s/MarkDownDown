@@ -32,8 +32,9 @@ export function injectDiagramSvgs(html: string, docTitle: string, warnings: stri
         }
         const safeContent = escHtml(rawCode);
         const wrapperClass = model.direction === 'auto' ? 'code-wrap diagram diagram-auto' : 'code-wrap diagram';
+        const labelsJson = escAttr(JSON.stringify(model.labels));
         return (
-          `<div class="${wrapperClass}" data-title="${escAttr(diagTitle)}">` +
+          `<div class="${wrapperClass}" data-title="${escAttr(diagTitle)}" data-labels="${labelsJson}">` +
           `<pre><code class="language-diagram">${safeContent}</code></pre>` +
           `<div class="diagram-render">${svg}</div>` +
           `</div>`

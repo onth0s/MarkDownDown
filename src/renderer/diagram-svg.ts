@@ -79,11 +79,12 @@ export function diagramParse(source: string): DiagramModel {
     return ord - 1;
   };
 
-  const ensureNode = (id: string, label?: string, shape?: NodeShape): DiagramNode => {
-    if (!model.nodes.has(id)) {
+  const ensureNode = (id: string, label?: string, shape?: NodeShape, offset?: number): DiagramNode => {
+    let node = model.nodes.get(id);
+    if (!node) {
       const raw = label ?? id;
       const parts = raw.split(' — ');
-      const node: DiagramNode = {
+      node = {
         id,
         label: parts[0].trim(),
         subtitle: parts[1]?.trim() ?? '',
@@ -91,23 +92,23 @@ export function diagramParse(source: string): DiagramModel {
         rank: 0,
         order: model.nodes.size,
         x: 0, y: 0, w: C.MIN_W, h: 36,
-        labelOrd: pushLabel(raw, charPos),
+        labelOrd: pushLabel(raw, offset ?? charPos),
         titleLines: [],
         subLines: [],
       };
       model.nodes.set(id, node);
     } else if (label !== undefined) {
-      const n = model.nodes.get(id)!;
       const parts = label.split(' — ');
-      n.label = parts[0].trim();
-      n.subtitle = parts[1]?.trim() ?? '';
-      if (shape) n.shape = shape;
+      node.label = parts[0].trim();
+      node.subtitle = parts[1]?.trim() ?? '';
+      if (shape) node.shape = shape;
     }
-    return model.nodes.get(id)!;
+    return node;
   };
 
   const lines = source.split(/\r?\n/);
   for (const rawLine of lines) {
+    const lineStartPos = charPos;
     charPos += rawLine.length + 1;
     const line = rawLine.trim();
     if (!line || line.startsWith('%%')) continue;
@@ -119,9 +120,9 @@ export function diagramParse(source: string): DiagramModel {
     }
 
     const edgePatterns = [
-      /^(\S+)\s+-->\|([^|]*)\|\s+(\S+)$/,
-      /^(\S+)\s+--\s+(.+?)\s+-->\s+(\S+)$/,
-      /^(\S+)\s+(-->|---)\s+(\S+)$/,
+      /^(\S+.*?\]|\S+.*?\)\s*|\S+.*?\}\s*|\S+)\s+-->\|([^|]*)\|\s+(.+)$/,
+      /^(\S+.*?\]|\S+.*?\)\s*|\S+.*?\}\s*|\S+)\s+--\s+(.+?)\s+-->\s+(.+)$/,
+      /^(\S+.*?\]|\S+.*?\)\s*|\S+.*?\}\s*|\S+)\s+(-->|---)\s+(.+)$/,
     ];
 
     let edgeMatched = false;
@@ -129,30 +130,34 @@ export function diagramParse(source: string): DiagramModel {
       const m = line.match(pat);
       if (!m) continue;
       edgeMatched = true;
-      const fromRaw = m[1], toRaw = m[3];
+      const fromRaw = m[1].trim(), toRaw = m[3].trim();
       const edgeLabel = pat === edgePatterns[0] ? m[2] : pat === edgePatterns[1] ? m[2] : '';
       const directed = !line.includes('---') || line.includes('-->');
 
       const parseInlineNode = (raw: string): string => {
         let match: RegExpMatchArray | null = null;
         let shape: NodeShape = 'rect';
-        const im1 = raw.match(/^([A-Za-z0-9_.\\-]+)\["?([^"]+)"?\]$/);
-        const im2 = raw.match(/^([A-Za-z0-9_.\\-]+)\(["']?(.+?)["']?\)$/);
-        const im3 = raw.match(/^([A-Za-z0-9_.\\-]+)\{["']?(.+?)["']?\}$/);
+        const im1 = raw.match(/^([A-Za-z0-9_.\\-]+)\["?([^"\]]+)"?\]$/);
+        const im2 = raw.match(/^([A-Za-z0-9_.\\-]+)\(["']?([^"')]+)["']?\)$/);
+        const im3 = raw.match(/^([A-Za-z0-9_.\\-]+)\{["']?([^"'}]+)["']?\}$/);
         if (im1) { match = im1; shape = 'rect'; }
         else if (im2) { match = im2; shape = 'rounded'; }
         else if (im3) { match = im3; shape = 'diamond'; }
         if (match) {
-          ensureNode(match[1], match[2], shape);
+          const rawIdxInLine = rawLine.indexOf(raw);
+          const nodeOffset = rawIdxInLine >= 0 ? lineStartPos + rawIdxInLine : lineStartPos;
+          ensureNode(match[1], match[2], shape, nodeOffset);
           return match[1];
         }
-        ensureNode(raw);
+        const rawIdxInLine = rawLine.indexOf(raw);
+        const nodeOffset = rawIdxInLine >= 0 ? lineStartPos + rawIdxInLine : lineStartPos;
+        ensureNode(raw, undefined, undefined, nodeOffset);
         return raw;
       };
 
       const fromId = parseInlineNode(fromRaw);
       const toId = parseInlineNode(toRaw);
-      const elOrd = edgeLabel ? pushLabel(edgeLabel, charPos) : -1;
+      const elOrd = edgeLabel ? pushLabel(edgeLabel, lineStartPos + rawLine.indexOf(edgeLabel)) : -1;
       model.edges.push({ from: fromId, to: toId, label: edgeLabel, directed, labelOrd: elOrd });
       break;
     }
@@ -161,20 +166,22 @@ export function diagramParse(source: string): DiagramModel {
     let nodeMatched = false;
     let nFull: RegExpMatchArray | null = null;
     let nShape: NodeShape = 'rect';
-    const nm1 = line.match(/^([A-Za-z0-9_.\\-]+)\["?([^"]+)"?\]$/);
-    const nm2 = line.match(/^([A-Za-z0-9_.\\-]+)\(["']?(.+?)["']?\)$/);
-    const nm3 = line.match(/^([A-Za-z0-9_.\\-]+)\{["']?(.+?)["']?\}$/);
+    const nm1 = line.match(/^([A-Za-z0-9_.\\-]+)\["?([^"\]]+)"?\]$/);
+    const nm2 = line.match(/^([A-Za-z0-9_.\\-]+)\(["']?([^"')]+)["']?\)$/);
+    const nm3 = line.match(/^([A-Za-z0-9_.\\-]+)\{["']?([^"'}]+)["']?\}$/);
     if (nm1) { nFull = nm1; nShape = 'rect'; nodeMatched = true; }
     else if (nm2) { nFull = nm2; nShape = 'rounded'; nodeMatched = true; }
     else if (nm3) { nFull = nm3; nShape = 'diamond'; nodeMatched = true; }
     if (nodeMatched && nFull) {
-      ensureNode(nFull[1], nFull[2], nShape);
+      const rawIdxInLine = rawLine.indexOf(line);
+      const nodeOffset = rawIdxInLine >= 0 ? lineStartPos + rawIdxInLine : lineStartPos;
+      ensureNode(nFull[1], nFull[2], nShape, nodeOffset);
       continue;
     }
 
     const bareNode = line.match(/^([A-Za-z0-9_.\\-]+)$/);
     if (bareNode) {
-      ensureNode(bareNode[1]);
+      ensureNode(bareNode[1], undefined, undefined, lineStartPos + rawLine.indexOf(line));
     }
   }
 
@@ -308,7 +315,8 @@ function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string
     const sx = model.cx.get(e.from)!;
     const sy = model.cy.get(e.from)! + from.h / 2;
     const ex = model.cx.get(e.to)!;
-    const ey = model.cy.get(e.to)! - to.h / 2;
+    const ARROW_OFFSET = 6;
+    const ey = model.cy.get(e.to)! - to.h / 2 - (e.directed ? ARROW_OFFSET : 0);
 
     let d: string;
     let mx: number, my: number;
@@ -435,7 +443,8 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
 
     const sx = fromNd.lrX + fromNd.w / 2;
     const sy = fromNd.lrY;
-    const ex = toNd.lrX - toNd.w / 2;
+    const ARROW_OFFSET = 6;
+    const ex = toNd.lrX - toNd.w / 2 - (e.directed ? ARROW_OFFSET : 0);
     const ey = toNd.lrY;
 
     let d: string;

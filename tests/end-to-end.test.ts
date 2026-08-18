@@ -194,6 +194,27 @@ describe('end-to-end: compile pipeline', () => {
     expect(result.html).toContain('<title>mydoc</title>');
   });
 
+  test('compiles Refactoring Strategy.mdd ground truth without errors and with serialized diagram labels and alerts', async () => {
+    const strategyFile = path.resolve('scratch/Refactoring Strategy.mdd');
+    if (fs.existsSync(strategyFile)) {
+      const opts: Options = {
+        inputFile: strategyFile,
+        outputPath: path.join(tmpDir, 'strategy.html'),
+        outputMode: 'single',
+        assetsDir: path.resolve('scratch/assets'),
+        title: 'Refactoring Strategy',
+        accent: '#ec4899',
+        noDiagrams: false,
+        noTables: false,
+        verbose: false,
+      };
+      const result = await compile(opts);
+      expect(result.html).toContain('class="alert alert-important"');
+      expect(result.html).toContain('data-labels=');
+      expect(result.html).toContain('Phase 6: Full Verification, Documentation &amp; Final Polish');
+    }
+  });
+
   test('zero warnings on clean input', async () => {
     const inputFile = path.join(tmpDir, 'test.mdd');
     fs.writeFileSync(inputFile, SIMPLE_MDD);

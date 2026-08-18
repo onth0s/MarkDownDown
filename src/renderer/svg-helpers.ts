@@ -45,5 +45,5 @@ export function wrapText(text: string, size: number, bold: boolean, maxW: number
 
 /** Build an SVG <marker> definition for arrowheads. */
 export function buildArrowMarker(id: string): string {
-  return `<defs><marker id="${id}" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>`;
+  return `<defs><marker id="${id}" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L8,5 L0,9 z" fill="var(--accent)" stroke="var(--accent)" stroke-linejoin="round"/></marker></defs>`;
 }

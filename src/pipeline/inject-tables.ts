@@ -23,8 +23,9 @@ export function injectTableSvgs(html: string, docTitle: string, warnings: string
         }
         const svg = tableBuildSvg(model, tblTitle);
         const safeContent = escHtml(rawCode);
+        const labelsJson = escAttr(JSON.stringify(model.labels));
         return (
-          `<div class="code-wrap table" data-title="${escAttr(tblTitle)}">` +
+          `<div class="code-wrap table" data-title="${escAttr(tblTitle)}" data-labels="${labelsJson}">` +
           `<pre><code class="language-table">${safeContent}</code></pre>` +
           `<div class="table-render">${svg}</div>` +
           `</div>`

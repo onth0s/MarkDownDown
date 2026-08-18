@@ -91,14 +91,17 @@
   const headings = [...article.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')]
     .filter(h => !h.closest('.hero'));
 
+  const hasHero = !!article.querySelector('.hero');
   toc.replaceChildren();
-  const titleLi = document.createElement('li');
-  const titleA = document.createElement('a');
-  titleA.textContent = document.title || 'Untitled';
-  titleA.className = 'l1';
-  titleA.dataset.target = '__doc-title__';
-  titleLi.appendChild(titleA);
-  toc.appendChild(titleLi);
+  if (hasHero) {
+    const titleLi = document.createElement('li');
+    const titleA = document.createElement('a');
+    titleA.textContent = document.title || 'Untitled';
+    titleA.className = 'l1';
+    titleA.dataset.target = '__doc-title__';
+    titleLi.appendChild(titleA);
+    toc.appendChild(titleLi);
+  }
   headings.forEach((heading) => {
     const li = document.createElement('li');
     const a = document.createElement('a');
@@ -156,10 +159,15 @@
     if (window.innerWidth <= 900) body.classList.remove('nav-open');
     tocScrollActive = true;
 
-    let url = `${window.location.origin}${window.location.pathname}${window.location.search}`;
-    if (targetId === '__doc-title__' || !targetId) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setActive('__doc-title__');
+    const isFirstHeadingNoHero = !hasHero && targetId && headings[0]?.id === targetId;
+    if (targetId === '__doc-title__' || !targetId || isFirstHeadingNoHero) {
+      if (targetId === '__doc-title__' || !targetId) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        const heading = document.getElementById(targetId);
+        if (heading) heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      setActive(targetId || '__doc-title__');
     } else {
       const heading = document.getElementById(targetId);
       if (heading) {
@@ -307,14 +315,17 @@
   let lastActiveId = null;
   let initialScrollDone = false;
   let tocScrollActive = false;
-
+  const scrollStateKey = `mdd_scroll_${location.pathname}`;
   function setActive(id) {
     if (!id || id === lastActiveId) return;
     lastActiveId = id;
-    if (id === '__doc-title__' && history.replaceState && location.hash) {
+    const isBareTarget = id === '__doc-title__' || (!hasHero && (id === headings[0]?.id && window.scrollY === 0));
+    if (isBareTarget && history.replaceState && location.hash) {
       history.replaceState(null, '', location.pathname + location.search);
-    } else if (id !== '__doc-title__' && history.replaceState && location.hash !== `#${id}`) {
+      try { sessionStorage.setItem(scrollStateKey, JSON.stringify({ id: '', y: window.scrollY })); } catch (_) {}
+    } else if (!isBareTarget && id !== '__doc-title__' && history.replaceState && location.hash !== `#${id}`) {
       history.replaceState(null, '', `#${id}`);
+      try { sessionStorage.setItem(scrollStateKey, JSON.stringify({ id, y: window.scrollY })); } catch (_) {}
     }
     const activeLink = tocLinks.find(a => a.dataset.target === id);
     tocLinks.forEach(a => a.classList.toggle('active', a === activeLink));
@@ -324,38 +335,42 @@
     const sidebarCenter = sidebarRect.top + sidebarRect.height / 2;
     const linkCenter = linkRect.top + linkRect.height / 2;
     const delta = linkCenter - sidebarCenter;
-    if (Math.abs(delta) > sidebarRect.height * 0.18) {
-      const target = Math.max(0, Math.min(
-        Math.max(0, sidebar.scrollHeight - sidebar.clientHeight),
-        sidebar.scrollTop + delta
-      ));
-      if (!initialScrollDone) {
-        sidebar.scrollTop = target;
-        initialScrollDone = true;
-      } else {
-        animateSidebarTo(target, 440);
-      }
-    } else if (!initialScrollDone) {
-      initialScrollDone = true;
+    const maxSidebarScroll = Math.max(0, sidebar.scrollHeight - sidebar.clientHeight);
+    const target = Math.max(0, Math.min(maxSidebarScroll, sidebar.scrollTop + delta));
+
+    if (!initialScrollDone) {
+      sidebar.scrollTop = target;
+    } else if (Math.abs(delta) > sidebarRect.height * 0.18) {
+      animateSidebarTo(target, 440);
     }
   }
 
   function headingOffsetTop(el) {
-    let top = 0;
-    while (el) { top += el.offsetTop; el = el.offsetParent; }
-    return top;
+    return el.getBoundingClientRect().top + window.scrollY;
   }
 
-  const headingOffsets = headings.map(h => headingOffsetTop(h));
-
   function detectActiveHeading() {
-    if (window.scrollY === 0) return '__doc-title__';
-    const THRESHOLD = 100;
-    let idx = 0;
+    if (window.scrollY === 0) return hasHero ? '__doc-title__' : (headings[0]?.id ?? null);
+    if (!headings.length) return null;
+
+    const THRESHOLD = 92;
+    let activeIdx = 0;
     for (let i = 0; i < headings.length; i++) {
-      if (headingOffsets[i] <= window.scrollY + THRESHOLD) idx = i;
+      const top = headingOffsetTop(headings[i]);
+      if (top <= window.scrollY + THRESHOLD) {
+        activeIdx = i;
+      }
     }
-    return headings[idx]?.id ?? null;
+
+    const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    if (window.scrollY >= maxScroll - 4) {
+      const lastTop = headingOffsetTop(headings[headings.length - 1]);
+      if (lastTop <= window.scrollY + THRESHOLD) {
+        activeIdx = headings.length - 1;
+      }
+    }
+
+    return headings[activeIdx]?.id ?? null;
   }
 
   let ticking = false;
@@ -406,22 +421,74 @@
 
   function syncDiagramHighlights() {
     for (const container of [...diagramContainers, ...tableContainers]) {
-      const svg = container.querySelector('.diagram-render svg, .table-render svg');
-      const model = container.__diagramModel;
-      if (!svg || !model) continue;
+      const svgs = [...container.querySelectorAll('.diagram-render svg, .table-render svg')];
+      if (!svgs.length) continue;
+      let labels = container.__diagramModel?.labels;
+      if (!labels && container.dataset.labels) {
+        try { labels = JSON.parse(container.dataset.labels); } catch (_) {}
+      }
       const codeEl = container.querySelector('code');
-      const byOrd = new Map();
-      svg.querySelectorAll('[data-label-ord]').forEach(g =>
-        byOrd.set(Number(g.getAttribute('data-label-ord')), g));
-      for (const g of byOrd.values()) g.classList.remove('is-hit', 'is-current');
-      for (const mark of container.querySelectorAll('mark[data-search-match="true"]')) {
-        const off = codeEl ? sourceOffsetOf(mark, codeEl) : -1;
-        if (off < 0) continue;
-        const label = model.labels.find(l => off >= l.offset && off < l.offset + l.text.length);
-        const g = label && byOrd.get(label.ord);
-        if (!g) continue;
-        g.classList.add('is-hit');
-        if (mark.classList.contains('search-current')) g.classList.add('is-current');
+      const marks = [...container.querySelectorAll('mark[data-search-match="true"]')];
+
+      for (const svg of svgs) {
+        const byOrd = new Map();
+        svg.querySelectorAll('[data-label-ord]').forEach(g => {
+          byOrd.set(Number(g.getAttribute('data-label-ord')), g);
+          g.classList.remove('is-hit', 'is-current');
+          // Restore original text in text nodes if modified
+          g.querySelectorAll('text').forEach(t => {
+            if (t.dataset.origText !== undefined) {
+              t.textContent = t.dataset.origText;
+              delete t.dataset.origText;
+            }
+          });
+        });
+
+        for (const mark of marks) {
+          const off = codeEl ? sourceOffsetOf(mark, codeEl) : -1;
+          let matchedG = null;
+
+          if (labels && off >= 0) {
+            const label = labels.find(l => off >= l.offset && off < l.offset + l.text.length);
+            if (label) matchedG = byOrd.get(label.ord);
+          }
+
+          const markText = (mark.textContent || '').trim();
+          if (!matchedG && markText.length >= 2) {
+            const lowerMark = markText.toLowerCase();
+            for (const g of byOrd.values()) {
+              const nodeText = (g.textContent || '').toLowerCase();
+              if (nodeText.includes(lowerMark)) {
+                matchedG = g;
+                break;
+              }
+            }
+          }
+
+          if (matchedG) {
+            matchedG.classList.add('is-hit');
+            const isCurrent = mark.classList.contains('search-current');
+            if (isCurrent) matchedG.classList.add('is-current');
+
+            // Highlight the exact word in the SVG text nodes using tspans
+            if (markText.length >= 1) {
+              const needle = caseSensitive ? markText : markText.toLowerCase();
+              matchedG.querySelectorAll('text').forEach(t => {
+                const orig = t.dataset.origText ?? t.textContent;
+                t.dataset.origText = orig;
+                const haystack = caseSensitive ? orig : orig.toLowerCase();
+                const idx = haystack.indexOf(needle);
+                if (idx >= 0) {
+                  const before = orig.slice(0, idx);
+                  const hit = orig.slice(idx, idx + needle.length);
+                  const after = orig.slice(idx + needle.length);
+                  const hitClass = isCurrent ? 'svg-mark is-current' : 'svg-mark is-hit';
+                  t.innerHTML = `${before}<tspan class="${hitClass}">${hit}</tspan>${after}`;
+                }
+              });
+            }
+          }
+        }
       }
     }
   }
@@ -565,7 +632,31 @@
       }
     }
     const resultGroups = new Map();
+    const seenNodesPerContainer = new Map();
+
     for (const mark of article.querySelectorAll('mark[data-search-match="true"]')) {
+      const container = mark.closest('.code-wrap.diagram, .code-wrap.table');
+      if (container) {
+        // Deduplicate multiple token matches within the same diagram node line so each node is 1 match in sequence
+        const codeEl = container.querySelector('code');
+        const off = codeEl ? sourceOffsetOf(mark, codeEl) : -1;
+        let labels = container.__diagramModel?.labels;
+        if (!labels && container.dataset.labels) {
+          try { labels = JSON.parse(container.dataset.labels); } catch (_) {}
+        }
+        let ord = -1;
+        if (labels && off >= 0) {
+          const label = labels.find(l => off >= l.offset && off < l.offset + l.text.length);
+          if (label) ord = label.ord;
+        }
+        if (ord >= 0) {
+          let seen = seenNodesPerContainer.get(container);
+          if (!seen) { seen = new Set(); seenNodesPerContainer.set(container, seen); }
+          if (seen.has(ord)) continue;
+          seen.add(ord);
+        }
+      }
+
       const heading = headingForNode(mark);
       const key = heading?.id || '__unsectioned__';
       const item = { mark, heading };
@@ -612,8 +703,7 @@
     }
     document.getElementById('prevBtn').disabled = false;
     document.getElementById('nextBtn').disabled = false;
-    updateSearchState();
-    matches[0].mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    goToMatch(0);
   }
 
   function updateSearchState() {
@@ -637,12 +727,24 @@
   function goToMatch(index) {
     if (!matches.length) return;
     currentMatch = (index + matches.length) % matches.length;
-    const targetHeading = matches[currentMatch].heading;
+    const item = matches[currentMatch];
+    const targetHeading = item.heading;
     if (targetHeading?.id && history.replaceState) {
       history.replaceState(null, '', `#${targetHeading.id}`);
     }
-    matches[currentMatch].mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
     updateSearchState();
+
+    const container = item.mark.closest('.code-wrap.diagram, .code-wrap.table');
+    if (container) {
+      const activeSvgNode = container.querySelector('.diagram-render .is-current, .table-render .is-current');
+      if (activeSvgNode) {
+        activeSvgNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      } else {
+        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else {
+      item.mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 
   const clearSearchBtn = document.getElementById('clearSearchBtn');
@@ -722,13 +824,28 @@
     }
   });
 
-  // Land on hash target and do initial sidebar snap after browser restores scroll.
-  setTimeout(() => {
-    doScrollUpdate();
-    initialScrollDone = true;
-    if (location.hash) {
-      const target = document.getElementById(location.hash.slice(1));
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Land on hash target or restore exact saved state after browser restores scroll.
+  let savedState = null;
+  try { savedState = JSON.parse(sessionStorage.getItem(scrollStateKey) || 'null'); } catch (_) {}
+
+  const initialHash = location.hash ? decodeURIComponent(location.hash.slice(1)) : null;
+  if (initialHash) {
+    const target = document.getElementById(initialHash);
+    if (target) {
+      const targetTop = headingOffsetTop(target);
+      const expectedY = Math.max(0, targetTop - 88);
+      if (savedState && savedState.id === initialHash && typeof savedState.y === 'number') {
+        window.scrollTo(0, savedState.y);
+      } else if (window.scrollY === 0 || Math.abs(window.scrollY - expectedY) > 80) {
+        window.scrollTo(0, expectedY);
+      }
+      setActive(initialHash);
     }
-  }, 0);
+  } else if (savedState && typeof savedState.y === 'number' && window.scrollY === 0) {
+    window.scrollTo(0, savedState.y);
+    if (savedState.id) setActive(savedState.id);
+  }
+
+  doScrollUpdate();
+  initialScrollDone = true;
 })();
