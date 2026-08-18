@@ -9,23 +9,24 @@ import { escHtml as esc } from '../util/escape.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
-const TITLE_SIZE = 13;
-const SUB_SIZE = 12;
-const TITLE_H = 18;
-const SUB_H = 17;
-const MIN_W = 110;
-const MAX_W = 260;
-const PADX = 20;
-const PADY = 14;
+const TITLE_SIZE = 16;
+const SUB_SIZE = 14;
+const TITLE_H = 22;
+const SUB_H = 20;
+const MIN_W = 140;
+const MAX_W = 400;
+const PADX = 28;
+const PADY = 18;
 const H_GAP = 48;
 const V_GAP = 56;
 const PAD = 24;
 const EDGE_LABEL_SIZE = 11;
 const EDGE_LABEL_H = 16;
 
-function textWidth(text: string, size: number, _bold: boolean): number {
-  const avgCharW = size <= 11 ? 6.8 : size <= 12 ? 7.5 : 8.2;
-  return text.length * avgCharW;
+function textWidth(text: string, size: number, bold: boolean): number {
+  const base = size <= 11 ? 7.2 : size <= 12 ? 8.0 : 8.8;
+  const boldExtra = bold ? 0.6 : 0;
+  return text.length * (base + boldExtra);
 }
 
 function wrapText(text: string, size: number, bold: boolean, maxW: number): string[] {
