@@ -284,4 +284,17 @@ A["Client"] --> B["Gateway"]
     expect(result.html).toContain('Client');
     expect(result.html).toContain('Gateway');
   });
+
+  test('splices slash sequences in text with <wbr> for mobile responsive word-wrapping', async () => {
+    const SLASH_MDD = `# Spec
+
+* fragmentation (Theory/Principles/Protocols/Mechanisms/Reference)
+`;
+    const inputFile = path.join(tmpDir, 'slash.mdd');
+    fs.writeFileSync(inputFile, SLASH_MDD);
+    const opts = baseOptions(inputFile, tmpDir);
+    const result = await compile(opts);
+
+    expect(result.html).toContain('Theory/<wbr>Principles/<wbr>Protocols/<wbr>Mechanisms/<wbr>Reference');
+  });
 });

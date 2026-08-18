@@ -103,5 +103,12 @@ export function createMarkdownParser(): MarkdownIt {
   tablePlugin(md);
   wikilinkPlugin(md);
 
+  // Splice word/word slashes in plain text with <wbr> break opportunities for mobile responsive wrapping
+  const defaultTextRender = md.renderer.rules.text || ((tokens, idx) => md.utils.escapeHtml(tokens[idx].content));
+  md.renderer.rules.text = (tokens, idx, options, env, self) => {
+    const rendered = defaultTextRender(tokens, idx, options, env, self);
+    return rendered.replace(/([a-zA-Z0-9_\u00C0-\u024F])\/([a-zA-Z0-9_\u00C0-\u024F])/g, '$1/<wbr>$2');
+  };
+
   return md;
 }
