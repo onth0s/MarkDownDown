@@ -128,7 +128,13 @@ describe('Scroll spy', () => {
   });
 
   test('scrolls sidebar to center active link when off-center', () => {
-    expect(js).toMatch(/animateSidebarTo\(sidebar\.scrollTop \+ delta, 440\)/);
+    expect(js).toMatch(/animateSidebarTo\(target, 440\)/);
+  });
+
+  test('snaps sidebar on first call instead of animating', () => {
+    expect(js).toMatch(/let initialScrollDone = false/);
+    expect(js).toMatch(/if \(!initialScrollDone\)/);
+    expect(js).toMatch(/sidebar\.scrollTop = target/);
   });
 
   test('updateScrollUI is bound to window scroll event', () => {
@@ -152,8 +158,8 @@ describe('Scroll spy', () => {
   });
 
   test('updateScrollUI called once on init', () => {
-    const scrollSpyBlock = js.slice(js.indexOf('updateScrollUI()'), js.indexOf('backtop.addEventListener'));
-    expect(scrollSpyBlock).toMatch(/updateScrollUI\(\);/);
+    const scrollSpyBlock = js.slice(js.indexOf('doScrollUpdate()'), js.indexOf('backtop.addEventListener'));
+    expect(scrollSpyBlock).toMatch(/doScrollUpdate\(\)/);
   });
 });
 

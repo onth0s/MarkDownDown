@@ -223,6 +223,7 @@ export function buildJs(accent: string): string {
   }
 
   let lastActiveId = null;
+  let initialScrollDone = false;
 
   function setActive(id) {
     if (!id || id === lastActiveId) return;
@@ -239,7 +240,18 @@ export function buildJs(accent: string): string {
     const linkCenter = linkRect.top + linkRect.height / 2;
     const delta = linkCenter - sidebarCenter;
     if (Math.abs(delta) > sidebarRect.height * 0.18) {
-      animateSidebarTo(sidebar.scrollTop + delta, 440);
+      const target = Math.max(0, Math.min(
+        Math.max(0, sidebar.scrollHeight - sidebar.clientHeight),
+        sidebar.scrollTop + delta
+      ));
+      if (!initialScrollDone) {
+        sidebar.scrollTop = target;
+        initialScrollDone = true;
+      } else {
+        animateSidebarTo(target, 440);
+      }
+    } else if (!initialScrollDone) {
+      initialScrollDone = true;
     }
   }
 
@@ -263,22 +275,24 @@ export function buildJs(accent: string): string {
 
   let ticking = false;
   let pendingTick = false;
+  function doScrollUpdate() {
+    const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    progress.style.width = \`\${Math.min(100, Math.max(0, window.scrollY / max * 100))}%\`;
+    const id = detectActiveHeading();
+    if (id) setActive(id);
+    ticking = false;
+    if (pendingTick) { pendingTick = false; updateScrollUI(); }
+  }
   function updateScrollUI() {
     if (ticking) { pendingTick = true; return; }
     ticking = true;
-    requestAnimationFrame(() => {
-      const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-      progress.style.width = \`\${Math.min(100, Math.max(0, window.scrollY / max * 100))}%\`;
-      const id = detectActiveHeading();
-      if (id) setActive(id);
-      ticking = false;
-      if (pendingTick) { pendingTick = false; updateScrollUI(); }
-    });
+    requestAnimationFrame(doScrollUpdate);
   }
 
   window.addEventListener('scroll', updateScrollUI, { passive: true });
   window.addEventListener('resize', updateScrollUI);
-  updateScrollUI();
+  doScrollUpdate();
+  initialScrollDone = true;
 
   backtop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
