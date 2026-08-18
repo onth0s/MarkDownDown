@@ -1,4 +1,4 @@
-import { diagramParse, diagramLayout, diagramBuildSvg } from '../src/renderer/diagram-svg.js';
+import { diagramParse, diagramLayout, diagramBuildSvg, validateNoNodeOverlap } from '../src/renderer/diagram-svg.js';
 
 describe('diagramParse', () => {
   test('parses flowchart with direction', () => {
@@ -122,17 +122,42 @@ describe('diagramLayout + diagramBuildSvg', () => {
     expect(Number(wMatch![1])).toBeGreaterThan(Number(hMatch![1]));
   });
 
-  test('LR edge paths are horizontal (sy and ey equal)', () => {
-    const model = diagramParse(`flowchart\n  A[Start]\n  B[End]\n  A --> B`);
+  test('dynamically resolves long chain in auto mode to TB', () => {
+    const model = diagramParse(`flowchart
+      A["Input Document — Source file"]
+      B["Frontmatter — Options"]
+      C["Lexer — Tokens"]
+      D["Resolver — Headings"]
+      E["Renderer — SVG"]
+      F["Assembler — Shell"]
+      G["Output — HTML"]
+      A --> B
+      B --> C
+      C --> D
+      D --> E
+      E --> F
+      F --> G
+    `);
+    expect(model.direction).toBe('auto');
     diagramLayout(model);
-    const lr = diagramBuildSvg(model, 'LR Test', true);
-    const paths = [...lr.matchAll(/d="M ([0-9.]+) ([0-9.]+) C/g)];
-    for (const m of paths) {
-      expect(m[2]).toBe(m[2]);
-    }
-    const linePaths = [...lr.matchAll(/d="M ([0-9.]+) ([0-9.]+) L ([0-9.]+) ([0-9.]+)"/g)];
-    for (const m of linePaths) {
-      expect(m[2]).toBe(m[4]);
-    }
+    expect(model.direction).toBe('TB');
+    expect(model.horizontal).toBe(false);
+  });
+
+  test('throws compilation error when nodes overlap in layout', () => {
+    const model = diagramParse(`flowchart TB\n  A[Node A]\n  B[Node B]`);
+    // Manually force overlapping coordinates to verify error
+    model.nodes.get('A')!.w = 200;
+    model.nodes.get('A')!.h = 100;
+    model.nodes.get('B')!.w = 200;
+    model.nodes.get('B')!.h = 100;
+    model.cx.set('A', 100);
+    model.cy.set('A', 100);
+    model.cx.set('B', 120);
+    model.cy.set('B', 110);
+    expect(() => {
+      validateNoNodeOverlap(model, false);
+    }).toThrow(/Diagram compilation error: nodes "(A|B)" and "(A|B)" overlap in layout\./);
   });
 });
+

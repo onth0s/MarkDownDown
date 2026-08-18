@@ -289,6 +289,58 @@ export function diagramLayout(model: DiagramModel): void {
   model.rank = rank;
   model.ranks = ranks;
   model.horizontal = model.direction === 'LR' || model.direction === 'RL';
+
+  // Dynamic layout evaluation for 'auto' direction
+  if (model.direction === 'auto') {
+    const totalLrW = nodes.reduce((sum, n) => sum + n.w + C.LR_H_GAP, C.PAD * 2) - C.LR_H_GAP;
+    // If the required horizontal width exceeds the standard container (860px) or the graph has > 3 ranks/nodes
+    if (totalLrW > 850 || model.ranks.length > 3 || model.nodes.size > 3) {
+      model.direction = 'TB';
+      model.horizontal = false;
+    }
+  }
+
+  // Validate no node overlap in TB layout
+  validateNoNodeOverlap(model, false);
+}
+
+/**
+ * Validate that no two nodes overlap in 2D space.
+ * Throws a compilation error if any node overlaps with another.
+ */
+export function validateNoNodeOverlap(model: DiagramModel, isLR: boolean): void {
+  const nodes = [...model.nodes.values()];
+  if (nodes.length < 2) return;
+
+  if (!isLR) {
+    for (let i = 0; i < nodes.length; i++) {
+      const a = nodes[i];
+      const aCx = model.cx.get(a.id);
+      const aCy = model.cy.get(a.id);
+      if (aCx === undefined || aCy === undefined) continue;
+      const aLeft = aCx - a.w / 2;
+      const aRight = aCx + a.w / 2;
+      const aTop = aCy - a.h / 2;
+      const aBottom = aCy + a.h / 2;
+
+      for (let j = i + 1; j < nodes.length; j++) {
+        const b = nodes[j];
+        const bCx = model.cx.get(b.id);
+        const bCy = model.cy.get(b.id);
+        if (bCx === undefined || bCy === undefined) continue;
+        const bLeft = bCx - b.w / 2;
+        const bRight = bCx + b.w / 2;
+        const bTop = bCy - b.h / 2;
+        const bBottom = bCy + b.h / 2;
+
+        const overlaps = (aLeft < bRight - 0.5) && (aRight > bLeft + 0.5) &&
+                         (aTop < bBottom - 0.5) && (aBottom > bTop + 0.5);
+        if (overlaps) {
+          throw new Error(`Diagram compilation error: nodes "${a.id}" and "${b.id}" overlap in layout.`);
+        }
+      }
+    }
+  }
 }
 
 // ── SVG builder ──────────────────────────────────────────────────────────────
@@ -405,8 +457,6 @@ function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string
 // ── LR (horizontal) SVG ──────────────────────────────────────────────────────
 
 function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string {
-  const REF = C.LR_REF_W;
-
   const nodesInOrder: DiagramNode[] = [];
   for (const rid of model.ranks) {
     for (const id of rid) nodesInOrder.push(model.nodes.get(id)!);
@@ -419,15 +469,33 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     lrX += node.w + C.LR_H_GAP;
   }
 
-  const totalW = lrX - C.LR_H_GAP + C.PAD;
-  const totalH = Math.max(...nodeData.map(n => n.h)) + C.PAD * 2;
-  const sc = REF / totalW;
-  const W = Math.round(totalW * sc);
-  const H = Math.round(totalH * sc);
+  const totalW = Math.round(lrX - C.LR_H_GAP + C.PAD);
+  const totalH = Math.round(Math.max(...nodeData.map(n => n.h)) + C.PAD * 2);
   const midY = totalH / 2;
 
   for (const nd of nodeData) {
     nd.lrY = midY;
+  }
+
+  // Validate no node overlap in LR layout
+  for (let i = 0; i < nodeData.length; i++) {
+    const a = nodeData[i];
+    const aLeft = a.lrX - a.w / 2;
+    const aRight = a.lrX + a.w / 2;
+    const aTop = a.lrY - a.h / 2;
+    const aBottom = a.lrY + a.h / 2;
+    for (let j = i + 1; j < nodeData.length; j++) {
+      const b = nodeData[j];
+      const bLeft = b.lrX - b.w / 2;
+      const bRight = b.lrX + b.w / 2;
+      const bTop = b.lrY - b.h / 2;
+      const bBottom = b.lrY + b.h / 2;
+      const overlaps = (aLeft < bRight - 0.5) && (aRight > bLeft + 0.5) &&
+                       (aTop < bBottom - 0.5) && (aBottom > bTop + 0.5);
+      if (overlaps) {
+        throw new Error(`Diagram compilation error: nodes "${a.id}" and "${b.id}" overlap in horizontal layout.`);
+      }
+    }
   }
 
   const nodeById = new Map<string, typeof nodeData[0]>();
@@ -460,41 +528,38 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     edgeInfo.push({ d, omx, omy, label: e.label, labelOrd: e.labelOrd });
   });
 
-  const Sx = (v: number) => v * sc;
-  const Sy = (v: number) => v * sc;
-
   const edgeG: string[] = edgeInfo.map(ed => {
     let labelSvg = '';
     if (ed.label) {
-      const lw = (textWidth(ed.label, C.EDGE_LABEL_SIZE, false) + 14) * sc;
-      const lx = Sx(ed.omx), ly = Sy(ed.omy);
+      const lw = textWidth(ed.label, C.EDGE_LABEL_SIZE, false) + 14;
+      const lx = ed.omx, ly = ed.omy;
       labelSvg =
         `<g class="edge-label" transform="translate(${coordPair(lx, ly)})">` +
-        `<rect class="edge-label-bg" x="${round1(-lw / 2)}" y="${round1(-C.EDGE_LABEL_H * sc / 2)}" width="${round1(lw)}" height="${round1(C.EDGE_LABEL_H * sc)}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${round1(C.EDGE_LABEL_H * sc / 2 - 4)}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${escHtml(ed.label)}</text>` +
+        `<rect class="edge-label-bg" x="${round1(-lw / 2)}" y="${round1(-C.EDGE_LABEL_H / 2)}" width="${round1(lw)}" height="${round1(C.EDGE_LABEL_H)}" rx="6"/>` +
+        `<text class="edge-label-text" x="0" y="${round1(C.EDGE_LABEL_H / 2 - 4)}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${escHtml(ed.label)}</text>` +
         `</g>`;
     }
-    const pathD = ed.d.replace(/([0-9.]+) ([0-9.]+)/g, (_, x: string, y: string) => `${coordPair(Sx(+x), Sy(+y))}`);
+    const pathD = ed.d;
     const ordAttr = ed.labelOrd !== undefined ? ` data-label-ord="${ed.labelOrd}"` : '';
     return `<g class="edge"${ordAttr}><path class="edge-path" d="${pathD}" marker-end="url(#${arrowId})"/>${labelSvg}</g>`;
   });
 
   const nodeG: string[] = nodeData.map(nd => {
-    const cx = Sx(nd.lrX), cy = Sy(nd.lrY);
-    const w = nd.w * sc, h = nd.h * sc;
+    const cx = nd.lrX, cy = nd.lrY;
+    const w = nd.w, h = nd.h;
     const titleLines = nd.titleLines.map((l, i) => {
-      const ty = cy - h / 2 + C.PADY * sc + C.TITLE_H * sc * (i + 1) - 4 * sc;
+      const ty = cy - h / 2 + C.PADY + C.TITLE_H * (i + 1) - 4;
       return `<text class="node-title" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${escHtml(l)}</text>`;
     }).join('');
     const subLines = nd.subLines.map((l, i) => {
-      const ty = cy - h / 2 + C.PADY * sc + C.TITLE_H * sc * nd.titleLines.length + C.SUB_H * sc * (i + 1) - 3 * sc;
+      const ty = cy - h / 2 + C.PADY + C.TITLE_H * nd.titleLines.length + C.SUB_H * (i + 1) - 3;
       return `<text class="node-sub" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.SUB_SIZE}">${escHtml(l)}</text>`;
     }).join('');
     return `<g class="node" data-label-ord="${nd.labelOrd}"><rect class="node-rect" x="${round1(cx - w / 2)}" y="${round1(cy - h / 2)}" width="${round1(w)}" height="${round1(h)}" rx="${nd.rx}"/>${titleLines}${subLines}</g>`;
   });
 
   return (
-    `<svg class="diagram-svg" width="${W}" height="${H}" ` +
+    `<svg class="diagram-svg" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}" preserveAspectRatio="xMidYMid meet" ` +
     `role="img" aria-label="${escHtml(title)}" xmlns="${NS}">` +
     buildArrowMarker(arrowId) +
     nodeG.join('') + edgeG.join('') +

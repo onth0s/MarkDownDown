@@ -233,4 +233,34 @@ describe('end-to-end: compile pipeline', () => {
     expect(result.html).toContain('id="standard-markdown"');
     expect(result.warnings).toHaveLength(0);
   });
+
+  test('adjacent standard codeblock and table render cleanly without nesting .code-wrap', async () => {
+    const ADJACENT_MDD = `# CLI Usage
+
+\`\`\`powershell
+mdd <input.mdd> [options]
+\`\`\`
+
+\`\`\`table
+TITLE: Options
+| Flag | Description |
+| -o | Output path |
+\`\`\`
+`;
+    const inputFile = path.join(tmpDir, 'adjacent.mdd');
+    fs.writeFileSync(inputFile, ADJACENT_MDD);
+    const opts = baseOptions(inputFile, tmpDir);
+    const result = await compile(opts);
+
+    // Verify both have .code-wrap and are not nested
+    const matches = [...result.html.matchAll(/<div class="code-wrap\b[^"]*"[^>]*>/g)];
+    expect(matches.length).toBe(2);
+    // Ensure the first code-wrap closes before the second opens
+    const firstWrap = result.html.indexOf('<div class="code-wrap">');
+    const tableWrap = result.html.indexOf('<div class="code-wrap table"');
+    expect(firstWrap).toBeGreaterThan(-1);
+    expect(tableWrap).toBeGreaterThan(firstWrap);
+    const between = result.html.slice(firstWrap, tableWrap);
+    expect(between).toContain('</div>');
+  });
 });
