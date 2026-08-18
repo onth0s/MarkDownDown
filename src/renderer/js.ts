@@ -142,7 +142,7 @@ export function buildJs(accent: string): string {
     searchToggle.setAttribute('aria-expanded', String(on));
     searchToggle.setAttribute('aria-label', on ? 'Close search' : 'Search');
     requestAnimationFrame(() => {
-      searchToggle.innerHTML = on ? '×' : searchIconSvg;
+      searchToggle.innerHTML = searchIconSvg;
       if (on) search.focus();
     });
   }
@@ -269,7 +269,6 @@ export function buildJs(accent: string): string {
     requestAnimationFrame(() => {
       const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       progress.style.width = \`\${Math.min(100, Math.max(0, window.scrollY / max * 100))}%\`;
-      backtop.classList.toggle('show', window.scrollY > 500);
       const id = detectActiveHeading();
       if (id) setActive(id);
       ticking = false;

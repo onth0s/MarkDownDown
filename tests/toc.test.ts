@@ -247,4 +247,50 @@ describe('TOC CSS', () => {
   });
 });
 
+// ── Hover-reveal UI ────────────────────────────────────────────────────────
+
+describe('Copy button hover-reveal', () => {
+  test('copy button is hidden by default', () => {
+    expect(css).toMatch(/\.copy-btn \{[^}]*opacity:0/);
+  });
+
+  test('copy button has transition', () => {
+    expect(css).toMatch(/\.copy-btn \{[^}]*transition:opacity \.15s/);
+  });
+
+  test('copy button appears on code-wrap hover', () => {
+    expect(css).toMatch(/\.code-wrap:hover \.copy-btn \{ opacity:1; \}/);
+  });
+});
+
+describe('Backtop button hover-reveal', () => {
+  test('backtop is hidden by default', () => {
+    expect(css).toMatch(/\.backtop \{[^}]*opacity:0/);
+  });
+
+  test('backtop has pointer-events:auto (hoverable while hidden)', () => {
+    expect(css).toMatch(/\.backtop \{[^}]*pointer-events:auto/);
+  });
+
+  test('backtop has transition', () => {
+    expect(css).toMatch(/\.backtop \{[^}]*transition:opacity \.2s/);
+  });
+
+  test('backtop appears on hover', () => {
+    expect(css).toMatch(/\.backtop:hover \{ opacity:1; \}/);
+  });
+
+  test('backtop has ::before for enlarged hit area', () => {
+    expect(css).toMatch(/\.backtop::before \{[^}]*inset:-20px/);
+  });
+
+  test('no .backtop.show rule exists', () => {
+    expect(css).not.toMatch(/\.backtop\.show/);
+  });
+
+  test('JS does not toggle backtop show class on scroll', () => {
+    expect(js).not.toMatch(/backtop\.classList\.toggle/);
+  });
+});
+
 

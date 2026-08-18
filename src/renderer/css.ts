@@ -118,7 +118,6 @@ button, input { font:inherit; }
 }
 .code-wrap pre::-webkit-scrollbar-thumb:hover, .article table::-webkit-scrollbar-thumb:hover,
 .diagram-render::-webkit-scrollbar-thumb:hover, .table-render::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--accent) 85%, var(--muted)); }
-.sidebar-title { font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); font-weight:800; margin:4px 0 12px; }
 .toc { list-style:none; margin:0; padding:0; }
 .toc li { margin:2px 0; }
 .toc a {
@@ -223,8 +222,9 @@ html[data-theme="light"] .table-svg .tcell.is-current .tbl-cell-bg, html[data-th
 .copy-btn {
   position:absolute; top:9px; right:9px; z-index:2; border:1px solid var(--border);
   background:var(--surface-2); color:var(--text); border-radius:7px; padding:5px 8px;
-  cursor:pointer; font-size:11px;
+  cursor:pointer; font-size:11px; opacity:0; transition:opacity .15s;
 }
+.code-wrap:hover .copy-btn { opacity:1; }
 .copy-btn:hover { background:var(--surface-3); }
 .article table {
   width:100%; border-collapse:collapse; display:block; overflow:auto; margin:22px 0;
@@ -243,6 +243,7 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
   overflow:hidden;
 }
 .search-box .search { border:0; outline:0; border-radius:0; background:transparent; min-width:0; flex:1 1 auto; }
+.search-box .search::-webkit-search-cancel-button { display:none; }
 .search-opt,.search-nav {
   height:100%; min-width:36px; border:0; border-left:1px solid var(--border);
   background:transparent; color:var(--muted); cursor:pointer;
@@ -321,9 +322,12 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
   position:fixed; right:max(20px, env(safe-area-inset-right)); bottom:max(20px, env(safe-area-inset-bottom));
   border:1px solid var(--border);
   background:var(--surface); color:var(--text); width:42px;height:42px;border-radius:50%;
-  cursor:pointer; opacity:0; pointer-events:none; transition:.2s; box-shadow:var(--shadow);
+  cursor:pointer; opacity:0; pointer-events:auto; transition:opacity .2s; box-shadow:var(--shadow);
 }
-.backtop.show { opacity:1; pointer-events:auto; }
+.backtop::before {
+  content:""; position:absolute; inset:-20px;
+}
+.backtop:hover { opacity:1; }
 .no-results { display:none; margin:20px 0; padding:20px; border:1px dashed var(--border); border-radius:12px; color:var(--muted); }
 body.searching .article > * { transition:opacity .15s; }
 @media (max-width:900px) {
