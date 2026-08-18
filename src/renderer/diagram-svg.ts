@@ -5,36 +5,15 @@
  * CLDS_interactive_v15.html. Text width is approximated using a constant
  * character width; no canvas or DOM required.
  */
-import { escHtml as esc } from '../util/escape.js';
+import { escHtml } from '../util/escape.js';
 import { DIAGRAM as C } from '../constants.js';
+import {
+  round1, coordPair, xyAttrs, textWidth, wrapText, buildArrowMarker,
+} from './svg-helpers.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
-let arrowCounter = 0;
-
-function textWidth(text: string, size: number, bold: boolean): number {
-  const base = size <= 11 ? 7.8 : size <= 12 ? 8.6 : 9.6;
-  const boldExtra = bold ? 0.8 : 0;
-  return text.length * (base + boldExtra);
-}
-
-function wrapText(text: string, size: number, bold: boolean, maxW: number): string[] {
-  const words = String(text).split(/\s+/).filter(Boolean);
-  if (words.length <= 1) return words.length ? [words[0]] : [];
-  const lines: string[] = [];
-  let cur = words[0];
-  for (let i = 1; i < words.length; i++) {
-    const cand = cur + ' ' + words[i];
-    if (textWidth(cand, size, bold) > maxW) {
-      lines.push(cur);
-      cur = words[i];
-    } else {
-      cur = cand;
-    }
-  }
-  lines.push(cur);
-  return lines;
-}
+type DiagramDirection = 'TB' | 'TD' | 'BT' | 'LR' | 'RL' | 'auto';
 
 type NodeShape = 'rect' | 'rounded' | 'diamond';
 
@@ -66,7 +45,7 @@ interface DiagramModel {
   nodes: Map<string, DiagramNode>;
   edges: DiagramEdge[];
   labels: Array<{ text: string; offset: number; ord: number }>;
-  direction: string;
+  direction: DiagramDirection;
   cx: Map<string, number>;
   cy: Map<string, number>;
   maxX: number;
@@ -75,6 +54,8 @@ interface DiagramModel {
   rank: Map<string, number>;
   ranks: string[][];
 }
+
+// ── Parser ───────────────────────────────────────────────────────────────────
 
 export function diagramParse(source: string): DiagramModel {
   const model: DiagramModel = {
@@ -133,7 +114,7 @@ export function diagramParse(source: string): DiagramModel {
 
     const headerMatch = line.match(/^(?:flowchart|graph)\s*(TB|TD|BT|LR|RL)?\s*$/i);
     if (headerMatch) {
-      model.direction = headerMatch[1]?.toUpperCase() ?? 'auto';
+      model.direction = (headerMatch[1]?.toUpperCase() ?? 'auto') as DiagramDirection;
       continue;
     }
 
@@ -148,22 +129,22 @@ export function diagramParse(source: string): DiagramModel {
       const m = line.match(pat);
       if (!m) continue;
       edgeMatched = true;
-      const fromRaw = m[1], toRaw = m[3] ?? m[3];
+      const fromRaw = m[1], toRaw = m[3];
       const edgeLabel = pat === edgePatterns[0] ? m[2] : pat === edgePatterns[1] ? m[2] : '';
       const directed = !line.includes('---') || line.includes('-->');
 
       const parseInlineNode = (raw: string): string => {
-        let m: RegExpMatchArray | null = null;
+        let match: RegExpMatchArray | null = null;
         let shape: NodeShape = 'rect';
         const im1 = raw.match(/^([A-Za-z0-9_.\\-]+)\["?([^"]+)"?\]$/);
         const im2 = raw.match(/^([A-Za-z0-9_.\\-]+)\(["']?(.+?)["']?\)$/);
         const im3 = raw.match(/^([A-Za-z0-9_.\\-]+)\{["']?(.+?)["']?\}$/);
-        if (im1) { m = im1; shape = 'rect'; }
-        else if (im2) { m = im2; shape = 'rounded'; }
-        else if (im3) { m = im3; shape = 'diamond'; }
-        if (m) {
-          ensureNode(m[1], m[2], shape);
-          return m[1];
+        if (im1) { match = im1; shape = 'rect'; }
+        else if (im2) { match = im2; shape = 'rounded'; }
+        else if (im3) { match = im3; shape = 'diamond'; }
+        if (match) {
+          ensureNode(match[1], match[2], shape);
+          return match[1];
         }
         ensureNode(raw);
         return raw;
@@ -199,6 +180,8 @@ export function diagramParse(source: string): DiagramModel {
 
   return model;
 }
+
+// ── Layout ───────────────────────────────────────────────────────────────────
 
 export function diagramLayout(model: DiagramModel): void {
   const nodes = [...model.nodes.values()];
@@ -301,14 +284,19 @@ export function diagramLayout(model: DiagramModel): void {
   model.horizontal = model.direction === 'LR' || model.direction === 'RL';
 }
 
-export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: boolean): string {
+// ── SVG builder ──────────────────────────────────────────────────────────────
+
+let arrowCounter = 0;
+
+export function diagramBuildSvg(model: DiagramModel, title: string, forceHorizontal?: boolean): string {
   const arrowId = `arrow-${arrowCounter++}`;
-  const isLR = forceLR !== undefined ? forceLR : model.horizontal;
+  const isLR = forceHorizontal !== undefined ? forceHorizontal : model.horizontal;
+  return isLR ? buildLrSvg(model, title, arrowId) : buildTbSvg(model, title, arrowId);
+}
 
-  if (isLR) {
-    return buildLrSvg(model, title, arrowId);
-  }
+// ── TB (vertical) SVG ────────────────────────────────────────────────────────
 
+function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
   const edgeG: string[] = [];
@@ -335,11 +323,11 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
     }
 
     if (!e.directed) {
-      d = `M ${P(sx, sy)} L ${P(ex, ey)}`;
+      d = `M ${coordPair(sx, sy)} L ${coordPair(ex, ey)}`;
     } else {
       const dy = ey - sy;
       const c1x = sx, c1y = sy + dy * 0.5, c2x = ex, c2y = ey - dy * 0.5;
-      d = `M ${P(sx, sy)} C ${P(c1x, c1y)} ${P(c2x, c2y)} ${P(ex, ey)}`;
+      d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
     }
 
     const label = e.label;
@@ -347,9 +335,9 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
     if (label) {
       const lw = textWidth(label, C.EDGE_LABEL_SIZE, false) + 14;
       labelSvg =
-        `<g class="edge-label" transform="translate(${P(mx, my)})">` +
+        `<g class="edge-label" transform="translate(${coordPair(mx, my)})">` +
         `<rect class="edge-label-bg" x="${-lw / 2}" y="${-C.EDGE_LABEL_H / 2}" width="${lw}" height="${C.EDGE_LABEL_H}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${C.EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${esc(label)}</text>` +
+        `<text class="edge-label-text" x="0" y="${C.EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${escHtml(label)}</text>` +
         `</g>`;
     }
     const ord = e.labelOrd;
@@ -377,12 +365,12 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
     const titleLines = node.titleLines.map((l, i) => {
       const tx = model.cx.get(node.id)!;
       const ty = y + C.PADY + C.TITLE_H * (i + 1) - 4;
-      return `<text class="node-title" ${AT(tx, ty)} text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
+      return `<text class="node-title" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${escHtml(l)}</text>`;
     }).join('');
     const subLines = node.subLines.map((l, i) => {
       const tx = model.cx.get(node.id)!;
       const ty = y + C.PADY + C.TITLE_H * node.titleLines.length + C.SUB_H * (i + 1) - 3;
-      return `<text class="node-sub" ${AT(tx, ty)} text-anchor="middle" font-size="${C.SUB_SIZE}">${esc(l)}</text>`;
+      return `<text class="node-sub" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.SUB_SIZE}">${escHtml(l)}</text>`;
     }).join('');
     const rx = 8;
     nodeG.push(
@@ -399,12 +387,14 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
 
   return (
     `<svg class="diagram-svg" viewBox="${vb}" width="${vbW}" height="${vbH}" preserveAspectRatio="xMidYMid meet" ` +
-    `role="img" aria-label="${esc(title)}" xmlns="${NS}">` +
-    `<defs><marker id="${arrowId}" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>` +
+    `role="img" aria-label="${escHtml(title)}" xmlns="${NS}">` +
+    buildArrowMarker(arrowId) +
     nodeG.join('') + edgeG.join('') +
     `</svg>`
   );
 }
+
+// ── LR (horizontal) SVG ──────────────────────────────────────────────────────
 
 function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string {
   const REF = C.LR_REF_W;
@@ -450,10 +440,10 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
 
     let d: string;
     if (!e.directed) {
-      d = `M ${P(sx, sy)} L ${P(ex, ey)}`;
+      d = `M ${coordPair(sx, sy)} L ${coordPair(ex, ey)}`;
     } else {
       const dx = ex - sx;
-      d = `M ${P(sx, sy)} C ${P(sx + dx * 0.5, sy)} ${P(ex - dx * 0.5, ey)} ${P(ex, ey)}`;
+      d = `M ${coordPair(sx, sy)} C ${coordPair(sx + dx * 0.5, sy)} ${coordPair(ex - dx * 0.5, ey)} ${coordPair(ex, ey)}`;
     }
 
     const omx = (sx + ex) / 2;
@@ -470,12 +460,12 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
       const lw = (textWidth(ed.label, C.EDGE_LABEL_SIZE, false) + 14) * sc;
       const lx = Sx(ed.omx), ly = Sy(ed.omy);
       labelSvg =
-        `<g class="edge-label" transform="translate(${P(lx, ly)})">` +
-        `<rect class="edge-label-bg" x="${R(-lw / 2)}" y="${R(-C.EDGE_LABEL_H * sc / 2)}" width="${R(lw)}" height="${R(C.EDGE_LABEL_H * sc)}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${R(C.EDGE_LABEL_H * sc / 2 - 4)}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${esc(ed.label)}</text>` +
+        `<g class="edge-label" transform="translate(${coordPair(lx, ly)})">` +
+        `<rect class="edge-label-bg" x="${round1(-lw / 2)}" y="${round1(-C.EDGE_LABEL_H * sc / 2)}" width="${round1(lw)}" height="${round1(C.EDGE_LABEL_H * sc)}" rx="6"/>` +
+        `<text class="edge-label-text" x="0" y="${round1(C.EDGE_LABEL_H * sc / 2 - 4)}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${escHtml(ed.label)}</text>` +
         `</g>`;
     }
-    const pathD = ed.d.replace(/([0-9.]+) ([0-9.]+)/g, (_, x: string, y: string) => `${P(Sx(+x), Sy(+y))}`);
+    const pathD = ed.d.replace(/([0-9.]+) ([0-9.]+)/g, (_, x: string, y: string) => `${coordPair(Sx(+x), Sy(+y))}`);
     const ordAttr = ed.labelOrd !== undefined ? ` data-label-ord="${ed.labelOrd}"` : '';
     return `<g class="edge"${ordAttr}><path class="edge-path" d="${pathD}" marker-end="url(#${arrowId})"/>${labelSvg}</g>`;
   });
@@ -485,32 +475,20 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     const w = nd.w * sc, h = nd.h * sc;
     const titleLines = nd.titleLines.map((l, i) => {
       const ty = cy - h / 2 + C.PADY * sc + C.TITLE_H * sc * (i + 1) - 4 * sc;
-      return `<text class="node-title" x="${R(cx)}" y="${R(ty)}" text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
+      return `<text class="node-title" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${escHtml(l)}</text>`;
     }).join('');
     const subLines = nd.subLines.map((l, i) => {
       const ty = cy - h / 2 + C.PADY * sc + C.TITLE_H * sc * nd.titleLines.length + C.SUB_H * sc * (i + 1) - 3 * sc;
-      return `<text class="node-sub" x="${R(cx)}" y="${R(ty)}" text-anchor="middle" font-size="${C.SUB_SIZE}">${esc(l)}</text>`;
+      return `<text class="node-sub" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.SUB_SIZE}">${escHtml(l)}</text>`;
     }).join('');
-    return `<g class="node" data-label-ord="${nd.labelOrd}"><rect class="node-rect" x="${R(cx - w / 2)}" y="${R(cy - h / 2)}" width="${R(w)}" height="${R(h)}" rx="${nd.rx}"/>${titleLines}${subLines}</g>`;
+    return `<g class="node" data-label-ord="${nd.labelOrd}"><rect class="node-rect" x="${round1(cx - w / 2)}" y="${round1(cy - h / 2)}" width="${round1(w)}" height="${round1(h)}" rx="${nd.rx}"/>${titleLines}${subLines}</g>`;
   });
 
   return (
     `<svg class="diagram-svg" width="${W}" height="${H}" ` +
-    `role="img" aria-label="${esc(title)}" xmlns="${NS}">` +
-    `<defs><marker id="${arrowId}" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>` +
+    `role="img" aria-label="${escHtml(title)}" xmlns="${NS}">` +
+    buildArrowMarker(arrowId) +
     nodeG.join('') + edgeG.join('') +
     `</svg>`
   );
-}
-
-function R(v: number): string {
-  return String(Math.round(v * 10) / 10);
-}
-
-function P(x: number, y: number): string {
-  return `${R(x)} ${R(y)}`;
-}
-
-function AT(x: number, y: number): string {
-  return `x="${R(x)}" y="${R(y)}"`;
 }

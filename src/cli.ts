@@ -7,6 +7,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { compile } from './compile.js';
 import type { Options, CliOptions } from './types.js';
+import { toErrorMessage } from './util/error.js';
 
 const program = new Command();
 
@@ -22,7 +23,7 @@ program
   .option('--no-diagrams', 'Skip diagram SVG rendering')
   .option('--no-tables', 'Skip table SVG rendering')
   .option('-v, --verbose', 'Verbose output', false)
-  .action(async (input: string, opts: CliOptions) => {
+    .action((input: string, opts: CliOptions) => {
     const inputFile = path.resolve(process.cwd(), input);
     if (!fs.existsSync(inputFile)) {
       process.stderr.write(`ERROR: Input file not found: ${inputFile}\n`);
@@ -64,15 +65,15 @@ program
     };
 
     try {
-      const result = await compile(options);
+      const result = compile(options);
       for (const w of result.warnings) {
         process.stderr.write(`WARN: ${w}\n`);
       }
       process.exit(0);
     } catch (err) {
-      process.stderr.write(`ERROR: ${(err as Error).message}\n`);
+      process.stderr.write(`ERROR: ${toErrorMessage(err)}\n`);
       process.exit(1);
     }
   });
 
-program.parseAsync(process.argv);
+program.parse(process.argv);

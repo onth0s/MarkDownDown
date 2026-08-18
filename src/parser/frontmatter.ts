@@ -7,6 +7,7 @@
 import yaml from 'js-yaml';
 import path from 'node:path';
 import type { Options, HeroMeta } from '../types.js';
+import { toErrorMessage } from '../util/error.js';
 
 export interface FrontmatterResult {
   /** Parsed option overrides from frontmatter */
@@ -36,8 +37,8 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
     if (result && typeof result === 'object') {
       parsed = result as Record<string, unknown>;
     }
-  } catch {
-    return { meta: {}, hero: {}, body: source, warnings: ['Invalid YAML in frontmatter, ignoring.'] };
+  } catch (err) {
+    return { meta: {}, hero: {}, body: source, warnings: [`Invalid YAML frontmatter: ${toErrorMessage(err)}`] };
   }
 
   const meta: FrontmatterResult['meta'] = {};

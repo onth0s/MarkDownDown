@@ -13,8 +13,9 @@ import { scanAssets } from './resolver/asset.js';
 import { resolveLinks } from './pipeline/resolve-links.js';
 import { renderBody } from './pipeline/render-body.js';
 import { assembleAndWrite } from './pipeline/assemble.js';
+import { isValidHex } from './util/color.js';
 
-export async function compile(options: Options): Promise<CompileResult> {
+export function compile(options: Options): CompileResult {
   const warnings: string[] = [];
   const inputDir = path.dirname(options.inputFile);
 
@@ -26,6 +27,9 @@ export async function compile(options: Options): Promise<CompileResult> {
   warnings.push(...fmWarnings);
   const title = meta.title ?? options.title;
   const accent = meta.accent ?? options.accent;
+  if (!isValidHex(accent)) {
+    warnings.push(`Invalid accent color "${accent}", falling back to #3b82f6`);
+  }
   const assetsDir = meta.assetsDir ?? options.assetsDir;
 
   // 3. Lex

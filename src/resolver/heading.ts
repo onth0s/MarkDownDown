@@ -31,17 +31,18 @@ function norm(s: string): string {
 
 function levenshtein(a: string, b: string): number {
   const m = a.length, n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
-  );
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  let curr = new Array<number>(n + 1);
   for (let i = 1; i <= m; i++) {
+    curr[0] = i;
     for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      curr[j] = a[i - 1] === b[j - 1]
+        ? prev[j - 1]
+        : 1 + Math.min(prev[j], curr[j - 1], prev[j - 1]);
     }
+    [prev, curr] = [curr, prev];
   }
-  return dp[m][n];
+  return prev[n];
 }
 
 // ── 4-pass fuzzy heading resolver ────────────────────────────────────────────
@@ -80,9 +81,12 @@ export function resolveHeading(str: string, headings: Heading[]): HeadingMatchRe
     }
   }
   // Deduplicate
-  const uniqueSub = substringMatches.filter(
-    (v, i, a) => a.findIndex((x) => x.heading.id === v.heading.id) === i
-  );
+  const seen = new Set<string>();
+  const uniqueSub = substringMatches.filter(v => {
+    if (seen.has(v.heading.id)) return false;
+    seen.add(v.heading.id);
+    return true;
+  });
   if (uniqueSub.length === 1) return { type: 'match', heading: uniqueSub[0].heading, pass: uniqueSub[0].pass };
   if (uniqueSub.length > 1) return { type: 'ambiguous', candidates: uniqueSub };
 

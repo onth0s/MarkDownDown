@@ -12,6 +12,24 @@ import { buildCss } from '../renderer/css.js';
 import { buildJs } from '../renderer/js.js';
 import { assembleHtml } from '../renderer/template.js';
 import { escHtml } from '../util/escape.js';
+import { hexToRgb } from '../util/color.js';
+import { toErrorMessage } from '../util/error.js';
+
+/** Recursively copy a directory, skipping dotfiles and symlinks. */
+function safeCopyDir(src: string, dest: string): void {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (entry.name.startsWith('.')) continue;
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isSymbolicLink()) continue;
+    if (entry.isDirectory()) {
+      safeCopyDir(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
 function buildHeroHtml(
   hero: HeroMeta,
@@ -46,8 +64,7 @@ export function assembleAndWrite(
 ): CompileResult {
   const heroHtml = buildHeroHtml(hero, title);
 
-  const hex = accent.replace('#', '');
-  const accentRgb = `${parseInt(hex.slice(0, 2), 16)},${parseInt(hex.slice(2, 4), 16)},${parseInt(hex.slice(4, 6), 16)}`;
+  const accentRgb = hexToRgb(accent);
 
   const css = buildCss(accent, accentRgb);
   const js = buildJs(accent);
@@ -94,7 +111,11 @@ export function assembleAndWrite(
 
     if (fs.existsSync(assetsDir)) {
       const destAssets = path.join(outDir, 'assets');
-      fs.cpSync(assetsDir, destAssets, { recursive: true });
+      try {
+        safeCopyDir(assetsDir, destAssets);
+      } catch (err) {
+        warnings.push(`Failed to copy assets: ${toErrorMessage(err)}`);
+      }
     }
     if (options.verbose) process.stderr.write(`Written: ${outDir}\n`);
   }

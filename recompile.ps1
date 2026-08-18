@@ -15,7 +15,7 @@ npm run typecheck
 if ($LASTEXITCODE -ne 0) { throw "Typecheck failed" }
 
 Write-Host "Testing..." -ForegroundColor Cyan
-node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern='tests/' --testPathIgnorePatterns='template|frontmatter|end-to-end'
+node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern='tests/'
 if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
 
 Write-Host "All passed." -ForegroundColor Green

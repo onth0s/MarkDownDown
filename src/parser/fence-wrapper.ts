@@ -1,0 +1,41 @@
+/**
+ * Shared markdown-it fence renderer for custom fence languages (diagram, table).
+ * Parses the TITLE: directive and wraps the block in a .code-wrap div.
+ */
+import type MarkdownIt from 'markdown-it';
+import type Token from 'markdown-it/lib/token.mjs';
+import type { Options } from 'markdown-it';
+import { parseTitleDirective } from '../util/fence.js';
+
+export interface FenceBlock {
+  kind: string;
+  renderDivClass: string;
+}
+
+export function createFenceRenderer(md: MarkdownIt, block: FenceBlock): void {
+  const defaultFence = md.renderer.rules.fence!.bind(md.renderer);
+
+  md.renderer.rules.fence = (
+    tokens: Token[],
+    idx: number,
+    options: Options,
+    env: unknown,
+    self: MarkdownIt['renderer']
+  ): string => {
+    const token = tokens[idx];
+    if (token.info.trim() !== block.kind) {
+      return defaultFence(tokens, idx, options, env, self);
+    }
+
+    const { title, body } = parseTitleDirective(token.content);
+    const safeTitle = title.replace(/"/g, '&quot;');
+    const safeContent = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    return (
+      `<div class="code-wrap ${block.kind}" data-title="${safeTitle}">` +
+      `<pre><code class="language-${block.kind}">${safeContent}</code></pre>` +
+      `<div class="${block.renderDivClass}"></div>` +
+      `</div>\n`
+    );
+  };
+}

@@ -7,9 +7,10 @@
 import type { Options, PendingWikilink } from '../types.js';
 import type MarkdownIt from 'markdown-it';
 import type { ResolvedLink } from '../resolver/wikilink.js';
-import { diagramParse, diagramLayout, diagramBuildSvg } from '../renderer/diagram-svg.js';
-import { tableParse, tableBuildSvg } from '../renderer/table-svg.js';
-import { escAttr, escHtml, htmlDecode } from '../util/escape.js';
+import { escHtml } from '../util/escape.js';
+import { injectDiagramSvgs } from './inject-diagrams.js';
+import { injectTableSvgs } from './inject-tables.js';
+import { wrapCodeBlocksWithCopyButtons } from './copy-buttons.js';
 
 /**
  * Render a resolved wikilink token to HTML.
@@ -71,87 +72,11 @@ export function renderBody(
     return renderWikilinkToken(target, display, pw.resolution, options.outputMode, assetBase64Map);
   };
 
-  // Render markdown to HTML
+  // Render markdown to HTML, then inject SVGs and copy buttons
   let bodyHtml = md.render(markdownBody);
-
-  // Inject diagram SVGs
-  if (!options.noDiagrams) {
-    bodyHtml = bodyHtml.replace(
-      /<div class="code-wrap diagram" data-title="([^"]*)">\s*<pre><code class="language-diagram">([\s\S]*?)<\/code><\/pre>\s*<div class="diagram-render"><\/div>\s*<\/div>/g,
-      (match, titleAttr, codeContent) => {
-        try {
-          const rawCode = htmlDecode(codeContent);
-          const diagTitle = titleAttr || docTitle;
-          const model = diagramParse(rawCode);
-          if (model.nodes.size === 0) {
-            warnings.push(`diagram: no nodes found, skipped render`);
-            return match;
-          }
-          diagramLayout(model);
-          let svg: string;
-          if (model.direction === 'auto') {
-            const svgTB = diagramBuildSvg(model, diagTitle, false);
-            const svgLR = diagramBuildSvg(model, diagTitle, true);
-            svg = `<div class="diagram-tb">${svgTB}</div><div class="diagram-lr">${svgLR}</div>`;
-          } else {
-            svg = diagramBuildSvg(model, diagTitle);
-          }
-          const wrapperClass = model.direction === 'auto' ? 'code-wrap diagram diagram-auto' : 'code-wrap diagram';
-          return (
-            `<div class="${wrapperClass}" data-title="${escAttr(diagTitle)}">` +
-            `<pre><code class="language-diagram">${codeContent}</code></pre>` +
-            `<div class="diagram-render">${svg}</div>` +
-            `</div>`
-          );
-        } catch (err) {
-          warnings.push(`diagram render failed: ${(err as Error).message}`);
-          return match;
-        }
-      }
-    );
-  }
-
-  // Inject table SVGs
-  if (!options.noTables) {
-    bodyHtml = bodyHtml.replace(
-      /<div class="code-wrap table" data-title="([^"]*)">\s*<pre><code class="language-table">([\s\S]*?)<\/code><\/pre>\s*<div class="table-render"><\/div>\s*<\/div>/g,
-      (match, titleAttr, codeContent) => {
-        try {
-          const rawCode = htmlDecode(codeContent);
-          const tblTitle = titleAttr || docTitle;
-          const model = tableParse(rawCode);
-          if (!model.headers.length) {
-            warnings.push(`table: no headers found, skipped render`);
-            return match;
-          }
-          const svg = tableBuildSvg(model, tblTitle);
-          return (
-            `<div class="code-wrap table" data-title="${escAttr(tblTitle)}">` +
-            `<pre><code class="language-table">${codeContent}</code></pre>` +
-            `<div class="table-render">${svg}</div>` +
-            `</div>`
-          );
-        } catch (err) {
-          warnings.push(`table render failed: ${(err as Error).message}`);
-          return match;
-        }
-      }
-    );
-  }
-
-  // Wrap code blocks + copy buttons
-  bodyHtml = bodyHtml.replace(
-    /(<div class="code-wrap (?:diagram|table)"[^>]*>)(<pre><code)/g,
-    '$1<button class="copy-btn" type="button">Copy</button>$2'
-  );
-  bodyHtml = bodyHtml.replace(
-    /(?<!>)<pre><code/g,
-    '<div class="code-wrap"><button class="copy-btn" type="button">Copy</button><pre><code'
-  );
-  bodyHtml = bodyHtml.replace(
-    /(?<!<\/div>)<\/code><\/pre>(?!\s*<div)/g,
-    '</code></pre></div>'
-  );
+  if (!options.noDiagrams) bodyHtml = injectDiagramSvgs(bodyHtml, docTitle, warnings);
+  if (!options.noTables) bodyHtml = injectTableSvgs(bodyHtml, docTitle, warnings);
+  bodyHtml = wrapCodeBlocksWithCopyButtons(bodyHtml);
 
   return bodyHtml;
 }

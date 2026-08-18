@@ -66,7 +66,8 @@ describe('parseFrontmatter', () => {
     const source = '---\n: invalid: yaml: {{{\n---\n\nBody';
     const result = parseFrontmatter(source, '/tmp');
     expect(result.body).toBe(source);
-    expect(result.warnings).toEqual(['Invalid YAML in frontmatter, ignoring.']);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/^Invalid YAML frontmatter:/);
   });
 
   test('handles CRLF line endings', () => {

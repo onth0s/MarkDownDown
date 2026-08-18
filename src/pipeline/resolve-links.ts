@@ -10,6 +10,7 @@ import type { Options, Heading, Asset, PendingWikilink } from '../types.js';
 import { CompileError } from '../types.js';
 import { resolveWikilink } from '../resolver/wikilink.js';
 import { getMime } from '../util/mime.js';
+import { toErrorMessage } from '../util/error.js';
 import type Token from 'markdown-it/lib/token.mjs';
 
 export interface ResolveResult {
@@ -37,7 +38,7 @@ export function resolveLinks(
             const resolved = resolveWikilink(target, display, headings, assets);
             pendingLinks.push({ target, display, resolution: resolved });
           } catch (err) {
-            const msg = (err as Error).message;
+            const msg = toErrorMessage(err);
             pendingLinks.push({ target, display, resolution: null, error: msg });
             errors.push(msg);
           }

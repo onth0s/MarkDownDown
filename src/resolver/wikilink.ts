@@ -1,6 +1,7 @@
 import type { Heading, Asset } from '../types.js';
 import { resolveHeading, formatAmbiguityError } from './heading.js';
 import { resolveAsset } from './asset.js';
+import { toErrorMessage } from '../util/error.js';
 
 /**
  * Describes a fully resolved wikilink ready for HTML rendering.
@@ -40,7 +41,7 @@ export function resolveWikilink(
     if (headingResult.type === 'ambiguous') {
       throw new Error(formatAmbiguityError(target, headingResult.candidates));
     }
-    // Not found in headings → fall through to asset resolution
+    // 'not-found' in headings → fall through to asset resolution
   }
 
   // Step 2: asset resolution
@@ -49,7 +50,7 @@ export function resolveWikilink(
     asset = resolveAsset(target, assets);
   } catch (err) {
     // Collision inside asset resolution
-    throw new Error(`ERROR: ${(err as Error).message}`, { cause: err });
+    throw new Error(`ERROR: ${toErrorMessage(err)}`, { cause: err });
   }
 
   if (asset === null) {

@@ -2,22 +2,10 @@
  * Template assembler.
  * Reads shell.html, injects {{placeholders}}, and handles --single vs --split.
  */
-import fs from 'node:fs';
-import path from 'node:path';
+import { loadTemplate } from '../util/template-loader.js';
+import { darkenHex } from '../util/color.js';
 import { escAttr } from '../util/escape.js';
 import { CLDS_LOGO_PATHS, CLDS_FAVICON_TEMPLATE } from './logo.js';
-
-/**
- * Computes a darkened version of the accent color (50% black mix).
- */
-function darkenHex(hex: string): string {
-  const n = hex.replace('#', '');
-  const v = parseInt(n, 16);
-  const r = Math.round(((v >> 16) & 255) * 0.5);
-  const g = Math.round(((v >> 8) & 255) * 0.5);
-  const b = Math.round((v & 255) * 0.5);
-  return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
-}
 
 /** Builds the favicon data URI with the given accent. */
 function buildFaviconHref(accent: string): string {
@@ -28,7 +16,7 @@ function buildFaviconHref(accent: string): string {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
-/** Builds the inline brand‑logo SVG element. */
+/** Builds the inline brand-logo SVG element. */
 function buildLogoSvg(): string {
   return (
     `<svg class="brand-logo" aria-hidden="true" focusable="false" ` +
@@ -37,21 +25,6 @@ function buildLogoSvg(): string {
     CLDS_LOGO_PATHS +
     `</svg>`
   );
-}
-
-/** Load the HTML shell template. */
-function loadTemplate(): string {
-  const candidates = [
-    path.resolve(process.cwd(), 'templates/shell.html'),
-    path.resolve(process.cwd(), 'src/templates/shell.html'),
-    path.resolve(process.cwd(), '../templates/shell.html'),
-  ];
-
-  for (const p of candidates) {
-    try { if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8'); } catch { /* continue */ }
-  }
-
-  throw new Error('shell.html template not found');
 }
 
 export interface AssembleOptions {
@@ -70,7 +43,7 @@ export interface AssembleOptions {
 }
 
 export function assembleHtml(opts: AssembleOptions): string {
-  let template = loadTemplate();
+  let template = loadTemplate('shell.html');
 
   // Basic replacements
   template = template.replace(/\{\{title\}\}/g, escAttr(opts.title));

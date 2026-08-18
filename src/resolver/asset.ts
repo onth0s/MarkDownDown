@@ -15,6 +15,8 @@ function classify(ext: string): Asset['kind'] {
   return 'other';
 }
 
+const MAX_WALK_DEPTH = 10;
+
 /**
  * Scan the assets directory and return all asset files.
  * Returns an empty array if the directory does not exist.
@@ -22,12 +24,17 @@ function classify(ext: string): Asset['kind'] {
 export function scanAssets(assetsDir: string): Asset[] {
   if (!fs.existsSync(assetsDir)) return [];
   const results: Asset[] = [];
-  function walk(dir: string, relBase: string) {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+  function walk(dir: string, relBase: string, depth: number) {
+    if (depth > MAX_WALK_DEPTH) return;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch { return; }
+    for (const entry of entries) {
       const abs = path.join(dir, entry.name);
       const rel = relBase ? `${relBase}/${entry.name}` : entry.name;
       if (entry.isDirectory()) {
-        walk(abs, rel);
+        walk(abs, rel, depth + 1);
       } else {
         const ext = path.extname(entry.name).toLowerCase();
         results.push({
@@ -39,7 +46,7 @@ export function scanAssets(assetsDir: string): Asset[] {
       }
     }
   }
-  walk(assetsDir, '');
+  walk(assetsDir, '', 0);
   return results;
 }
 

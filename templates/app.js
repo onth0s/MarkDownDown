@@ -351,7 +351,7 @@
   );
 
   searchableNodes.forEach(node => {
-    if (!node.dataset.originalHtml) node.dataset.originalHtml = node.innerHTML;
+    if (!node.dataset.originalHtml) node.dataset.originalHtml = encodeURIComponent(node.innerHTML);
   });
 
   const navigableHeadings = headings.filter(h => h.id);
@@ -366,7 +366,7 @@
 
   function restoreSearchDOM() {
     searchableNodes.forEach(node => {
-      node.innerHTML = node.dataset.originalHtml;
+      node.innerHTML = decodeURIComponent(node.dataset.originalHtml);
       node.hidden = false;
     });
   }
