@@ -30,9 +30,9 @@ const program = new Command();
 
 program
   .name('mdd')
-  .description('Compile .mdd files to interactive HTML documents')
+  .description('Compile .mdd / .md files to interactive HTML documents')
   .version('0.1.0')
-  .argument('<input>', 'Input .mdd file')
+  .argument('<input>', 'Input .mdd or .md file')
   .option('-o, --output <path>', 'Output file (single) or directory (split)')
   .option('--single', 'Single self-contained HTML (default)', true)
   .option('--split', 'Separate CSS/JS/assets', false)
@@ -50,8 +50,9 @@ program
       process.exit(1);
     }
 
-    if (!inputFile.endsWith('.mdd')) {
-      process.stderr.write(`WARN: Input file does not have .mdd extension: ${inputFile}\n`);
+    const ext = path.extname(inputFile).toLowerCase();
+    if (ext !== '.mdd' && ext !== '.md' && ext !== '.markdown') {
+      process.stderr.write(`WARN: Input file is not a Markdown file (.mdd/.md): ${inputFile}\n`);
     }
 
     const inputDir = path.dirname(inputFile);

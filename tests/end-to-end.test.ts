@@ -223,4 +223,14 @@ describe('end-to-end: compile pipeline', () => {
 
     expect(result.warnings).toHaveLength(0);
   });
+
+  test('compiles standard .md file cleanly', async () => {
+    const inputFile = path.join(tmpDir, 'sample.md');
+    fs.writeFileSync(inputFile, '# Standard Markdown\n\nWorks natively.');
+    const opts = baseOptions(inputFile, tmpDir);
+    const result = await compile(opts);
+
+    expect(result.html).toContain('id="standard-markdown"');
+    expect(result.warnings).toHaveLength(0);
+  });
 });
