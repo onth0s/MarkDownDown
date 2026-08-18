@@ -403,10 +403,9 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
   }
 
   const vb = `${minX - PAD} ${minY - PAD} ${(maxX - minX) + PAD * 2} ${(maxY - minY) + PAD * 2}`;
-  const [, , vbW, vbH] = vb.split(' ').map(Number);
 
   return (
-    `<svg class="diagram-svg" viewBox="${vb}" width="${vbW}" height="${vbH}" ` +
+    `<svg class="diagram-svg" viewBox="${vb}" preserveAspectRatio="xMidYMid meet" ` +
     `role="img" aria-label="${esc(title)}" xmlns="${NS}">` +
     `<defs><marker id="${arrowId}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>` +
     nodeG.join('') + edgeG.join('') +

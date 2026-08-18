@@ -179,9 +179,13 @@ button, input { font:inherit; }
   margin-top:0; overflow-x:auto; border:1px solid var(--border); border-radius:12px;
   background:var(--code); box-shadow:var(--shadow);
 }
-.code-wrap.diagram .diagram-render svg { display:block; height:auto; margin:0 auto; }
-.diagram-auto .diagram-lr { display:block; }
-.diagram-auto .diagram-tb { display:none; }
+.code-wrap.diagram .diagram-render svg { display:block; width:100%; height:auto; }
+.diagram-auto .diagram-lr { display:none; }
+.diagram-auto .diagram-tb { display:block; }
+@media (min-width:768px) {
+  .diagram-auto .diagram-tb { display:none; }
+  .diagram-auto .diagram-lr { display:block; }
+}
 .diagram-svg .node-rect { fill:var(--surface-2); stroke:var(--border); }
 .diagram-svg .node-title { fill:var(--accent); font-weight:700; }
 .diagram-svg .node-sub { fill:var(--muted); }
