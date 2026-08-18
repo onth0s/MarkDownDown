@@ -13,6 +13,171 @@
   const progress = document.getElementById('progress');
   const backtop = document.getElementById('backtop');
 
+  const navHistoryBar = document.getElementById('navHistoryBar');
+  const navClearBtn = document.getElementById('navClearBtn');
+  const navBackBtn = document.getElementById('navBackBtn');
+  const navBackLabel = document.getElementById('navBackLabel');
+  const navForwardBtn = document.getElementById('navForwardBtn');
+  const navForwardLabel = document.getElementById('navForwardLabel');
+
+  const MDD_ROUTES = __ROUTES__;
+
+  // ── Bidirectional Navigation Stack ──────────────────────────────────────────
+  const backStack = [];
+  const forwardStack = [];
+
+  function getSectionLabel(id) {
+    if (!id) return '';
+    if (MDD_ROUTES && MDD_ROUTES[id]) return MDD_ROUTES[id];
+    const el = document.getElementById(id);
+    if (el) {
+      const text = [...el.childNodes]
+        .filter(n => !n.classList?.contains('heading-anchor'))
+        .map(n => n.textContent)
+        .join('')
+        .trim();
+      if (text) return text.length > 40 ? text.slice(0, 37) + '…' : text;
+    }
+    return id;
+  }
+
+  function updateNavHistoryUI() {
+    if (!navHistoryBar) return;
+    const hasBack = backStack.length > 0;
+    const hasForward = forwardStack.length > 0;
+
+    if (!hasBack && !hasForward) {
+      navHistoryBar.hidden = true;
+      return;
+    }
+
+    navHistoryBar.hidden = false;
+
+    if (hasBack) {
+      navBackBtn.hidden = false;
+      const topBack = backStack[backStack.length - 1];
+      navBackLabel.textContent = topBack.label || 'Back';
+    } else {
+      navBackBtn.hidden = true;
+    }
+
+    if (hasForward) {
+      navForwardBtn.hidden = false;
+      const topFwd = forwardStack[forwardStack.length - 1];
+      navForwardLabel.textContent = topFwd.label || 'Forward';
+    } else {
+      navForwardBtn.hidden = true;
+    }
+  }
+
+  function highlightJumpTarget(id) {
+    if (!id) return;
+    const el = id === '__doc-title__' ? article.querySelector('.hero') : document.getElementById(id);
+    if (el) {
+      el.classList.remove('is-jump-returned');
+      void el.offsetWidth; // trigger reflow
+      el.classList.add('is-jump-returned');
+      setTimeout(() => el.classList.remove('is-jump-returned'), 1300);
+    }
+  }
+
+  function navigateHistoryBack() {
+    if (!backStack.length) return;
+    const currentActive = detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
+    const currentSearch = search ? search.value.trim() : '';
+    const currentEntry = {
+      y: window.scrollY,
+      id: currentActive,
+      label: getSectionLabel(currentActive) || 'Forward',
+      searchQuery: currentSearch || undefined
+    };
+    forwardStack.push(currentEntry);
+
+    const prev = backStack.pop();
+    updateNavHistoryUI();
+
+    if (prev.searchQuery !== undefined) {
+      if (search) {
+        search.value = prev.searchQuery;
+        rebuildSearch(prev.searchQuery);
+        updateClearButton();
+      }
+    } else if (search && search.value) {
+      search.value = '';
+      rebuildSearch('');
+      updateClearButton();
+    }
+
+    tocScrollActive = true;
+    let targetY = prev.y;
+    if (prev.id) {
+      const el = prev.id === '__doc-title__' ? article.querySelector('.hero') : document.getElementById(prev.id);
+      if (el) {
+        // If document layout changed dynamically, verify position
+        const actualTop = headingOffsetTop(el);
+        if (Math.abs(actualTop - (prev.y + 88)) > 100) {
+          targetY = Math.max(0, actualTop - 88);
+        }
+      }
+      setActive(prev.id);
+    }
+
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
+    highlightJumpTarget(prev.id);
+    onScrollEnd(() => {
+      tocScrollActive = false;
+      if (prev.id) setActive(prev.id);
+    });
+  }
+
+  function navigateHistoryForward() {
+    if (!forwardStack.length) return;
+    const currentActive = detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
+    const currentSearch = search ? search.value.trim() : '';
+    const currentEntry = {
+      y: window.scrollY,
+      id: currentActive,
+      label: getSectionLabel(currentActive) || 'Back',
+      searchQuery: currentSearch || undefined
+    };
+    backStack.push(currentEntry);
+
+    const next = forwardStack.pop();
+    updateNavHistoryUI();
+
+    if (next.searchQuery !== undefined) {
+      if (search) {
+        search.value = next.searchQuery;
+        rebuildSearch(next.searchQuery);
+        updateClearButton();
+      }
+    } else if (search && search.value) {
+      search.value = '';
+      rebuildSearch('');
+      updateClearButton();
+    }
+
+    tocScrollActive = true;
+    let targetY = next.y;
+    if (next.id) {
+      const el = next.id === '__doc-title__' ? article.querySelector('.hero') : document.getElementById(next.id);
+      if (el) {
+        const actualTop = headingOffsetTop(el);
+        if (Math.abs(actualTop - (next.y + 88)) > 100) {
+          targetY = Math.max(0, actualTop - 88);
+        }
+      }
+      setActive(next.id);
+    }
+
+    window.scrollTo({ top: targetY, behavior: 'smooth' });
+    highlightJumpTarget(next.id);
+    onScrollEnd(() => {
+      tocScrollActive = false;
+      if (next.id) setActive(next.id);
+    });
+  }
+
   const store = {
     get(key, fallback) {
       try { return localStorage.getItem(key) ?? fallback; } catch (_) { return fallback; }
@@ -839,8 +1004,79 @@
     if (id && document.getElementById(id)) setActive(id);
   });
 
+  // ── Wikilink / Internal Anchor Interceptor ─────────────────────────────────
+  article.addEventListener('click', (event) => {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link || link.classList.contains('heading-anchor')) return;
+    const href = link.getAttribute('href');
+    if (!href || href === '#') return;
+    const targetId = decodeURIComponent(href.slice(1));
+    const targetEl = targetId === '__doc-title__' ? article.querySelector('.hero') : document.getElementById(targetId);
+    if (!targetEl && targetId !== '__doc-title__') return;
+
+    // Capture current reading state before jumping
+    const currentActive = detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
+    const currentSearch = search ? search.value.trim() : '';
+    backStack.push({
+      y: window.scrollY,
+      id: currentActive,
+      label: getSectionLabel(currentActive) || 'Previous section',
+      searchQuery: currentSearch || undefined
+    });
+    forwardStack.length = 0; // Clear forward stack on new jump
+    updateNavHistoryUI();
+
+    // If search is currently active, clear it so target document area is completely unhidden
+    if (currentSearch && search) {
+      search.value = '';
+      rebuildSearch('');
+      updateClearButton();
+    }
+  });
+
+  if (navClearBtn) {
+    navClearBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      backStack.length = 0;
+      forwardStack.length = 0;
+      updateNavHistoryUI();
+    });
+  }
+
+  if (navBackBtn) {
+    navBackBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateHistoryBack();
+    });
+  }
+
+  if (navForwardBtn) {
+    navForwardBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      navigateHistoryForward();
+    });
+  }
+
   // ── Keyboard shortcuts ─────────────────────────────────────────────────────
   document.addEventListener('keydown', event => {
+    // Alt + Left Arrow or Cmd + Left Arrow (or Escape when search is empty/closed) -> History Back
+    if ((event.altKey && event.key === 'ArrowLeft') || (event.metaKey && event.key === 'ArrowLeft')) {
+      if (backStack.length > 0) {
+        event.preventDefault();
+        navigateHistoryBack();
+        return;
+      }
+    }
+
+    // Alt + Right Arrow or Cmd + Right Arrow -> History Forward
+    if ((event.altKey && event.key === 'ArrowRight') || (event.metaKey && event.key === 'ArrowRight')) {
+      if (forwardStack.length > 0) {
+        event.preventDefault();
+        navigateHistoryForward();
+        return;
+      }
+    }
+
     if (event.key === '/' && document.activeElement !== search) {
       event.preventDefault();
       if (window.innerWidth <= 640) setSearchMode(true);
@@ -857,6 +1093,8 @@
       if (search.value) {
         search.value = '';
         search.dispatchEvent(new Event('input'));
+      } else if (backStack.length > 0) {
+        navigateHistoryBack();
       }
     }
   });

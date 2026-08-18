@@ -1,4 +1,14 @@
 /**
+ * Represents a compilation or validation error in Markdown++.
+ */
+export class CompileError extends Error {
+  constructor(message: string, public readonly code?: string) {
+    super(message);
+    this.name = 'CompileError';
+  }
+}
+
+/**
  * Safe error message extraction.
  * Handles Error instances, strings, and unknown thrown values.
  */

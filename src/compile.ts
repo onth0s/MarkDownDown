@@ -52,6 +52,6 @@ export function compile(options: Options): CompileResult {
 
   // 7. Assemble and write
   return assembleAndWrite(
-    options, meta, hero, title, accent, bodyHtml, assetsDir, warnings,
+    options, meta, hero, title, accent, bodyHtml, assetsDir, headings, warnings,
   );
 }

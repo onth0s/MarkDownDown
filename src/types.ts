@@ -78,13 +78,7 @@ export interface CompileResult {
   warnings: string[];
 }
 
-/** A compile-time error (parse failure, unresolved reference, collision). */
-export class CompileError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'CompileError';
-  }
-}
+export { CompileError } from './util/error.js';
 
 /** A wikilink collected during token walk, awaiting resolution */
 export interface PendingWikilink {

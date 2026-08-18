@@ -60,14 +60,25 @@ export function assembleAndWrite(
   accent: string,
   bodyHtml: string,
   assetsDir: string,
+  headings: import('../types.js').Heading[],
   warnings: string[],
 ): CompileResult {
   const heroHtml = buildHeroHtml(hero, title);
 
   const accentRgb = hexToRgb(accent);
 
+  const routes: Record<string, string> = {};
+  if (title) {
+    routes['__doc-title__'] = title.length > 40 ? title.slice(0, 37) + '…' : title;
+  }
+  for (const h of headings) {
+    if (!h.id) continue;
+    const cleanText = h.text.replace(/<[^>]+>/g, '').replace(/[`*_~[\]]/g, '').trim();
+    routes[h.id] = cleanText.length > 40 ? cleanText.slice(0, 37) + '…' : cleanText;
+  }
+
   const css = buildCss(accent, accentRgb);
-  const js = buildJs(accent);
+  const js = buildJs(accent, routes);
 
   let customCssContent: string | undefined;
   if (meta.customCss && fs.existsSync(meta.customCss)) {
