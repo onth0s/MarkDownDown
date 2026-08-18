@@ -291,8 +291,6 @@ export function buildJs(accent: string): string {
 
   window.addEventListener('scroll', updateScrollUI, { passive: true });
   window.addEventListener('resize', updateScrollUI);
-  doScrollUpdate();
-  initialScrollDone = true;
 
   backtop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
@@ -628,11 +626,15 @@ export function buildJs(accent: string): string {
     }
   });
 
-  // Land on hash target if present.
-  if (location.hash) {
-    const target = document.getElementById(location.hash.slice(1));
-    if (target) setTimeout(() => target.scrollIntoView(), 0);
-  }
+  // Land on hash target and do initial sidebar snap after browser restores scroll.
+  setTimeout(() => {
+    doScrollUpdate();
+    initialScrollDone = true;
+    if (location.hash) {
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) target.scrollIntoView();
+    }
+  }, 0);
 })();
 `;
 }

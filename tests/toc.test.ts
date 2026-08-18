@@ -158,8 +158,7 @@ describe('Scroll spy', () => {
   });
 
   test('updateScrollUI called once on init', () => {
-    const scrollSpyBlock = js.slice(js.indexOf('doScrollUpdate()'), js.indexOf('backtop.addEventListener'));
-    expect(scrollSpyBlock).toMatch(/doScrollUpdate\(\)/);
+    expect(js).toMatch(/setTimeout\(\(\) => \{[\s\S]*?doScrollUpdate\(\);[\s\S]*?initialScrollDone = true/);
   });
 });
 
