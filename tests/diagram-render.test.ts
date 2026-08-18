@@ -111,14 +111,15 @@ describe('diagramLayout + diagramBuildSvg', () => {
     expect(model.horizontal).toBe(true);
   });
 
-  test('LR SVG viewBox is wider than tall for linear chain', () => {
+  test('LR SVG width > height for linear chain', () => {
     const model = diagramParse(`flowchart\n  A[Start]\n  B[Process]\n  C[End]\n  A --> B\n  B --> C`);
     diagramLayout(model);
     const lr = diagramBuildSvg(model, 'LR Test', true);
-    const match = lr.match(/viewBox="([^"]+)"/);
-    expect(match).toBeTruthy();
-    const [, , w, h] = match![1].split(' ').map(Number);
-    expect(w).toBeGreaterThan(h);
+    const wMatch = lr.match(/width="(\d+)"/);
+    const hMatch = lr.match(/height="(\d+)"/);
+    expect(wMatch).toBeTruthy();
+    expect(hMatch).toBeTruthy();
+    expect(Number(wMatch![1])).toBeGreaterThan(Number(hMatch![1]));
   });
 
   test('LR edge paths are horizontal (sy and ey equal)', () => {

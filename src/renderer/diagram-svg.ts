@@ -304,6 +304,10 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
   const arrowId = `arrow-${Math.random().toString(36).slice(2, 8)}`;
   const isLR = forceLR !== undefined ? forceLR : model.horizontal;
 
+  if (isLR) {
+    return buildLrSvg(model, title, arrowId);
+  }
+
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
   const edgeG: string[] = [];
@@ -329,19 +333,115 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
       my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
     }
 
-    const osx = isLR ? sy : sx, osy = isLR ? sx : sy;
-    const oex = isLR ? ey : ex, oey = isLR ? ex : ey;
-    const omx = isLR ? my : mx, omy = isLR ? mx : my;
+    if (!e.directed) {
+      d = `M ${P(sx, sy)} L ${P(ex, ey)}`;
+    } else {
+      const dy = ey - sy;
+      const c1x = sx, c1y = sy + dy * 0.5, c2x = ex, c2y = ey - dy * 0.5;
+      d = `M ${P(sx, sy)} C ${P(c1x, c1y)} ${P(c2x, c2y)} ${P(ex, ey)}`;
+    }
+
+    const label = e.label;
+    let labelSvg = '';
+    if (label) {
+      const lw = textWidth(label, EDGE_LABEL_SIZE, false) + 14;
+      labelSvg =
+        `<g class="edge-label" transform="translate(${P(mx, my)})">` +
+        `<rect class="edge-label-bg" x="${-lw / 2}" y="${-EDGE_LABEL_H / 2}" width="${lw}" height="${EDGE_LABEL_H}" rx="6"/>` +
+        `<text class="edge-label-text" x="0" y="${EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${EDGE_LABEL_SIZE}">${esc(label)}</text>` +
+        `</g>`;
+    }
+    const ord = e.labelOrd;
+    const ordAttr = ord !== undefined ? ` data-label-ord="${ord}"` : '';
+    edgeG.push(
+      `<g class="edge"${ordAttr}>` +
+      `<path class="edge-path" d="${d}" marker-end="url(#${arrowId})"/>` +
+      labelSvg +
+      `</g>`
+    );
+    minX = Math.min(minX, sx, ex);
+    minY = Math.min(minY, sy, ey);
+    maxX = Math.max(maxX, sx, ex);
+    maxY = Math.max(maxY, sy, ey);
+  });
+
+  const nodeG: string[] = [];
+  for (const node of model.nodes.values()) {
+    const x = model.cx.get(node.id)! - node.w / 2;
+    const y = model.cy.get(node.id)! - node.h / 2;
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    maxX = Math.max(maxX, x + node.w);
+    maxY = Math.max(maxY, y + node.h);
+    const titleLines = node.titleLines.map((l, i) => {
+      const tx = model.cx.get(node.id)!;
+      const ty = y + PADY + TITLE_H * (i + 1) - 4;
+      return `<text class="node-title" ${AT(tx, ty)} text-anchor="middle" font-size="${TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
+    }).join('');
+    const subLines = node.subLines.map((l, i) => {
+      const tx = model.cx.get(node.id)!;
+      const ty = y + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3;
+      return `<text class="node-sub" ${AT(tx, ty)} text-anchor="middle" font-size="${SUB_SIZE}">${esc(l)}</text>`;
+    }).join('');
+    const rx = node.shape === 'rounded' ? 22 : 8;
+    nodeG.push(
+      `<g class="node" data-label-ord="${node.labelOrd}">` +
+      `<rect class="node-rect" x="${x}" y="${y}" width="${node.w}" height="${node.h}" rx="${rx}"/>` +
+      titleLines + subLines +
+      `</g>`
+    );
+  }
+
+  const vb = `${minX - PAD} ${minY - PAD} ${(maxX - minX) + PAD * 2} ${(maxY - minY) + PAD * 2}`;
+  const vbW = Math.round((maxX - minX) + PAD * 2);
+  const vbH = Math.round((maxY - minY) + PAD * 2);
+
+  return (
+    `<svg class="diagram-svg" viewBox="${vb}" width="${vbW}" height="${vbH}" preserveAspectRatio="xMidYMid meet" ` +
+    `role="img" aria-label="${esc(title)}" xmlns="${NS}">` +
+    `<defs><marker id="${arrowId}" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>` +
+    nodeG.join('') + edgeG.join('') +
+    `</svg>`
+  );
+}
+
+const LR_REF_W = 960;
+
+function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+  const edgeG: string[] = [];
+  model.edges.forEach((e) => {
+    const from = model.nodes.get(e.from);
+    const to = model.nodes.get(e.to);
+    if (!from || !to) return;
+
+    const sx = model.cx.get(e.from)!;
+    const sy = model.cy.get(e.from)! + from.h / 2;
+    const ex = model.cx.get(e.to)!;
+    const ey = model.cy.get(e.to)! - to.h / 2;
+
+    let d: string;
+    let mx: number, my: number;
+    if (!e.directed) {
+      mx = (sx + ex) / 2;
+      my = (sy + ey) / 2;
+    } else {
+      const dy = ey - sy;
+      const c1x = sx, c1y = sy + dy * 0.5, c2x = ex, c2y = ey - dy * 0.5;
+      mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
+      my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
+    }
+
+    const osx = sy, osy = sx;
+    const oex = ey, oey = ex;
+    const omx = my, omy = mx;
 
     if (!e.directed) {
       d = `M ${P(osx, osy)} L ${P(oex, oey)}`;
-    } else if (isLR) {
+    } else {
       const dx = oex - osx;
       const c1x = osx + dx * 0.5, c1y = osy, c2x = oex - dx * 0.5, c2y = oey;
-      d = `M ${P(osx, osy)} C ${P(c1x, c1y)} ${P(c2x, c2y)} ${P(oex, oey)}`;
-    } else {
-      const dy = oey - osy;
-      const c1x = osx, c1y = osy + dy * 0.5, c2x = oex, c2y = oey - dy * 0.5;
       d = `M ${P(osx, osy)} C ${P(c1x, c1y)} ${P(c2x, c2y)} ${P(oex, oey)}`;
     }
 
@@ -373,50 +473,45 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
   for (const node of model.nodes.values()) {
     const x = model.cx.get(node.id)! - node.w / 2;
     const y = model.cy.get(node.id)! - node.h / 2;
-    if (isLR) {
-      minX = Math.min(minX, y);
-      minY = Math.min(minY, x);
-      maxX = Math.max(maxX, y + node.h);
-      maxY = Math.max(maxY, x + node.w);
-    } else {
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x + node.w);
-      maxY = Math.max(maxY, y + node.h);
-    }
+    const lx = y, ly = x;
+    minX = Math.min(minX, lx);
+    minY = Math.min(minY, ly);
+    maxX = Math.max(maxX, lx + node.h);
+    maxY = Math.max(maxY, ly + node.w);
     const titleLines = node.titleLines.map((l, i) => {
-      const tx = isLR ? model.cy.get(node.id)! : model.cx.get(node.id)!;
-      const ty = isLR ? x + PADY + TITLE_H * (i + 1) - 4 : y + PADY + TITLE_H * (i + 1) - 4;
+      const tx = model.cy.get(node.id)!;
+      const ty = x + PADY + TITLE_H * (i + 1) - 4;
       return `<text class="node-title" ${AT(tx, ty)} text-anchor="middle" font-size="${TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
     }).join('');
     const subLines = node.subLines.map((l, i) => {
-      const tx = isLR ? model.cy.get(node.id)! : model.cx.get(node.id)!;
-      const ty = isLR ? x + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3 : y + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3;
+      const tx = model.cy.get(node.id)!;
+      const ty = x + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3;
       return `<text class="node-sub" ${AT(tx, ty)} text-anchor="middle" font-size="${SUB_SIZE}">${esc(l)}</text>`;
     }).join('');
     const rx = node.shape === 'rounded' ? 22 : 8;
     nodeG.push(
       `<g class="node" data-label-ord="${node.labelOrd}">` +
-      `<rect class="node-rect" x="${isLR ? y : x}" y="${isLR ? x : y}" width="${isLR ? node.h : node.w}" height="${isLR ? node.w : node.h}" rx="${rx}"/>` +
+      `<rect class="node-rect" x="${lx}" y="${ly}" width="${node.h}" height="${node.w}" rx="${rx}"/>` +
       titleLines + subLines +
       `</g>`
     );
   }
 
-  const vb = `${minX - PAD} ${minY - PAD} ${(maxX - minX) + PAD * 2} ${(maxY - minY) + PAD * 2}`;
-
-  const vbW = Math.round((maxX - minX) + PAD * 2);
-  const vbH = Math.round((maxY - minY) + PAD * 2);
-
-  const wAttr = isLR ? `width="100%"` : `width="${vbW}"`;
-  const hAttr = isLR ? '' : ` height="${vbH}"`;
+  const natW = maxX - minX;
+  const natH = maxY - minY;
+  const S = natW > 0 ? LR_REF_W / natW : 1;
+  const scaledW = Math.round(natW * S);
+  const scaledH = Math.round(natH * S);
+  const ox = minX;
+  const oy = minY;
 
   return (
-    `<svg class="diagram-svg" viewBox="${vb}" ${wAttr}${hAttr} preserveAspectRatio="xMidYMid meet" ` +
+    `<svg class="diagram-svg" width="${scaledW}" height="${scaledH}" ` +
     `role="img" aria-label="${esc(title)}" xmlns="${NS}">` +
     `<defs><marker id="${arrowId}" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>` +
+    `<g transform="translate(${-ox * S},${-oy * S}) scale(${S})">` +
     nodeG.join('') + edgeG.join('') +
-    `</svg>`
+    `</g></svg>`
   );
 }
 
