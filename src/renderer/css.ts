@@ -179,7 +179,7 @@ button, input { font:inherit; }
   margin-top:0; overflow-x:auto; border:1px solid var(--border); border-radius:12px;
   background:var(--code); box-shadow:var(--shadow);
 }
-.code-wrap.diagram .diagram-render svg { display:block; max-width:100%; height:auto; }
+.code-wrap.diagram .diagram-render svg { display:block; margin:0 auto; max-width:100%; height:auto; }
 .diagram-auto .diagram-lr { display:none; }
 .diagram-auto .diagram-tb { display:block; }
 @media (min-width:768px) {
