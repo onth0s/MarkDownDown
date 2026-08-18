@@ -408,8 +408,11 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
   const vbW = Math.round((maxX - minX) + PAD * 2);
   const vbH = Math.round((maxY - minY) + PAD * 2);
 
+  const wAttr = isLR ? `width="100%"` : `width="${vbW}"`;
+  const hAttr = isLR ? '' : ` height="${vbH}"`;
+
   return (
-    `<svg class="diagram-svg" viewBox="${vb}" width="${vbW}" height="${vbH}" preserveAspectRatio="xMidYMid meet" ` +
+    `<svg class="diagram-svg" viewBox="${vb}" ${wAttr}${hAttr} preserveAspectRatio="xMidYMid meet" ` +
     `role="img" aria-label="${esc(title)}" xmlns="${NS}">` +
     `<defs><marker id="${arrowId}" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>` +
     nodeG.join('') + edgeG.join('') +

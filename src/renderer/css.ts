@@ -187,11 +187,11 @@ button, input { font:inherit; }
   .diagram-auto .diagram-lr { display:block; }
 }
 .diagram-svg .node-rect { fill:var(--surface-2); stroke:var(--border); }
-.diagram-svg .node-title { fill:var(--accent); font-weight:700; }
-.diagram-svg .node-sub { fill:var(--muted); }
+.diagram-svg .node-title { fill:var(--accent); font-weight:700; font-size:16px; }
+.diagram-svg .node-sub { fill:var(--muted); font-size:14px; }
 .diagram-svg .edge-path { fill:none; stroke:var(--accent); stroke-width:1.6; }
 .diagram-svg .edge-label-bg { fill:var(--surface); stroke:var(--border); stroke-width:.8; }
-.diagram-svg .edge-label-text { fill:var(--text); }
+.diagram-svg .edge-label-text { fill:var(--text); font-size:12px; }
 .diagram-svg .node.is-hit .node-rect { stroke:var(--accent); stroke-width:2; fill:color-mix(in srgb, var(--accent) 12%, var(--surface-2)); }
 .diagram-svg .node.is-current .node-rect { stroke:var(--accent); stroke-width:2.5; fill:color-mix(in srgb, var(--accent) 22%, var(--surface-2)); }
 .diagram-svg .node.is-current .node-title { fill:var(--accent); }
