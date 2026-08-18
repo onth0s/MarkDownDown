@@ -173,9 +173,11 @@ GATEWAY -->|Validate Token| AUTH
 ```
 ````
 
-- **Node Shapes**: `[Rectangle]`, `(Rounded)`, `{Diamond}`
+- **Zero-Boilerplate**: Omit direction line to use intelligent dynamic auto-layout.
+- **Explicit Directions**: Bare `LR`, `TB`, `RL`, `BT` on its own line, or directive `DIRECTION: LR`.
+- **Node Shapes**: `[Rectangle]` (default), `(Rounded)`, `{Diamond}`.
 - **Title–Subtitle Split**: `["Title — Subtitle"]` uses em-dash ` — ` to format primary and secondary labels.
-- **Flow Directions**: `TB` (top to bottom), `LR` (left to right), `RL` (right to left), `BT` (bottom to top).
+- **Edge Types**: Directed `-->`, undirected `---`, and labeled `-->|label|`.
 
 ### Table DSL
 
