@@ -19,3 +19,13 @@ node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern='
 if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
 
 Write-Host "All passed." -ForegroundColor Green
+
+Write-Host "Compiling scratch..." -ForegroundColor Cyan
+$mddFiles = Get-ChildItem -Path "$PSScriptRoot\scratch" -Filter '*.mdd' -File -ErrorAction SilentlyContinue
+foreach ($f in $mddFiles) {
+  $out = [IO.Path]::ChangeExtension($f.FullName, '.html')
+  Write-Host "  $($f.Name) -> $([IO.Path]::GetFileName($out))" -ForegroundColor DarkCyan
+  node "$PSScriptRoot\dist\cli.cjs" $f.FullName --single -o $out
+}
+
+Write-Host "Done." -ForegroundColor Green

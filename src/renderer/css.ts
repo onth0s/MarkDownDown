@@ -180,8 +180,8 @@ button, input { font:inherit; }
   background:var(--code); box-shadow:var(--shadow);
 }
 .code-wrap.diagram .diagram-render svg { display:block; height:auto; margin:0 auto; }
-.diagram-auto .diagram-lr { display:none; }
-.diagram-auto .diagram-tb { display:block; }
+.diagram-auto .diagram-lr { display:block; }
+.diagram-auto .diagram-tb { display:none; }
 .diagram-svg .node-rect { fill:var(--surface-2); stroke:var(--border); }
 .diagram-svg .node-title { fill:var(--accent); font-weight:700; }
 .diagram-svg .node-sub { fill:var(--muted); }
@@ -332,10 +332,6 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
 .backtop:hover { opacity:1; }
 .no-results { display:none; margin:20px 0; padding:20px; border:1px dashed var(--border); border-radius:12px; color:var(--muted); }
 body.searching .article > * { transition:opacity .15s; }
-@media (min-width:768px) {
-  .diagram-auto .diagram-tb { display:none; }
-  .diagram-auto .diagram-lr { display:block; }
-}
 @media (max-width:900px) {
   .layout { display:block; }
   body { padding-top:64px; }
