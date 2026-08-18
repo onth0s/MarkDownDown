@@ -367,11 +367,11 @@ body.searching .article > * { transition:opacity .15s; }
   .hero p { font-size:16.5px; }
 }
 
-html, body {
+html {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-x: none;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 button, a, input, label, .toc a, .search-result-item {
   touch-action: manipulation;

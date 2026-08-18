@@ -190,7 +190,7 @@ describe('Hash navigation', () => {
   });
 
   test('initial hash scrolls to target on load', () => {
-    expect(js).toMatch(/if \(location\.hash\)[\s\S]*?target\.scrollIntoView\(\)/);
+    expect(js).toMatch(/if \(location\.hash\)[\s\S]*?target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
   });
 });
 
@@ -295,6 +295,51 @@ describe('Backtop button hover-reveal', () => {
 
   test('JS does not toggle backtop show class on scroll', () => {
     expect(js).not.toMatch(/backtop\.classList\.toggle/);
+  });
+});
+
+// ── Scroll guard ────────────────────────────────────────────────────────────
+
+describe('Scroll guard', () => {
+  test('declares tocScrollActive variable', () => {
+    expect(js).toMatch(/let tocScrollActive = false/);
+  });
+
+  test('TOC click sets tocScrollActive to true', () => {
+    expect(js).toMatch(/toc\.addEventListener\('click'[\s\S]*?tocScrollActive = true/);
+  });
+
+  test('doScrollUpdate checks tocScrollActive before setActive', () => {
+    expect(js).toMatch(/if \(!tocScrollActive\)[\s\S]*?const id = detectActiveHeading\(\)/);
+  });
+
+  test('defines onScrollEnd helper with scrollend feature detection', () => {
+    expect(js).toMatch(/function onScrollEnd\(callback\)/);
+    expect(js).toMatch(/'onscrollend' in window/);
+  });
+
+  test('onScrollEnd uses scrollend event when available', () => {
+    expect(js).toMatch(/document\.addEventListener\('scrollend', callback, \{ once: true \}\)/);
+  });
+
+  test('onScrollEnd falls back to debounced scroll listener', () => {
+    expect(js).toMatch(/document\.addEventListener\('scroll', handler, \{ passive: true \}\)/);
+  });
+
+  test('TOC click clears tocScrollActive via onScrollEnd', () => {
+    expect(js).toMatch(/toc\.addEventListener\('click'[\s\S]*?onScrollEnd\(\(\) => \{ tocScrollActive = false/);
+  });
+
+  test('backtop click sets tocScrollActive to true', () => {
+    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?tocScrollActive = true/);
+  });
+
+  test('backtop click clears tocScrollActive via onScrollEnd', () => {
+    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?onScrollEnd\(\(\) => \{ tocScrollActive = false/);
+  });
+
+  test('no hardcoded setTimeout for tocScrollActive', () => {
+    expect(js).not.toMatch(/setTimeout\(\(\) => \{ tocScrollActive/);
   });
 });
 

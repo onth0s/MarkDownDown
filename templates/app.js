@@ -22,6 +22,23 @@
     }
   };
 
+  function onScrollEnd(callback) {
+    if ('onscrollend' in window) {
+      document.addEventListener('scrollend', callback, { once: true });
+    } else {
+      let timer;
+      const handler = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          document.removeEventListener('scroll', handler);
+          callback();
+        }, 100);
+      };
+      document.addEventListener('scroll', handler, { passive: true });
+      handler();
+    }
+  }
+
   function hexToRgb(hex) {
     const n = hex.replace('#', '');
     const v = parseInt(n, 16);
@@ -108,10 +125,7 @@
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     setActive(link.dataset.target);
-    window.addEventListener('scroll', function onTocScroll() {
-      tocScrollActive = false;
-      window.removeEventListener('scroll', onTocScroll);
-    }, { once: true });
+    onScrollEnd(() => { tocScrollActive = false; });
   });
 
   // ── Theme / Appearance ─────────────────────────────────────────────────────
@@ -302,10 +316,7 @@
   backtop.addEventListener('click', () => {
     tocScrollActive = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    window.addEventListener('scroll', function onTocScroll() {
-      tocScrollActive = false;
-      window.removeEventListener('scroll', onTocScroll);
-    }, { once: true });
+    onScrollEnd(() => { tocScrollActive = false; });
   });
 
   // ── Diagram / Table SVG highlight sync ─────────────────────────────────────
@@ -646,7 +657,7 @@
     initialScrollDone = true;
     if (location.hash) {
       const target = document.getElementById(location.hash.slice(1));
-      if (target) target.scrollIntoView();
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, 0);
 })();
