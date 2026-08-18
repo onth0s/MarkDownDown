@@ -39,14 +39,12 @@ function buildLogoSvg(): string {
   );
 }
 
-declare const __dirname: string;
-
 /** Load the HTML shell template. */
 function loadTemplate(): string {
   const candidates = [
     path.resolve(process.cwd(), 'templates/shell.html'),
-    path.resolve(__dirname, '../templates/shell.html'),
-    path.resolve(__dirname, '../../templates/shell.html'),
+    path.resolve(process.cwd(), 'src/templates/shell.html'),
+    path.resolve(process.cwd(), '../templates/shell.html'),
   ];
 
   for (const p of candidates) {

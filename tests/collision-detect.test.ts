@@ -1,4 +1,4 @@
-import { resolveWikilink } from '../src/resolver/collision.js';
+import { resolveWikilink } from '../src/resolver/wikilink.js';
 import type { Heading, Asset } from '../src/types.js';
 
 const headings: Heading[] = [

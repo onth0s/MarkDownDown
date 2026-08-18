@@ -38,8 +38,8 @@ describe('resolveLinks', () => {
     const warnings: string[] = [];
     const result = resolveLinks(tokens as never[], headings, assets, baseOptions, warnings);
     expect(result.pendingLinks).toHaveLength(1);
-    expect(result.pendingLinks[0].resolved).toBeDefined();
-    expect(result.pendingLinks[0].resolved!.kind).toBe('heading');
+    expect(result.pendingLinks[0].resolution).toBeDefined();
+    expect(result.pendingLinks[0].resolution!.kind).toBe('heading');
   });
 
   test('throws on unresolvable wikilink', () => {

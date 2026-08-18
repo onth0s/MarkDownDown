@@ -6,26 +6,26 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Options, CompileResult } from '../types.js';
+import type { Options, CompileResult, HeroMeta } from '../types.js';
 import type { FrontmatterResult } from '../parser/frontmatter.js';
 import { buildCss } from '../renderer/css.js';
 import { buildJs } from '../renderer/js.js';
 import { assembleHtml } from '../renderer/template.js';
 import { escHtml } from '../util/escape.js';
 
-export function buildHeroHtml(
-  meta: FrontmatterResult['meta'],
+function buildHeroHtml(
+  hero: HeroMeta,
   title: string,
 ): string {
-  if (!meta.kicker && !meta.subtitle && !meta.pills?.length) return '';
+  if (!hero.kicker && !hero.subtitle && !hero.pills?.length) return '';
 
   let html = '<section class="hero">';
-  if (meta.kicker) html += `<div class="kicker">${escHtml(meta.kicker)}</div>`;
+  if (hero.kicker) html += `<div class="kicker">${escHtml(hero.kicker)}</div>`;
   if (title) html += `<h1>${escHtml(title)}</h1>`;
-  if (meta.subtitle) html += `<p>${escHtml(meta.subtitle)}</p>`;
-  if (meta.pills?.length) {
+  if (hero.subtitle) html += `<p>${escHtml(hero.subtitle)}</p>`;
+  if (hero.pills?.length) {
     html += '<div class="meta">';
-    for (const pill of meta.pills) {
+    for (const pill of hero.pills) {
       html += `<span class="pill">${escHtml(pill)}</span>`;
     }
     html += '</div>';
@@ -37,16 +37,17 @@ export function buildHeroHtml(
 export function assembleAndWrite(
   options: Options,
   meta: FrontmatterResult['meta'],
+  hero: HeroMeta,
   title: string,
   accent: string,
   bodyHtml: string,
-  heroHtml: string,
   assetsDir: string,
   warnings: string[],
 ): CompileResult {
-  const accentRgb = accent.replace('#', '')
-    .replace(/(.{2})/g, (_, c: string) => parseInt(c, 16) + ',')
-    .slice(0, -1);
+  const heroHtml = buildHeroHtml(hero, title);
+
+  const hex = accent.replace('#', '');
+  const accentRgb = `${parseInt(hex.slice(0, 2), 16)},${parseInt(hex.slice(2, 4), 16)},${parseInt(hex.slice(4, 6), 16)}`;
 
   const css = buildCss(accent, accentRgb);
   const js = buildJs(accent);

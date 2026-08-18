@@ -6,22 +6,11 @@
  * character width; no canvas or DOM required.
  */
 import { escHtml as esc } from '../util/escape.js';
+import { DIAGRAM as C } from '../constants.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
-const TITLE_SIZE = 16;
-const SUB_SIZE = 14;
-const TITLE_H = 22;
-const SUB_H = 20;
-const MIN_W = 140;
-const MAX_W = 400;
-const PADX = 28;
-const PADY = 18;
-const H_GAP = 48;
-const V_GAP = 56;
-const PAD = 24;
-const EDGE_LABEL_SIZE = 11;
-const EDGE_LABEL_H = 16;
+let arrowCounter = 0;
 
 function textWidth(text: string, size: number, bold: boolean): number {
   const base = size <= 11 ? 7.8 : size <= 12 ? 8.6 : 9.6;
@@ -120,7 +109,7 @@ export function diagramParse(source: string): DiagramModel {
         shape: shape ?? 'rect',
         rank: 0,
         order: model.nodes.size,
-        x: 0, y: 0, w: MIN_W, h: 36,
+        x: 0, y: 0, w: C.MIN_W, h: 36,
         labelOrd: pushLabel(raw, charPos),
         titleLines: [],
         subLines: [],
@@ -215,15 +204,15 @@ export function diagramLayout(model: DiagramModel): void {
   const nodes = [...model.nodes.values()];
 
   for (const node of nodes) {
-    const titleLines = wrapText(node.label, TITLE_SIZE, true, MAX_W - PADX * 2);
-    const subLines = node.subtitle ? wrapText(node.subtitle, SUB_SIZE, false, MAX_W - PADX * 2) : [];
+    const titleLines = wrapText(node.label, C.TITLE_SIZE, true, C.MAX_W - C.PADX * 2);
+    const subLines = node.subtitle ? wrapText(node.subtitle, C.SUB_SIZE, false, C.MAX_W - C.PADX * 2) : [];
     node.titleLines = titleLines;
     node.subLines = subLines;
-    const w = Math.min(MAX_W, Math.max(MIN_W,
-      Math.max(0, ...titleLines.map(l => textWidth(l, TITLE_SIZE, true)),
-               ...subLines.map(l => textWidth(l, SUB_SIZE, false))) * 1.1 + PADX * 2));
+    const w = Math.min(C.MAX_W, Math.max(C.MIN_W,
+      Math.max(0, ...titleLines.map(l => textWidth(l, C.TITLE_SIZE, true)),
+               ...subLines.map(l => textWidth(l, C.SUB_SIZE, false))) * 1.1 + C.PADX * 2));
     node.w = w;
-    node.h = titleLines.length * TITLE_H + subLines.length * SUB_H + PADY * 2;
+    node.h = titleLines.length * C.TITLE_H + subLines.length * C.SUB_H + C.PADY * 2;
   }
 
   const maxW = Math.max(...nodes.map(n => n.w));
@@ -277,12 +266,12 @@ export function diagramLayout(model: DiagramModel): void {
   }
 
   const cx = new Map<string, number>(), cy = new Map<string, number>();
-  let y = PAD;
+  let y = C.PAD;
   let maxX = 0;
   for (const rid of ranks) {
     let total = 0;
-    for (const id of rid) total += model.nodes.get(id)!.w + H_GAP;
-    total -= H_GAP;
+    for (const id of rid) total += model.nodes.get(id)!.w + C.H_GAP;
+    total -= C.H_GAP;
     maxX = Math.max(maxX, total);
     let x = 0;
     let h = 0;
@@ -291,20 +280,20 @@ export function diagramLayout(model: DiagramModel): void {
       const n = model.nodes.get(id)!;
       cx.set(id, x + n.w / 2);
       cy.set(id, y + h / 2);
-      x += n.w + H_GAP;
+      x += n.w + C.H_GAP;
     }
-    y += h + V_GAP;
+    y += h + C.V_GAP;
   }
   for (const rid of ranks) {
     let total = 0;
-    for (const id of rid) total += model.nodes.get(id)!.w + H_GAP;
-    total -= H_GAP;
+    for (const id of rid) total += model.nodes.get(id)!.w + C.H_GAP;
+    total -= C.H_GAP;
     const shift = (maxX - total) / 2;
     for (const id of rid) cx.set(id, cx.get(id)! + shift);
   }
 
   model.maxX = maxX;
-  model.maxY = y - V_GAP + PAD;
+  model.maxY = y - C.V_GAP + C.PAD;
   model.cx = cx;
   model.cy = cy;
   model.rank = rank;
@@ -313,7 +302,7 @@ export function diagramLayout(model: DiagramModel): void {
 }
 
 export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: boolean): string {
-  const arrowId = `arrow-${Math.random().toString(36).slice(2, 8)}`;
+  const arrowId = `arrow-${arrowCounter++}`;
   const isLR = forceLR !== undefined ? forceLR : model.horizontal;
 
   if (isLR) {
@@ -356,11 +345,11 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
     const label = e.label;
     let labelSvg = '';
     if (label) {
-      const lw = textWidth(label, EDGE_LABEL_SIZE, false) + 14;
+      const lw = textWidth(label, C.EDGE_LABEL_SIZE, false) + 14;
       labelSvg =
         `<g class="edge-label" transform="translate(${P(mx, my)})">` +
-        `<rect class="edge-label-bg" x="${-lw / 2}" y="${-EDGE_LABEL_H / 2}" width="${lw}" height="${EDGE_LABEL_H}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${EDGE_LABEL_SIZE}">${esc(label)}</text>` +
+        `<rect class="edge-label-bg" x="${-lw / 2}" y="${-C.EDGE_LABEL_H / 2}" width="${lw}" height="${C.EDGE_LABEL_H}" rx="6"/>` +
+        `<text class="edge-label-text" x="0" y="${C.EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${esc(label)}</text>` +
         `</g>`;
     }
     const ord = e.labelOrd;
@@ -387,13 +376,13 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
     maxY = Math.max(maxY, y + node.h);
     const titleLines = node.titleLines.map((l, i) => {
       const tx = model.cx.get(node.id)!;
-      const ty = y + PADY + TITLE_H * (i + 1) - 4;
-      return `<text class="node-title" ${AT(tx, ty)} text-anchor="middle" font-size="${TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
+      const ty = y + C.PADY + C.TITLE_H * (i + 1) - 4;
+      return `<text class="node-title" ${AT(tx, ty)} text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
     }).join('');
     const subLines = node.subLines.map((l, i) => {
       const tx = model.cx.get(node.id)!;
-      const ty = y + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3;
-      return `<text class="node-sub" ${AT(tx, ty)} text-anchor="middle" font-size="${SUB_SIZE}">${esc(l)}</text>`;
+      const ty = y + C.PADY + C.TITLE_H * node.titleLines.length + C.SUB_H * (i + 1) - 3;
+      return `<text class="node-sub" ${AT(tx, ty)} text-anchor="middle" font-size="${C.SUB_SIZE}">${esc(l)}</text>`;
     }).join('');
     const rx = 8;
     nodeG.push(
@@ -404,9 +393,9 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
     );
   }
 
-  const vb = `${minX - PAD} ${minY - PAD} ${(maxX - minX) + PAD * 2} ${(maxY - minY) + PAD * 2}`;
-  const vbW = Math.round((maxX - minX) + PAD * 2);
-  const vbH = Math.round((maxY - minY) + PAD * 2);
+  const vb = `${minX - C.PAD} ${minY - C.PAD} ${(maxX - minX) + C.PAD * 2} ${(maxY - minY) + C.PAD * 2}`;
+  const vbW = Math.round((maxX - minX) + C.PAD * 2);
+  const vbH = Math.round((maxY - minY) + C.PAD * 2);
 
   return (
     `<svg class="diagram-svg" viewBox="${vb}" width="${vbW}" height="${vbH}" preserveAspectRatio="xMidYMid meet" ` +
@@ -417,26 +406,23 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
   );
 }
 
-const LR_REF_W = 960;
-
 function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string {
-  const REF = LR_REF_W;
-  const LR_H_GAP = 80;
+  const REF = C.LR_REF_W;
 
   const nodesInOrder: DiagramNode[] = [];
   for (const rid of model.ranks) {
     for (const id of rid) nodesInOrder.push(model.nodes.get(id)!);
   }
 
-  let lrX = PAD;
-  const nodeData: Array<{ lrX: number; lrY: number; w: number; h: number; rx: number; titleLines: string[]; subLines: string[]; labelOrd: number }> = [];
+  let lrX = C.PAD;
+  const nodeData: Array<{ id: string; lrX: number; lrY: number; w: number; h: number; rx: number; titleLines: string[]; subLines: string[]; labelOrd: number }> = [];
   for (const node of nodesInOrder) {
-    nodeData.push({ lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, rx: 8, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
-    lrX += node.w + LR_H_GAP;
+    nodeData.push({ id: node.id, lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, rx: 8, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
+    lrX += node.w + C.LR_H_GAP;
   }
 
-  const totalW = lrX - LR_H_GAP + PAD;
-  const totalH = Math.max(...nodeData.map(n => n.h)) + PAD * 2;
+  const totalW = lrX - C.LR_H_GAP + C.PAD;
+  const totalH = Math.max(...nodeData.map(n => n.h)) + C.PAD * 2;
   const sc = REF / totalW;
   const W = Math.round(totalW * sc);
   const H = Math.round(totalH * sc);
@@ -447,10 +433,9 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
   }
 
   const nodeById = new Map<string, typeof nodeData[0]>();
-  model.nodes.forEach((node, id) => {
-    const nd = nodeData.find(n => n.titleLines[0] === node.titleLines[0] && n.labelOrd === node.labelOrd);
-    if (nd) nodeById.set(id, nd);
-  });
+  for (const nd of nodeData) {
+    nodeById.set(nd.id, nd);
+  }
 
   const edgeInfo: Array<{ d: string; omx: number; omy: number; label: string; labelOrd: number }> = [];
   model.edges.forEach(e => {
@@ -482,12 +467,12 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
   const edgeG: string[] = edgeInfo.map(ed => {
     let labelSvg = '';
     if (ed.label) {
-      const lw = (textWidth(ed.label, EDGE_LABEL_SIZE, false) + 14) * sc;
+      const lw = (textWidth(ed.label, C.EDGE_LABEL_SIZE, false) + 14) * sc;
       const lx = Sx(ed.omx), ly = Sy(ed.omy);
       labelSvg =
         `<g class="edge-label" transform="translate(${P(lx, ly)})">` +
-        `<rect class="edge-label-bg" x="${R(-lw / 2)}" y="${R(-EDGE_LABEL_H * sc / 2)}" width="${R(lw)}" height="${R(EDGE_LABEL_H * sc)}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${R(EDGE_LABEL_H * sc / 2 - 4)}" text-anchor="middle" font-size="${EDGE_LABEL_SIZE}">${esc(ed.label)}</text>` +
+        `<rect class="edge-label-bg" x="${R(-lw / 2)}" y="${R(-C.EDGE_LABEL_H * sc / 2)}" width="${R(lw)}" height="${R(C.EDGE_LABEL_H * sc)}" rx="6"/>` +
+        `<text class="edge-label-text" x="0" y="${R(C.EDGE_LABEL_H * sc / 2 - 4)}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${esc(ed.label)}</text>` +
         `</g>`;
     }
     const pathD = ed.d.replace(/([0-9.]+) ([0-9.]+)/g, (_, x: string, y: string) => `${P(Sx(+x), Sy(+y))}`);
@@ -499,12 +484,12 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     const cx = Sx(nd.lrX), cy = Sy(nd.lrY);
     const w = nd.w * sc, h = nd.h * sc;
     const titleLines = nd.titleLines.map((l, i) => {
-      const ty = cy - h / 2 + PADY * sc + TITLE_H * sc * (i + 1) - 4 * sc;
-      return `<text class="node-title" x="${R(cx)}" y="${R(ty)}" text-anchor="middle" font-size="${TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
+      const ty = cy - h / 2 + C.PADY * sc + C.TITLE_H * sc * (i + 1) - 4 * sc;
+      return `<text class="node-title" x="${R(cx)}" y="${R(ty)}" text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
     }).join('');
     const subLines = nd.subLines.map((l, i) => {
-      const ty = cy - h / 2 + PADY * sc + TITLE_H * sc * nd.titleLines.length + SUB_H * sc * (i + 1) - 3 * sc;
-      return `<text class="node-sub" x="${R(cx)}" y="${R(ty)}" text-anchor="middle" font-size="${SUB_SIZE}">${esc(l)}</text>`;
+      const ty = cy - h / 2 + C.PADY * sc + C.TITLE_H * sc * nd.titleLines.length + C.SUB_H * sc * (i + 1) - 3 * sc;
+      return `<text class="node-sub" x="${R(cx)}" y="${R(ty)}" text-anchor="middle" font-size="${C.SUB_SIZE}">${esc(l)}</text>`;
     }).join('');
     return `<g class="node" data-label-ord="${nd.labelOrd}"><rect class="node-rect" x="${R(cx - w / 2)}" y="${R(cy - h / 2)}" width="${R(w)}" height="${R(h)}" rx="${nd.rx}"/>${titleLines}${subLines}</g>`;
   });

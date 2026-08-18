@@ -6,11 +6,45 @@
  */
 import type { Options, PendingWikilink } from '../types.js';
 import type MarkdownIt from 'markdown-it';
-import { renderWikilinkToken } from '../parser/markdown.js';
+import type { ResolvedLink } from '../resolver/wikilink.js';
 import { diagramParse, diagramLayout, diagramBuildSvg } from '../renderer/diagram-svg.js';
 import { tableParse, tableBuildSvg } from '../renderer/table-svg.js';
-import { escAttr, htmlDecode } from '../util/escape.js';
-import { parseTitleDirective } from '../util/fence.js';
+import { escAttr, escHtml, htmlDecode } from '../util/escape.js';
+
+/**
+ * Render a resolved wikilink token to HTML.
+ */
+function renderWikilinkToken(
+  target: string,
+  display: string,
+  resolved: ResolvedLink,
+  outputMode: 'single' | 'split',
+  assetBase64Map?: Map<string, string>,
+): string {
+  switch (resolved.kind) {
+    case 'heading':
+      return `<a href="#${resolved.heading.id}">${escHtml(display)}</a>`;
+
+    case 'image': {
+      if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
+        const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
+        return `<img src="${b64}" alt="${escHtml(display)}">`;
+      }
+      return `<img src="${resolved.asset.relativePath}" alt="${escHtml(display)}">`;
+    }
+
+    case 'video': {
+      if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
+        const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
+        return `<video src="${b64}" controls></video>`;
+      }
+      return `<video src="${resolved.asset.relativePath}" controls></video>`;
+    }
+
+    case 'doc':
+      return `<a href="${resolved.asset.relativePath}">${escHtml(display)}</a>`;
+  }
+}
 
 export function renderBody(
   md: MarkdownIt,
@@ -33,8 +67,8 @@ export function renderBody(
     const target = tok.content;
     const display = tok.info || target;
     const pw = linkMap.get(`${target}|${display}`);
-    if (!pw?.resolved) return `[[${target}]]`;
-    return renderWikilinkToken(target, display, pw.resolved, options.outputMode, assetBase64Map);
+    if (!pw?.resolution) return `[[${target}]]`;
+    return renderWikilinkToken(target, display, pw.resolution, options.outputMode, assetBase64Map);
   };
 
   // Render markdown to HTML
@@ -47,9 +81,8 @@ export function renderBody(
       (match, titleAttr, codeContent) => {
         try {
           const rawCode = htmlDecode(codeContent);
-          const { title: extractedTitle, body: diagramBody } = parseTitleDirective(rawCode);
-          const diagTitle = extractedTitle || titleAttr || docTitle;
-          const model = diagramParse(diagramBody);
+          const diagTitle = titleAttr || docTitle;
+          const model = diagramParse(rawCode);
           if (model.nodes.size === 0) {
             warnings.push(`diagram: no nodes found, skipped render`);
             return match;
@@ -85,9 +118,8 @@ export function renderBody(
       (match, titleAttr, codeContent) => {
         try {
           const rawCode = htmlDecode(codeContent);
-          const { title: extractedTitle, body: tableBody } = parseTitleDirective(rawCode);
-          const tblTitle = extractedTitle || titleAttr || docTitle;
-          const model = tableParse(tableBody);
+          const tblTitle = titleAttr || docTitle;
+          const model = tableParse(rawCode);
           if (!model.headers.length) {
             warnings.push(`table: no headers found, skipped render`);
             return match;

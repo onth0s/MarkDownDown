@@ -11,7 +11,7 @@
     "build": "node --input-type=module -e \"import{build}from'esbuild';await build({entryPoints:['src/cli.ts'],bundle:true,platform:'node',format:'cjs',outfile:'dist/cli.cjs',external:['node:fs','node:path','node:os']})\"",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-vm-modules node_modules/.bin/jest --testPathPattern=\"tests/\""
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=\"tests/\""
   },
   "dependencies": {
     "commander": "^12.1.0",

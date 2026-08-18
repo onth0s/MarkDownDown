@@ -6,17 +6,17 @@
  */
 import yaml from 'js-yaml';
 import path from 'node:path';
-import type { Options } from '../types.js';
+import type { Options, HeroMeta } from '../types.js';
 
 export interface FrontmatterResult {
   /** Parsed option overrides from frontmatter */
-  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'customCss' | 'customJs'>> & {
-    kicker?: string;
-    subtitle?: string;
-    pills?: string[];
-  };
+  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'customCss' | 'customJs'>>;
+  /** Hero presentation metadata (kicker, subtitle, pills) */
+  hero: HeroMeta;
   /** The markdown body with frontmatter stripped */
   body: string;
+  /** Warnings accumulated during parsing */
+  warnings: string[];
 }
 
 const FENCE_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
@@ -24,7 +24,7 @@ const FENCE_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 export function parseFrontmatter(source: string, inputDir: string): FrontmatterResult {
   const match = source.match(FENCE_RE);
   if (!match) {
-    return { meta: {}, body: source };
+    return { meta: {}, hero: {}, body: source, warnings: [] };
   }
 
   const rawYaml = match[1];
@@ -37,19 +37,20 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
       parsed = result as Record<string, unknown>;
     }
   } catch {
-    process.stderr.write('WARN: Invalid YAML in frontmatter, ignoring.\n');
-    return { meta: {}, body: source };
+    return { meta: {}, hero: {}, body: source, warnings: ['Invalid YAML in frontmatter, ignoring.'] };
   }
 
   const meta: FrontmatterResult['meta'] = {};
+  const hero: HeroMeta = {};
 
   if (typeof parsed['title'] === 'string') meta.title = parsed['title'];
   if (typeof parsed['author'] === 'string') meta.author = parsed['author'];
   if (typeof parsed['accent'] === 'string') meta.accent = parsed['accent'];
-  if (typeof parsed['kicker'] === 'string') meta.kicker = parsed['kicker'];
-  if (typeof parsed['subtitle'] === 'string') meta.subtitle = parsed['subtitle'];
+
+  if (typeof parsed['kicker'] === 'string') hero.kicker = parsed['kicker'];
+  if (typeof parsed['subtitle'] === 'string') hero.subtitle = parsed['subtitle'];
   if (Array.isArray(parsed['pills']) && parsed['pills'].every((p: unknown) => typeof p === 'string')) {
-    meta.pills = parsed['pills'] as string[];
+    hero.pills = parsed['pills'] as string[];
   }
 
   if (typeof parsed['assets_dir'] === 'string') {
@@ -62,5 +63,5 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
     meta.customJs = path.resolve(inputDir, parsed['custom_js']);
   }
 
-  return { meta, body };
+  return { meta, hero, body, warnings: [] };
 }

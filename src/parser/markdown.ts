@@ -6,7 +6,7 @@ import MarkdownIt from 'markdown-it';
 import { wikilinkPlugin } from './wikilink.js';
 import { diagramPlugin } from './diagram.js';
 import { tablePlugin } from './table.js';
-import { escHtml } from '../util/escape.js';
+import { slugify } from '../util/slugify.js';
 
 export function createMarkdownParser(): MarkdownIt {
   const md = new MarkdownIt({
@@ -17,8 +17,6 @@ export function createMarkdownParser(): MarkdownIt {
 
   // Add id attributes to headings for wikilink resolution and TOC.
   // Uses a core rule so IDs are present during parse (needed by extractHeadings).
-  const slugify = (s: string): string =>
-    s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   md.core.ruler.push('heading_ids', (state) => {
     const tokens = state.tokens;
@@ -39,40 +37,4 @@ export function createMarkdownParser(): MarkdownIt {
   wikilinkPlugin(md);
 
   return md;
-}
-
-/**
- * Render a wikilink token to HTML.
- * Called during the render pass after all links are resolved.
- */
-export function renderWikilinkToken(
-  target: string,
-  display: string,
-  resolved: import('../resolver/collision.js').ResolvedLink,
-  outputMode: 'single' | 'split',
-  assetBase64Map?: Map<string, string>
-): string {
-  switch (resolved.kind) {
-    case 'heading':
-      return `<a href="#${resolved.heading.id}">${escHtml(display)}</a>`;
-
-    case 'image': {
-      if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
-        const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
-        return `<img src="${b64}" alt="${escHtml(display)}">`;
-      }
-      return `<img src="${resolved.asset.relativePath}" alt="${escHtml(display)}">`;
-    }
-
-    case 'video': {
-      if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
-        const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
-        return `<video src="${b64}" controls></video>`;
-      }
-      return `<video src="${resolved.asset.relativePath}" controls></video>`;
-    }
-
-    case 'doc':
-      return `<a href="${resolved.asset.relativePath}">${escHtml(display)}</a>`;
-  }
 }

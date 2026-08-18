@@ -59,38 +59,11 @@ export interface Asset {
   kind: 'image' | 'video' | 'mdd' | 'other';
 }
 
-/** Result of resolving a single [[str]] wikilink */
-export type Resolution =
-  | { type: 'heading'; heading: Heading; display: string }
-  | { type: 'asset'; asset: Asset; display: string }
-  | { type: 'error'; message: string };
-
-/** A wikilink token emitted by the wikilink inline rule */
-export interface WikilinkToken {
-  /** The raw target string (before the | if present) */
-  target: string;
-  /** The display text (after | if present; otherwise same as target) */
-  display: string;
-  /** Source position for error reporting */
-  pos: number;
-}
-
-/** Parsed diagram block */
-export interface DiagramBlock {
-  /** Optional title from TITLE: directive */
-  title: string | null;
-  /** Raw diagram body (without TITLE: line) */
-  body: string;
-}
-
-/** Parsed table block */
-export interface TableBlock {
-  /** Optional title from TITLE: directive */
-  title: string | null;
-  /** Header cells */
-  headers: string[];
-  /** Data rows, each an array of cells */
-  rows: string[][];
+/** Presentation metadata for the hero section (extracted from frontmatter) */
+export interface HeroMeta {
+  kicker?: string;
+  subtitle?: string;
+  pills?: string[];
 }
 
 /** Final compile result */
@@ -101,10 +74,18 @@ export interface CompileResult {
   warnings: string[];
 }
 
+/** A compile-time error (parse failure, unresolved reference, collision). */
+export class CompileError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'CompileError';
+  }
+}
+
 /** A wikilink collected during token walk, awaiting resolution */
 export interface PendingWikilink {
   target: string;
   display: string;
-  resolved?: import('./resolver/collision.js').ResolvedLink;
+  resolution: import('./resolver/wikilink.js').ResolvedLink | null;
   error?: string;
 }

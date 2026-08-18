@@ -7,7 +7,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Options, Heading, Asset, PendingWikilink } from '../types.js';
-import { resolveWikilink } from '../resolver/collision.js';
+import { CompileError } from '../types.js';
+import { resolveWikilink } from '../resolver/wikilink.js';
 import { getMime } from '../util/mime.js';
 import type Token from 'markdown-it/lib/token.mjs';
 
@@ -24,7 +25,7 @@ export function resolveLinks(
   warnings: string[],
 ): ResolveResult {
   const pendingLinks: PendingWikilink[] = [];
-  let hadErrors = false;
+  const errors: string[] = [];
 
   for (const token of tokens) {
     if (token.type === 'inline' && token.children) {
@@ -34,20 +35,21 @@ export function resolveLinks(
           const display = child.info || target;
           try {
             const resolved = resolveWikilink(target, display, headings, assets);
-            pendingLinks.push({ target, display, resolved });
+            pendingLinks.push({ target, display, resolution: resolved });
           } catch (err) {
             const msg = (err as Error).message;
-            pendingLinks.push({ target, display, error: msg });
-            process.stderr.write(msg + '\n');
-            hadErrors = true;
+            pendingLinks.push({ target, display, resolution: null, error: msg });
+            errors.push(msg);
           }
         }
       }
     }
   }
 
-  if (hadErrors) {
-    throw new Error('Compilation failed: unresolved or ambiguous wikilinks. See stderr.');
+  if (errors.length > 0) {
+    throw new CompileError(
+      'Compilation failed: unresolved or ambiguous wikilinks.\n' + errors.join('\n'),
+    );
   }
 
   // Build asset base64 map (--single mode)

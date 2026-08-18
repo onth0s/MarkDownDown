@@ -5,23 +5,12 @@
  * Text width is approximated via CHAR_WIDTH_PX constant.
  */
 import { escHtml as esc } from '../util/escape.js';
+import { TABLE as C } from '../constants.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const CHAR_WIDTH_PX = 7.5;
-const CHAR_WIDTH_BOLD_PX = 8.2;
-
-const FONT_H = 12;
-const HEAD_FONT_H = 13;
-const PADX = 12;
-const HEAD_H = 34;
-const ROW_H = 30;
-const PAD = 14;
-
 function textWidth(text: string, bold = false): number {
-  return text.length * (bold ? CHAR_WIDTH_BOLD_PX : CHAR_WIDTH_PX);
+  return text.length * (bold ? C.CHAR_WIDTH_BOLD : C.CHAR_WIDTH);
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -102,27 +91,27 @@ export function tableBuildSvg(model: TableModel, title: string): string {
     for (const row of model.rows) {
       if (row[c]) w = Math.max(w, textWidth(row[c]));
     }
-    colW[c] = w + PADX * 2;
+    colW[c] = w + C.PADX * 2;
   }
 
-  let x = PAD;
+  let x = C.PAD;
   const colX = colW.map((w) => { const v = x; x += w; return v; });
-  const gridW = x + PAD;
+  const gridW = x + C.PAD;
 
-  let y = PAD;
-  const headY = y; y += HEAD_H;
+  let y = C.PAD;
+  const headY = y; y += C.HEAD_H;
   const rowY: number[] = [];
-  for (let r = 0; r < model.rows.length; r++) { rowY.push(y); y += ROW_H; }
-  const gridH = y + PAD;
+  for (let r = 0; r < model.rows.length; r++) { rowY.push(y); y += C.ROW_H; }
+  const gridH = y + C.PAD;
 
   let headCells = '';
   model.headers.forEach((text, c) => {
     const cx = colX[c], cw = colW[c];
     headCells +=
       `<g class="tcell" data-label-ord="${model.headerOrds[c]}">` +
-      `<rect class="tbl-head-bg" x="${cx}" y="${headY}" width="${cw}" height="${HEAD_H}"/>` +
-      `<text class="tbl-head-text" x="${cx + PADX}" y="${headY + HEAD_H / 2 + 4}" ` +
-      `font-size="${HEAD_FONT_H}" font-weight="700">${esc(text)}</text>` +
+      `<rect class="tbl-head-bg" x="${cx}" y="${headY}" width="${cw}" height="${C.HEAD_H}"/>` +
+      `<text class="tbl-head-text" x="${cx + C.PADX}" y="${headY + C.HEAD_H / 2 + 4}" ` +
+      `font-size="${C.HEAD_FONT_H}" font-weight="700">${esc(text)}</text>` +
       `</g>`;
   });
 
@@ -133,9 +122,9 @@ export function tableBuildSvg(model: TableModel, title: string): string {
       const cx = colX[c], cw = colW[c];
       bodyCells +=
         `<g class="tcell" data-label-ord="${model.rowOrds[r][c]}">` +
-        `<rect class="tbl-cell-bg" x="${cx}" y="${ry}" width="${cw}" height="${ROW_H}"/>` +
-        `<text class="tbl-cell-text" x="${cx + PADX}" y="${ry + ROW_H / 2 + 4}" ` +
-        `font-size="${FONT_H}">${esc(text)}</text>` +
+        `<rect class="tbl-cell-bg" x="${cx}" y="${ry}" width="${cw}" height="${C.ROW_H}"/>` +
+        `<text class="tbl-cell-text" x="${cx + C.PADX}" y="${ry + C.ROW_H / 2 + 4}" ` +
+        `font-size="${C.FONT_H}">${esc(text)}</text>` +
         `</g>`;
     });
   });
@@ -147,7 +136,7 @@ export function tableBuildSvg(model: TableModel, title: string): string {
   }
   for (let r = 0; r <= model.rows.length; r++) {
     const gy = r === 0 ? headY : r === model.rows.length ? y : rowY[r - 1];
-    grid += `<line class="tbl-grid" x1="${PAD}" y1="${gy}" x2="${lastX}" y2="${gy}"/>`;
+    grid += `<line class="tbl-grid" x1="${C.PAD}" y1="${gy}" x2="${lastX}" y2="${gy}"/>`;
   }
 
   return (

@@ -50,9 +50,9 @@ describe('parseFrontmatter', () => {
   test('parses hero fields (kicker, subtitle, pills)', () => {
     const source = '---\nkicker: "Prologue"\nsubtitle: "A story"\npills:\n  - tag1\n  - tag2\n---\n\nBody';
     const result = parseFrontmatter(source, '/tmp');
-    expect(result.meta.kicker).toBe('Prologue');
-    expect(result.meta.subtitle).toBe('A story');
-    expect(result.meta.pills).toEqual(['tag1', 'tag2']);
+    expect(result.hero.kicker).toBe('Prologue');
+    expect(result.hero.subtitle).toBe('A story');
+    expect(result.hero.pills).toEqual(['tag1', 'tag2']);
   });
 
   test('ignores unknown keys', () => {
@@ -62,13 +62,11 @@ describe('parseFrontmatter', () => {
     expect(result.body).toBe('Body');
   });
 
-  test('invalid YAML returns body unchanged', () => {
+  test('invalid YAML returns body unchanged with warning', () => {
     const source = '---\n: invalid: yaml: {{{\n---\n\nBody';
-    const stderrSpy = jest.spyOn(process.stderr, 'write').mockImplementation(() => true);
     const result = parseFrontmatter(source, '/tmp');
     expect(result.body).toBe(source);
-    expect(stderrSpy).toHaveBeenCalledWith('WARN: Invalid YAML in frontmatter, ignoring.\n');
-    stderrSpy.mockRestore();
+    expect(result.warnings).toEqual(['Invalid YAML in frontmatter, ignoring.']);
   });
 
   test('handles CRLF line endings', () => {
@@ -93,6 +91,6 @@ describe('parseFrontmatter', () => {
   test('non-array pills is ignored', () => {
     const source = '---\npills: "not-an-array"\n---\n\nBody';
     const result = parseFrontmatter(source, '/tmp');
-    expect(result.meta.pills).toBeUndefined();
+    expect(result.hero.pills).toBeUndefined();
   });
 });
