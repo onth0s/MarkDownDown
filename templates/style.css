@@ -116,8 +116,8 @@ button, input { font:inherit; }
   text-decoration:none; font-size:13px; line-height:1.35;
 }
 .toc a:hover { color:var(--text); background:var(--surface); }
-.toc a.active { color:var(--accent); background:rgba(var(--accent-rgb),.10); font-weight:700; }
-.toc .l1 { padding-left:9px; font-weight:750; }
+.toc a.active { color:var(--accent); background:rgba(var(--accent-rgb),.10); }
+.toc .l1 { padding-left:9px; }
 .toc .l2 { padding-left:18px; }
 .toc .l3 { padding-left:29px; font-size:12px; }.toc .l4 { padding-left:40px; font-size:12px; }.toc .l5 { padding-left:51px; font-size:11px; }.toc .l6 { padding-left:62px; font-size:11px; }
 .main { min-width:0; }
@@ -240,6 +240,7 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
   overflow:hidden;
 }
 .search-box .search { border:0; outline:0; border-radius:0; background:transparent; min-width:0; flex:1 1 auto; }
+.search-box .search::placeholder { color: var(--muted); }
 .search-box .search::-webkit-search-cancel-button { display:none; }
 .search-opt,.search-nav {
   height:100%; min-width:36px; border:0; border-left:1px solid var(--border);
@@ -405,6 +406,7 @@ button, a, input, label, .toc a, .search-result-item {
 
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: smooth !important; }
   .toc a,
   .toc a.active,
   .search-result-item {

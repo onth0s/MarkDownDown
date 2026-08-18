@@ -98,6 +98,8 @@
     const link = event.target.closest('a[data-target]');
     if (!link) return;
     event.preventDefault();
+    if (window.innerWidth <= 900) body.classList.remove('nav-open');
+    tocScrollActive = true;
     if (link.dataset.target === '__doc-title__') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -106,7 +108,10 @@
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     setActive(link.dataset.target);
-    if (window.innerWidth <= 900) body.classList.remove('nav-open');
+    window.addEventListener('scroll', function onTocScroll() {
+      tocScrollActive = false;
+      window.removeEventListener('scroll', onTocScroll);
+    }, { once: true });
   });
 
   // ── Theme / Appearance ─────────────────────────────────────────────────────
@@ -221,6 +226,7 @@
 
   let lastActiveId = null;
   let initialScrollDone = false;
+  let tocScrollActive = false;
 
   function setActive(id) {
     if (!id || id === lastActiveId) return;
@@ -277,8 +283,10 @@
   function doScrollUpdate() {
     const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
     progress.style.width = `${Math.min(100, Math.max(0, window.scrollY / max * 100))}%`;
-    const id = detectActiveHeading();
-    if (id) setActive(id);
+    if (!tocScrollActive) {
+      const id = detectActiveHeading();
+      if (id) setActive(id);
+    }
     ticking = false;
     if (pendingTick) { pendingTick = false; updateScrollUI(); }
   }
@@ -291,7 +299,14 @@
   window.addEventListener('scroll', updateScrollUI, { passive: true });
   window.addEventListener('resize', updateScrollUI);
 
-  backtop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+  backtop.addEventListener('click', () => {
+    tocScrollActive = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.addEventListener('scroll', function onTocScroll() {
+      tocScrollActive = false;
+      window.removeEventListener('scroll', onTocScroll);
+    }, { once: true });
+  });
 
   // ── Diagram / Table SVG highlight sync ─────────────────────────────────────
   // Diagrams and tables are pre-rendered as SVGs at compile time. This only
