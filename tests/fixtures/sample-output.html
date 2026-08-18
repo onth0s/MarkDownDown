@@ -44,7 +44,8 @@ html[data-theme="light"] {
   --quote: rgba(var(--accent-rgb),.08);
 }
 * { box-sizing:border-box; }
-html { scroll-behavior:smooth; }
+html { scroll-behavior:smooth; scrollbar-width:none; -ms-overflow-style:none; }
+html::-webkit-scrollbar { display:none; }
 body {
   margin:0; background:var(--bg); color:var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -87,31 +88,40 @@ button, input { font:inherit; }
 .sidebar {
   position:sticky; top:64px; height:calc(100vh - 64px); overflow-y:auto; overflow-x:hidden;
   padding:24px 16px 45vh 22px; border-right:1px solid var(--border);
-  overscroll-behavior:contain; scrollbar-gutter:stable;
+  overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
-  scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, var(--muted)) transparent;
 }
-.sidebar::-webkit-scrollbar { width:5px; }
+@supports not selector(::-webkit-scrollbar) {
+  .sidebar { scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, var(--muted)) transparent; }
+}
+.sidebar::-webkit-scrollbar { width:4px; }
 .sidebar::-webkit-scrollbar-track { background:transparent; }
+.sidebar::-webkit-scrollbar-button { display:none; height:0; }
 .sidebar::-webkit-scrollbar-thumb {
   background:color-mix(in srgb, var(--accent) 60%, var(--muted));
-  border:1px solid var(--bg); border-radius:8px;
+  border:none; border-radius:0;
 }
 .sidebar::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--accent) 85%, var(--muted)); }
-.code-wrap pre, .article table, .diagram-render, .table-render {
-  scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, var(--muted)) transparent;
+@supports not selector(::-webkit-scrollbar) {
+  .code-wrap pre, .article table, .diagram-render, .table-render {
+    scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, var(--muted)) transparent;
+  }
 }
 .code-wrap pre::-webkit-scrollbar, .article table::-webkit-scrollbar,
-.diagram-render::-webkit-scrollbar, .table-render::-webkit-scrollbar { height:5px; }
+.diagram-render::-webkit-scrollbar, .table-render::-webkit-scrollbar { width:4px; height:4px; }
 .code-wrap pre::-webkit-scrollbar-track, .article table::-webkit-scrollbar-track,
 .diagram-render::-webkit-scrollbar-track, .table-render::-webkit-scrollbar-track { background:transparent; }
+.code-wrap pre::-webkit-scrollbar-button, .article table::-webkit-scrollbar-button,
+.diagram-render::-webkit-scrollbar-button, .table-render::-webkit-scrollbar-button { display:none; height:0; }
 .code-wrap pre::-webkit-scrollbar-thumb, .article table::-webkit-scrollbar-thumb,
 .diagram-render::-webkit-scrollbar-thumb, .table-render::-webkit-scrollbar-thumb {
   background:color-mix(in srgb, var(--accent) 60%, var(--muted));
-  border:1px solid var(--bg); border-radius:8px;
+  border:none; border-radius:0;
 }
 .code-wrap pre::-webkit-scrollbar-thumb:hover, .article table::-webkit-scrollbar-thumb:hover,
 .diagram-render::-webkit-scrollbar-thumb:hover, .table-render::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--accent) 85%, var(--muted)); }
+.code-wrap pre::-webkit-scrollbar-corner, .article table::-webkit-scrollbar-corner,
+.diagram-render::-webkit-scrollbar-corner, .table-render::-webkit-scrollbar-corner { background:transparent; }
 .sidebar-title { font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); font-weight:800; margin:4px 0 12px; }
 .toc { list-style:none; margin:0; padding:0; }
 .toc li { margin:2px 0; }
@@ -358,7 +368,7 @@ html, body {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-x: none;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 button, a, input, label, .toc a, .search-result-item {
   touch-action: manipulation;
@@ -524,6 +534,10 @@ button, a, input, label, .toc a, .search-result-item {
     root.style.setProperty('--accent-surface-dark', `color-mix(in srgb, #111827 90%, ${hex} 10%)`);
     root.style.setProperty('--accent-tint-light', `color-mix(in srgb, #f4f7fb 94%, ${hex} 6%)`);
     root.style.setProperty('--accent-surface-light', `color-mix(in srgb, #ffffff 95%, ${hex} 5%)`);
+    const fg = y > 170 ? '#172033' : '#ffffff';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="${hex}"/><text x="16" y="22" font-size="14" font-family="monospace" font-weight="bold" text-anchor="middle" fill="${fg}">M+</text></svg>`;
+    const favicon = document.getElementById('dynamicFavicon');
+    if (favicon) favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
     store.set('clds-accent', hex);
     const picker = document.getElementById('colorPicker');
     if (picker) picker.value = hex;
@@ -544,6 +558,13 @@ button, a, input, label, .toc a, .search-result-item {
   const headings = [...article.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]')];
 
   toc.replaceChildren();
+  const titleLi = document.createElement('li');
+  const titleA = document.createElement('a');
+  titleA.textContent = document.title || 'Untitled';
+  titleA.className = 'l1';
+  titleA.dataset.target = '__doc-title__';
+  titleLi.appendChild(titleA);
+  toc.appendChild(titleLi);
   headings.forEach((heading) => {
     const li = document.createElement('li');
     const a = document.createElement('a');
@@ -560,10 +581,14 @@ button, a, input, label, .toc a, .search-result-item {
     const link = event.target.closest('a[data-target]');
     if (!link) return;
     event.preventDefault();
-    const target = document.getElementById(link.dataset.target);
-    if (!target) return;
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    history.replaceState(null, '', `#${target.id}`);
+    if (link.dataset.target === '__doc-title__') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const target = document.getElementById(link.dataset.target);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      history.replaceState(null, '', `#${target.id}`);
+    }
     if (window.innerWidth <= 900) body.classList.remove('nav-open');
   });
 
@@ -682,7 +707,7 @@ button, a, input, label, .toc a, .search-result-item {
   function setActive(id) {
     if (!id || id === lastActiveId) return;
     lastActiveId = id;
-    if (history.replaceState && location.hash !== `#${id}`) {
+    if (id !== '__doc-title__' && history.replaceState && location.hash !== `#${id}`) {
       history.replaceState(null, '', `#${id}`);
     }
     const activeLink = tocLinks.find(a => a.dataset.target === id);
@@ -698,33 +723,37 @@ button, a, input, label, .toc a, .search-result-item {
     }
   }
 
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver(entries => {
-      const visible = entries
-        .filter(e => e.isIntersecting)
-        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-      if (visible[0]) setActive(visible[0].target.id);
-    }, { rootMargin: '-90px 0px -55% 0px', threshold: [0, 0.01, 1] });
-    headings.forEach(h => observer.observe(h));
+  function headingOffsetTop(el) {
+    let top = 0;
+    while (el) { top += el.offsetTop; el = el.offsetParent; }
+    return top;
+  }
+
+  const headingOffsets = headings.map(h => headingOffsetTop(h));
+
+  function detectActiveHeading() {
+    if (window.scrollY === 0) return '__doc-title__';
+    const THRESHOLD = 100;
+    let idx = 0;
+    for (let i = 0; i < headings.length; i++) {
+      if (headingOffsets[i] <= window.scrollY + THRESHOLD) idx = i;
+    }
+    return headings[idx]?.id ?? null;
   }
 
   let ticking = false;
+  let pendingTick = false;
   function updateScrollUI() {
-    if (ticking) return;
+    if (ticking) { pendingTick = true; return; }
     ticking = true;
     requestAnimationFrame(() => {
       const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       progress.style.width = `${Math.min(100, Math.max(0, window.scrollY / max * 100))}%`;
       backtop.classList.toggle('show', window.scrollY > 500);
-      if (!('IntersectionObserver' in window)) {
-        let current = headings[0]?.id;
-        for (const h of headings) {
-          if (h.getBoundingClientRect().top <= 120) current = h.id;
-          else break;
-        }
-        if (current) setActive(current);
-      }
+      const id = detectActiveHeading();
+      if (id) setActive(id);
       ticking = false;
+      if (pendingTick) { pendingTick = false; updateScrollUI(); }
     });
   }
 

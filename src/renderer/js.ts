@@ -53,6 +53,10 @@ export function buildJs(accent: string): string {
     root.style.setProperty('--accent-surface-dark', \`color-mix(in srgb, #111827 90%, \${hex} 10%)\`);
     root.style.setProperty('--accent-tint-light', \`color-mix(in srgb, #f4f7fb 94%, \${hex} 6%)\`);
     root.style.setProperty('--accent-surface-light', \`color-mix(in srgb, #ffffff 95%, \${hex} 5%)\`);
+    const fg = y > 170 ? '#172033' : '#ffffff';
+    const svg = \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="\${hex}"/><text x="16" y="22" font-size="14" font-family="monospace" font-weight="bold" text-anchor="middle" fill="\${fg}">M+</text></svg>\`;
+    const favicon = document.getElementById('dynamicFavicon');
+    if (favicon) favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
     store.set('clds-accent', hex);
     const picker = document.getElementById('colorPicker');
     if (picker) picker.value = hex;
@@ -74,6 +78,13 @@ export function buildJs(accent: string): string {
     .filter(h => !h.closest('.hero'));
 
   toc.replaceChildren();
+  const titleLi = document.createElement('li');
+  const titleA = document.createElement('a');
+  titleA.textContent = document.title || 'Untitled';
+  titleA.className = 'l1';
+  titleA.dataset.target = '__doc-title__';
+  titleLi.appendChild(titleA);
+  toc.appendChild(titleLi);
   headings.forEach((heading) => {
     const li = document.createElement('li');
     const a = document.createElement('a');
@@ -90,10 +101,14 @@ export function buildJs(accent: string): string {
     const link = event.target.closest('a[data-target]');
     if (!link) return;
     event.preventDefault();
-    const target = document.getElementById(link.dataset.target);
-    if (!target) return;
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    history.replaceState(null, '', \`#\${target.id}\`);
+    if (link.dataset.target === '__doc-title__') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const target = document.getElementById(link.dataset.target);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      history.replaceState(null, '', \`#\${target.id}\`);
+    }
     if (window.innerWidth <= 900) body.classList.remove('nav-open');
   });
 
@@ -212,7 +227,7 @@ export function buildJs(accent: string): string {
   function setActive(id) {
     if (!id || id === lastActiveId) return;
     lastActiveId = id;
-    if (history.replaceState && location.hash !== \`#\${id}\`) {
+    if (id !== '__doc-title__' && history.replaceState && location.hash !== \`#\${id}\`) {
       history.replaceState(null, '', \`#\${id}\`);
     }
     const activeLink = tocLinks.find(a => a.dataset.target === id);
@@ -228,33 +243,37 @@ export function buildJs(accent: string): string {
     }
   }
 
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver(entries => {
-      const visible = entries
-        .filter(e => e.isIntersecting)
-        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-      if (visible[0]) setActive(visible[0].target.id);
-    }, { rootMargin: '-90px 0px -55% 0px', threshold: [0, 0.01, 1] });
-    headings.forEach(h => observer.observe(h));
+  function headingOffsetTop(el) {
+    let top = 0;
+    while (el) { top += el.offsetTop; el = el.offsetParent; }
+    return top;
+  }
+
+  const headingOffsets = headings.map(h => headingOffsetTop(h));
+
+  function detectActiveHeading() {
+    if (window.scrollY === 0) return '__doc-title__';
+    const THRESHOLD = 100;
+    let idx = 0;
+    for (let i = 0; i < headings.length; i++) {
+      if (headingOffsets[i] <= window.scrollY + THRESHOLD) idx = i;
+    }
+    return headings[idx]?.id ?? null;
   }
 
   let ticking = false;
+  let pendingTick = false;
   function updateScrollUI() {
-    if (ticking) return;
+    if (ticking) { pendingTick = true; return; }
     ticking = true;
     requestAnimationFrame(() => {
       const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
       progress.style.width = \`\${Math.min(100, Math.max(0, window.scrollY / max * 100))}%\`;
       backtop.classList.toggle('show', window.scrollY > 500);
-      if (!('IntersectionObserver' in window)) {
-        let current = headings[0]?.id;
-        for (const h of headings) {
-          if (h.getBoundingClientRect().top <= 120) current = h.id;
-          else break;
-        }
-        if (current) setActive(current);
-      }
+      const id = detectActiveHeading();
+      if (id) setActive(id);
       ticking = false;
+      if (pendingTick) { pendingTick = false; updateScrollUI(); }
     });
   }
 

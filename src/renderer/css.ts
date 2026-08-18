@@ -87,17 +87,21 @@ button, input { font:inherit; }
   padding:24px 16px 45vh 22px; border-right:1px solid var(--border);
   overscroll-behavior:contain; scrollbar-gutter:stable;
   -webkit-overflow-scrolling:touch;
-  scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, var(--muted)) transparent;
+}
+@supports not selector(::-webkit-scrollbar) {
+  .sidebar { scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, var(--muted)) transparent; }
 }
 .sidebar::-webkit-scrollbar { width:5px; }
 .sidebar::-webkit-scrollbar-track { background:transparent; }
 .sidebar::-webkit-scrollbar-thumb {
   background:color-mix(in srgb, var(--accent) 60%, var(--muted));
-  border:1px solid var(--bg); border-radius:8px;
+  border:none; border-radius:0;
 }
 .sidebar::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--accent) 85%, var(--muted)); }
-.code-wrap pre, .article table, .diagram-render, .table-render {
-  scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, var(--muted)) transparent;
+@supports not selector(::-webkit-scrollbar) {
+  .code-wrap pre, .article table, .diagram-render, .table-render {
+    scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 60%, var(--muted)) transparent;
+  }
 }
 .code-wrap pre::-webkit-scrollbar, .article table::-webkit-scrollbar,
 .diagram-render::-webkit-scrollbar, .table-render::-webkit-scrollbar { height:5px; }
@@ -106,7 +110,7 @@ button, input { font:inherit; }
 .code-wrap pre::-webkit-scrollbar-thumb, .article table::-webkit-scrollbar-thumb,
 .diagram-render::-webkit-scrollbar-thumb, .table-render::-webkit-scrollbar-thumb {
   background:color-mix(in srgb, var(--accent) 60%, var(--muted));
-  border:1px solid var(--bg); border-radius:8px;
+  border:none; border-radius:0;
 }
 .code-wrap pre::-webkit-scrollbar-thumb:hover, .article table::-webkit-scrollbar-thumb:hover,
 .diagram-render::-webkit-scrollbar-thumb:hover, .table-render::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--accent) 85%, var(--muted)); }
