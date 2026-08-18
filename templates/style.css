@@ -212,7 +212,6 @@ button, input { font:inherit; }
 html[data-theme="light"] .diagram-svg .node-rect { fill:#ffffff; }
 html[data-theme="light"] .diagram-svg .node.is-hit .node-rect { fill:color-mix(in srgb, var(--accent) 12%, #ffffff); }
 html[data-theme="light"] .diagram-svg .node.is-current .node-rect { fill:color-mix(in srgb, var(--accent) 22%, #ffffff); }
-html[data-theme="light"] .table-svg .tbl-head-bg { fill:#ffffff; }
 html[data-theme="light"] .table-svg .tbl-cell-bg { fill:#ffffff; }
 html[data-theme="light"] .table-svg .tcell.is-hit .tbl-cell-bg, html[data-theme="light"] .table-svg .tcell.is-hit .tbl-head-bg { fill:color-mix(in srgb, var(--accent) 12%, #ffffff); }
 html[data-theme="light"] .table-svg .tcell.is-current .tbl-cell-bg, html[data-theme="light"] .table-svg .tcell.is-current .tbl-head-bg { fill:color-mix(in srgb, var(--accent) 22%, #ffffff); }
