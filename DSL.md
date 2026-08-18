@@ -14,28 +14,24 @@ This document specifies the two fenced code block languages in Markdown++: `diag
 ````markdown
 ```diagram
 TITLE: Diagram Title
-flowchart
-  NODE_A["Title — Subtitle"]
-  NODE_B["Another node"]
-  NODE_A -->|edge label| NODE_B
-  NODE_B --- NODE_C
+NODE_A["Title — Subtitle"]
+NODE_B["Another node"]
+NODE_A -->|edge label| NODE_B
+NODE_B --- NODE_C
 ```
 ````
 
-### 1.2 TITLE Directive
+### 1.2 Directives & Flow Direction
 
-Optional first-line metadata. Format: `TITLE: <text>`.
-
-- Used as `data-title` attribute on the wrapper `<div>`.
-- Used as `aria-label` on the SVG for accessibility.
-- If omitted, falls back to the `.mdd` filename.
+- **TITLE Directive**: Optional first-line metadata `TITLE: <text>`. Injected as `data-title` and SVG `aria-label`.
+- **Direction**: Optional flow direction (`TB`, `LR`, `RL`, `BT`). Can be specified as a bare token (e.g. `LR`) or directive `DIRECTION: LR`. If omitted, defaults to smart auto-layout.
 
 ### 1.3 Grammar
 
 ```
-diagram      := [header] (node_def | edge_def | comment)*
-header       := ("flowchart" | "graph") direction
-direction    := "TB" | "TD" | "BT" | "RL" | "LR"
+diagram      := [title_dir] [dir_spec] (node_def | edge_def | comment)*
+title_dir    := "TITLE:" text
+dir_spec     := ("DIRECTION:"? ("TB"|"TD"|"BT"|"LR"|"RL"|"auto")) | (("flowchart"|"graph") ("TB"|"TD"|"BT"|"LR"|"RL")?)
 node_def     := NODE_ID ["[" label "]" | "(" label ")" | "{" label "}"]
 edge_def     := node_ref arrow node_ref [ "|" label "|" ]
 arrow        := "-->" | "---"
@@ -206,16 +202,15 @@ Light mode overrides use `#ffffff` as the base surface instead of `var(--surface
 
 ## 4. Reference Examples
 
-### 4.1 Flowchart (from CLDS)
+### 4.1 Diagram (from CLDS)
 
 ```diagram
 TITLE: CLDS Artifact Relationship Flow
-flowchart
-  SPEC["SPECIFICATION LAYER — DIEGETICS.md / README / YAML schemas / behavioral contracts"]
-  AUDIT["AUDIT LAYER — INSPECTOR.md (procedure) → DISSONANCES.md (findings)"]
-  IMPL["IMPLEMENTATION CYCLE — REP-governed corrections; findings become ratified changes"]
-  SPEC -->|defines expected behavior| AUDIT
-  AUDIT -->|surfaces conformance gaps| IMPL
+SPEC["SPECIFICATION LAYER — DIEGETICS.md / README / YAML schemas / behavioral contracts"]
+AUDIT["AUDIT LAYER — INSPECTOR.md (procedure) → DISSONANCES.md (findings)"]
+IMPL["IMPLEMENTATION CYCLE — REP-governed corrections; findings become ratified changes"]
+SPEC -->|defines expected behavior| AUDIT
+AUDIT -->|surfaces conformance gaps| IMPL
 ```
 
 ### 4.2 Pipe Table (from CLDS)

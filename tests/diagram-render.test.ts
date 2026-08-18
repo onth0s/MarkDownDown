@@ -31,13 +31,32 @@ describe('diagramParse', () => {
     expect(model.nodes.size).toBe(2);
   });
 
+  test('parses diagram with no header at all', () => {
+    const model = diagramParse(`A[Node A] --> B[Node B]`);
+    expect(model.direction).toBe('auto');
+    expect(model.nodes.size).toBe(2);
+    expect(model.edges.length).toBe(1);
+  });
+
+  test('parses diagram with bare direction token', () => {
+    const model = diagramParse(`LR\n  A --> B`);
+    expect(model.direction).toBe('LR');
+    expect(model.nodes.size).toBe(2);
+  });
+
+  test('parses diagram with DIRECTION: directive', () => {
+    const model = diagramParse(`DIRECTION: RL\n  A --> B`);
+    expect(model.direction).toBe('RL');
+    expect(model.nodes.size).toBe(2);
+  });
+
   test('parses diamond shape', () => {
-    const model = diagramParse(`flowchart TB\n  D{Decision}`);
+    const model = diagramParse(`D{Decision}`);
     expect(model.nodes.get('D')?.shape).toBe('diamond');
   });
 
   test('parses rounded shape', () => {
-    const model = diagramParse(`flowchart TB\n  R(Rounded)`);
+    const model = diagramParse(`R(Rounded)`);
     expect(model.nodes.get('R')?.shape).toBe('rounded');
   });
 });

@@ -48,20 +48,19 @@ Unlike traditional static site generators, Markdown++ produces self-contained or
 
 ```diagram
 TITLE: Markdown++ Compilation Pipeline
-flowchart
-  INPUT["Input .mdd Document — Source file with frontmatter, wikilinks, diagrams & tables"]
-  FRONT["Frontmatter Parser — Extracts title, accent, assets_dir & styling options"]
-  LEX["Lexer & Tokenizer — markdown-it core tokens, wikilink & fence rules"]
-  RESOLVE["Fuzzy Link & Asset Resolver — 4-pass heading matching + assets directory scan"]
-  RENDER["Renderer — GFM to HTML, diagram & table ASTs to SVG"]
-  ASSEMBLE["Output Assembler — Inlines/links scripts, styles, base64 images into shell"]
-  OUTPUT["HTML Output — Standalone single-file or split distribution"]
-  INPUT --> FRONT
-  FRONT --> LEX
-  LEX --> RESOLVE
-  RESOLVE --> RENDER
-  RENDER --> ASSEMBLE
-  ASSEMBLE --> OUTPUT
+INPUT["Input .mdd Document — Source file with frontmatter, wikilinks, diagrams & tables"]
+FRONT["Frontmatter Parser — Extracts title, accent, assets_dir & styling options"]
+LEX["Lexer & Tokenizer — markdown-it core tokens, wikilink & fence rules"]
+RESOLVE["Fuzzy Link & Asset Resolver — 4-pass heading matching + assets directory scan"]
+RENDER["Renderer — GFM to HTML, diagram & table ASTs to SVG"]
+ASSEMBLE["Output Assembler — Inlines/links scripts, styles, base64 images into shell"]
+OUTPUT["HTML Output — Standalone single-file or split distribution"]
+INPUT --> FRONT
+FRONT --> LEX
+LEX --> RESOLVE
+RESOLVE --> RENDER
+RENDER --> ASSEMBLE
+ASSEMBLE --> OUTPUT
 ```
 
 ---
@@ -165,12 +164,12 @@ Fenced code block with `diagram`:
 ````markdown
 ```diagram
 TITLE: Authentication Flow
-flowchart LR
-  CLIENT["Client App — Browser / Mobile"]
-  GATEWAY["API Gateway — Rate limiting & TLS"]
-  AUTH["Auth Service — JWT validation"]
-  CLIENT -->|HTTPS Request| GATEWAY
-  GATEWAY -->|Validate Token| AUTH
+LR
+CLIENT["Client App — Browser / Mobile"]
+GATEWAY["API Gateway — Rate limiting & TLS"]
+AUTH["Auth Service — JWT validation"]
+CLIENT -->|HTTPS Request| GATEWAY
+GATEWAY -->|Validate Token| AUTH
 ```
 ````
 

@@ -62,7 +62,7 @@ export function diagramParse(source: string): DiagramModel {
     nodes: new Map(),
     edges: [],
     labels: [],
-    direction: 'TB',
+    direction: 'auto',
     cx: new Map(),
     cy: new Map(),
     maxX: 0,
@@ -113,9 +113,21 @@ export function diagramParse(source: string): DiagramModel {
     const line = rawLine.trim();
     if (!line || line.startsWith('%%')) continue;
 
-    const headerMatch = line.match(/^(?:flowchart|graph)\s*(TB|TD|BT|LR|RL)?\s*$/i);
-    if (headerMatch) {
-      model.direction = (headerMatch[1]?.toUpperCase() ?? 'auto') as DiagramDirection;
+    const dirDirectiveMatch = line.match(/^DIRECTION:\s*(TB|TD|BT|LR|RL|auto)\s*$/i);
+    if (dirDirectiveMatch) {
+      model.direction = dirDirectiveMatch[1].toUpperCase() as DiagramDirection;
+      continue;
+    }
+
+    const bareDirMatch = line.match(/^(TB|TD|BT|LR|RL)$/i);
+    if (bareDirMatch) {
+      model.direction = bareDirMatch[1].toUpperCase() as DiagramDirection;
+      continue;
+    }
+
+    const legacyHeaderMatch = line.match(/^(?:flowchart|graph)\s*(TB|TD|BT|LR|RL)?\s*$/i);
+    if (legacyHeaderMatch) {
+      model.direction = (legacyHeaderMatch[1]?.toUpperCase() ?? 'auto') as DiagramDirection;
       continue;
     }
 
