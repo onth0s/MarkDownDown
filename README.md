@@ -162,9 +162,8 @@ The resolver operates in 4 passes against headings:
 Fenced code block with `diagram`:
 
 ````markdown
-```diagram
+```diagram LR
 TITLE: Authentication Flow
-LR
 CLIENT["Client App — Browser / Mobile"]
 GATEWAY["API Gateway — Rate limiting & TLS"]
 AUTH["Auth Service — JWT validation"]
@@ -173,8 +172,9 @@ GATEWAY -->|Validate Token| AUTH
 ```
 ````
 
-- **Zero-Boilerplate**: Omit direction line to use intelligent dynamic auto-layout.
-- **Explicit Directions**: Bare `LR`, `TB`, `RL`, `BT` on its own line, or directive `DIRECTION: LR`.
+- **Fence Direction Argument**: Declare direction directly on the fence info string: ` ```diagram LR `, ` ```diagram TB `, ` ```diagram RL `, ` ```diagram BT `.
+- **Zero-Boilerplate Auto-Layout**: Omit direction (` ```diagram `) to use intelligent dynamic auto-layout.
+- **In-Body Direction**: Bare `LR` / `TB` or directive `DIRECTION: LR` also supported.
 - **Node Shapes**: `[Rectangle]` (default), `(Rounded)`, `{Diamond}`.
 - **Title–Subtitle Split**: `["Title — Subtitle"]` uses em-dash ` — ` to format primary and secondary labels.
 - **Edge Types**: Directed `-->`, undirected `---`, and labeled `-->|label|`.

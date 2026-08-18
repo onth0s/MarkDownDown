@@ -57,12 +57,13 @@ interface DiagramModel {
 
 // ── Parser ───────────────────────────────────────────────────────────────────
 
-export function diagramParse(source: string): DiagramModel {
+export function diagramParse(source: string, initialDirection?: string): DiagramModel {
+  const normalizedInitial = (initialDirection?.toUpperCase() ?? 'auto') as DiagramDirection;
   const model: DiagramModel = {
     nodes: new Map(),
     edges: [],
     labels: [],
-    direction: 'auto',
+    direction: /^(TB|TD|BT|LR|RL|auto)$/i.test(normalizedInitial) ? normalizedInitial : 'auto',
     cx: new Map(),
     cy: new Map(),
     maxX: 0,

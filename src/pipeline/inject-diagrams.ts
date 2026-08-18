@@ -5,16 +5,16 @@
 import { diagramParse, diagramLayout, diagramBuildSvg } from '../renderer/diagram-svg.js';
 import { escAttr, escHtml, htmlDecode } from '../util/escape.js';
 
-const DIAGRAM_SVG_RE = /<div class="code-wrap diagram" data-title="([^"]*)">\s*<pre><code class="language-diagram">([\s\S]*?)<\/code><\/pre>\s*<div class="diagram-render"><\/div>\s*<\/div>/g;
+const DIAGRAM_SVG_RE = /<div class="code-wrap diagram" data-title="([^"]*)"(?:\s+data-direction="([^"]*)")?>\s*<pre><code class="language-diagram">([\s\S]*?)<\/code><\/pre>\s*<div class="diagram-render"><\/div>\s*<\/div>/g;
 
 export function injectDiagramSvgs(html: string, docTitle: string, warnings: string[]): string {
   DIAGRAM_SVG_RE.lastIndex = 0;
   return html.replace(
     DIAGRAM_SVG_RE,
-    (match, titleAttr, codeContent) => {
+    (match, titleAttr, dirAttr, codeContent) => {
       const rawCode = htmlDecode(codeContent);
       const diagTitle = titleAttr || docTitle;
-      const model = diagramParse(rawCode);
+      const model = diagramParse(rawCode, dirAttr);
       if (model.nodes.size === 0) {
         warnings.push(`diagram: no nodes found, skipped render`);
         return match;
@@ -31,8 +31,9 @@ export function injectDiagramSvgs(html: string, docTitle: string, warnings: stri
       const safeContent = escHtml(rawCode);
       const wrapperClass = model.direction === 'auto' ? 'code-wrap diagram diagram-auto' : 'code-wrap diagram';
       const labelsJson = escAttr(JSON.stringify(model.labels));
+      const dirOutAttr = dirAttr ? ` data-direction="${escAttr(dirAttr)}"` : '';
       return (
-        `<div class="${wrapperClass}" data-title="${escAttr(diagTitle)}" data-labels="${labelsJson}">` +
+        `<div class="${wrapperClass}" data-title="${escAttr(diagTitle)}"${dirOutAttr} data-labels="${labelsJson}">` +
         `<pre><code class="language-diagram">${safeContent}</code></pre>` +
         `<div class="diagram-render">${svg}</div>` +
         `</div>`

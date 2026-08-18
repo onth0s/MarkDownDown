@@ -273,7 +273,9 @@
       if (parent.classList.contains('diagram')) {
         const title = parent.getAttribute('data-title');
         const titleLine = title ? `TITLE: ${title}\n` : '';
-        code = '```diagram\n' + titleLine + code.trim() + '\n```';
+        const dir = parent.getAttribute('data-direction');
+        const fenceHeader = dir ? `diagram ${dir}` : 'diagram';
+        code = '```' + fenceHeader + '\n' + titleLine + code.trim() + '\n```';
       } else if (parent.classList.contains('table')) {
         const title = parent.getAttribute('data-title');
         const titleLine = title ? `TITLE: ${title}\n` : '';

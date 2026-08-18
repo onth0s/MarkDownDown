@@ -263,4 +263,25 @@ TITLE: Options
     const between = result.html.slice(firstWrap, tableWrap);
     expect(between).toContain('</div>');
   });
+
+  test('compiles diagram with direction on fence header (e.g. ```diagram LR)', async () => {
+    const FENCE_DIR_MDD = `# Architecture
+
+\`\`\`diagram LR
+TITLE: Auth Flow
+A["Client"] --> B["Gateway"]
+\`\`\`
+`;
+    const inputFile = path.join(tmpDir, 'fence-dir.mdd');
+    fs.writeFileSync(inputFile, FENCE_DIR_MDD);
+    const opts = baseOptions(inputFile, tmpDir);
+    const result = await compile(opts);
+
+    expect(result.html).toContain('class="code-wrap diagram"');
+    expect(result.html).toContain('data-title="Auth Flow"');
+    expect(result.html).toContain('data-direction="LR"');
+    expect(result.html).toContain('diagram-svg');
+    expect(result.html).toContain('Client');
+    expect(result.html).toContain('Gateway');
+  });
 });

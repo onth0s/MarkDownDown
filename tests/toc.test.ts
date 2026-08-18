@@ -371,7 +371,7 @@ describe('Section title heading anchors', () => {
 
   test('copy button reads code textContent and formats full fenced blocks for diagrams and tables', () => {
     expect(js).toMatch(/let code = parent\.querySelector\('code'\)\?\.textContent \?\? ''/);
-    expect(js).toMatch(/code = '```diagram\\n'/);
+    expect(js).toMatch(/code = '```' \+ fenceHeader/);
     expect(js).toMatch(/code = '```table\\n'/);
   });
 

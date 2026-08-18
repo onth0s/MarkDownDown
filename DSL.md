@@ -12,7 +12,7 @@ This document specifies the two fenced code block languages in Markdown++: `diag
 ### 1.1 Syntax
 
 ````markdown
-```diagram
+```diagram LR
 TITLE: Diagram Title
 NODE_A["Title — Subtitle"]
 NODE_B["Another node"]
@@ -23,15 +23,17 @@ NODE_B --- NODE_C
 
 ### 1.2 Directives & Flow Direction
 
+- **Fence Direction Argument**: Optional direction directly on the fence info string: ` ```diagram LR `, ` ```diagram TB `, ` ```diagram RL `, ` ```diagram BT `.
 - **TITLE Directive**: Optional first-line metadata `TITLE: <text>`. Injected as `data-title` and SVG `aria-label`.
-- **Direction**: Optional flow direction (`TB`, `LR`, `RL`, `BT`). Can be specified as a bare token (e.g. `LR`) or directive `DIRECTION: LR`. If omitted, defaults to smart auto-layout.
+- **Direction In-Body**: Can also be specified inside the body as a bare token (e.g. `LR`) or directive `DIRECTION: LR`. If omitted, defaults to smart dynamic auto-layout.
 
 ### 1.3 Grammar
 
 ```
-diagram      := [title_dir] [dir_spec] (node_def | edge_def | comment)*
+diagram      := "```diagram" [direction] [title_dir] [dir_spec] (node_def | edge_def | comment)* "```"
+direction    := "TB" | "TD" | "BT" | "LR" | "RL" | "auto"
 title_dir    := "TITLE:" text
-dir_spec     := ("DIRECTION:"? ("TB"|"TD"|"BT"|"LR"|"RL"|"auto")) | (("flowchart"|"graph") ("TB"|"TD"|"BT"|"LR"|"RL")?)
+dir_spec     := ("DIRECTION:"? direction) | (("flowchart"|"graph") direction?)
 node_def     := NODE_ID ["[" label "]" | "(" label ")" | "{" label "}"]
 edge_def     := node_ref arrow node_ref [ "|" label "|" ]
 arrow        := "-->" | "---"
