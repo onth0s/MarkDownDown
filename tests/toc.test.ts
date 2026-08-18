@@ -337,10 +337,64 @@ describe('Scroll guard', () => {
   test('backtop click clears tocScrollActive via onScrollEnd', () => {
     expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?onScrollEnd\(\(\) => \{ tocScrollActive = false/);
   });
+});
 
-  test('no hardcoded setTimeout for tocScrollActive', () => {
-    expect(js).not.toMatch(/setTimeout\(\(\) => \{ tocScrollActive/);
+// ── Section title hover & link copy ─────────────────────────────────────────
+
+describe('Section title heading anchors', () => {
+  test('creates heading-anchor element for each heading', () => {
+    expect(js).toMatch(/anchor\.className = 'heading-anchor'/);
+    expect(js).toMatch(/anchor\.textContent = '#'/);
+    expect(js).toMatch(/anchor\.href = `#\$\{heading\.id\}`/);
+    expect(js).toMatch(/heading\.appendChild\(anchor\)/);
+  });
+
+  test('creates heading-anchor element for hero h1', () => {
+    expect(js).toMatch(/article\.querySelector\('\.hero h1'\)/);
+    expect(js).toMatch(/heroAnchor\.dataset\.target = '__doc-title__'/);
+    expect(js).toMatch(/heroH1\.appendChild\(heroAnchor\)/);
+  });
+
+  test('heading anchor click handler scrolls smoothly to target and updates active state', () => {
+    expect(js).toMatch(/article\.addEventListener\('click'[\s\S]*?event\.target\.closest\('\.heading-anchor'\)/);
+    expect(js).toMatch(/heading\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+    expect(js).toMatch(/window\.scrollTo\(\{ top: 0, behavior: 'smooth' \}\)/);
+    expect(js).toMatch(/setActive\(/);
+    expect(js).toMatch(/tocScrollActive = true/);
+  });
+
+  test('heading anchor click copies section URL to clipboard and temporarily displays Copied label', () => {
+    expect(js).toMatch(/navigator\.clipboard\.writeText\(url\)/);
+    expect(js).toMatch(/anchor\.textContent = 'Copied'/);
+    expect(js).toMatch(/anchor\.classList\.add\('copied'\)/);
+  });
+
+  test('copy button reads code textContent to properly copy diagrams and tables', () => {
+    expect(js).toMatch(/const code = btn\.parentElement\.querySelector\('code'\)\?\.textContent \?\? ''/);
+  });
+
+  test('heading anchor is hidden by default with opacity 0 and transitions', () => {
+    expect(css).toMatch(/\.heading-anchor \{[\s\S]*?opacity:0;/);
+    expect(css).toMatch(/\.heading-anchor \{[\s\S]*?transition:opacity \.15s ease/);
+  });
+
+  test('heading anchor appears on full-line heading hover, hero hover, and on focus', () => {
+    expect(css).toMatch(/\.hero, \.hero h1 \{ position:relative; \}/);
+    expect(css).toMatch(/\.article h1, \.article h2, \.article h3, \.article h4, \.article h5, \.article h6 \{ position:relative; \}/);
+    expect(css).toMatch(/\.article h1:hover \.heading-anchor/);
+    expect(css).toMatch(/\.hero h1:hover \.heading-anchor/);
+    expect(css).toMatch(/\.heading-anchor:focus-visible/);
+  });
+
+  test('heading-anchor.copied has styling matching codeblocks label', () => {
+    expect(css).toMatch(/\.heading-anchor\.copied \{/);
+    expect(css).toMatch(/background:var\(--surface-2\);/);
+  });
+
+  test('reduced motion disables heading anchor transitions', () => {
+    expect(css).toMatch(/prefers-reduced-motion: reduce[\s\S]*?\.heading-anchor[\s\S]*?transition: none !important/);
   });
 });
+
 
 

@@ -9,7 +9,7 @@
  * 3. Close the newly created .code-wrap div after </code></pre> when it
  *    isn't already followed by a diagram/table render div.
  */
-const COPY_BTN_FENCED_RE = /(<div class="code-wrap (?:diagram|table)"[^>]*>)(<pre><code)/g;
+const COPY_BTN_FENCED_RE = /(<div class="code-wrap (?:diagram|table)[^"]*"[^>]*>)(<pre><code)/g;
 const COPY_BTN_OPEN_PRE_RE = /(?<!>)<pre><code/g;
 const COPY_BTN_CLOSE_PRE_RE = /(?<!<\/div>)<\/code><\/pre>(?!\s*<div)/g;
 

@@ -109,7 +109,26 @@
     a.dataset.target = heading.id;
     li.appendChild(a);
     toc.appendChild(li);
+
+    const anchor = document.createElement('a');
+    anchor.className = 'heading-anchor';
+    anchor.href = `#${heading.id}`;
+    anchor.dataset.target = heading.id;
+    anchor.setAttribute('aria-label', 'Copy link to section');
+    anchor.textContent = '#';
+    heading.appendChild(anchor);
   });
+
+  const heroH1 = article.querySelector('.hero h1');
+  if (heroH1) {
+    const heroAnchor = document.createElement('a');
+    heroAnchor.className = 'heading-anchor';
+    heroAnchor.href = '#';
+    heroAnchor.dataset.target = '__doc-title__';
+    heroAnchor.setAttribute('aria-label', 'Copy link to document title');
+    heroAnchor.textContent = '#';
+    heroH1.appendChild(heroAnchor);
+  }
 
   toc.addEventListener('click', (event) => {
     const link = event.target.closest('a[data-target]');
@@ -126,6 +145,53 @@
     }
     setActive(link.dataset.target);
     onScrollEnd(() => { tocScrollActive = false; });
+  });
+
+  article.addEventListener('click', async (event) => {
+    const anchor = event.target.closest('.heading-anchor');
+    if (!anchor) return;
+    event.preventDefault();
+    const targetId = anchor.dataset.target || anchor.getAttribute('href')?.replace(/^#/, '');
+
+    if (window.innerWidth <= 900) body.classList.remove('nav-open');
+    tocScrollActive = true;
+
+    let url = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+    if (targetId === '__doc-title__' || !targetId) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setActive('__doc-title__');
+    } else {
+      const heading = document.getElementById(targetId);
+      if (heading) {
+        heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      setActive(targetId);
+      url += `#${targetId}`;
+    }
+    onScrollEnd(() => { tocScrollActive = false; });
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      anchor.textContent = 'Link copied!';
+      anchor.classList.add('copied');
+    } catch (_) {
+      anchor.textContent = 'Copy failed';
+      anchor.classList.add('copied');
+    }
+    clearTimeout(anchor._timer);
+    anchor._timer = setTimeout(() => {
+      anchor.textContent = '#';
+      anchor.classList.remove('copied');
+    }, 1000);
   });
 
   // ── Theme / Appearance ─────────────────────────────────────────────────────
@@ -194,7 +260,7 @@
   // ── Copy buttons ───────────────────────────────────────────────────────────
   document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const code = btn.parentElement.querySelector('code')?.innerText ?? '';
+      const code = btn.parentElement.querySelector('code')?.textContent ?? '';
       const old = btn.textContent;
       try {
         if (navigator.clipboard?.writeText) {
@@ -423,7 +489,7 @@
     const textNodes = [];
     let textNode;
     while ((textNode = walker.nextNode())) {
-      if (textNode.parentElement?.closest('svg')) continue;
+      if (textNode.parentElement?.closest('svg, .heading-anchor')) continue;
       if (textNode.parentElement?.closest('code,pre,script,style') &&
           !textNode.parentElement.closest('code.language-diagram,code.language-table')) continue;
       textNodes.push(textNode);
@@ -525,7 +591,12 @@
       if (group.heading) {
         a.href = `#${group.heading.id}`;
         a.dataset.targetId = group.heading.id;
-        a.textContent = group.heading.textContent.trim();
+        const headingText = [...group.heading.childNodes]
+          .filter(n => !n.classList?.contains('heading-anchor'))
+          .map(n => n.textContent)
+          .join('')
+          .trim();
+        a.textContent = headingText || group.heading.textContent.trim();
       } else {
         a.href = '#';
         a.dataset.targetId = '';
@@ -660,4 +731,4 @@
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, 0);
-})();
+})();
