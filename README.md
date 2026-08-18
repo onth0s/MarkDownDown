@@ -100,12 +100,16 @@ mdd <input.mdd> [options]
 TITLE: Markdown++ CLI Options
 | Flag | Type | Description |
 | -o, --output <path> | string | Output file (when --single) or directory (when --split) |
-| --single | flag | Emit single self-contained HTML file with inlined assets |
-| --split | flag | Emit modular folder with separate HTML, CSS, JS, and assets (default) |
+| --single | flag | Emit single self-contained HTML file with inlined assets (default: true) |
+| --split | flag | Emit modular folder with separate HTML, CSS, JS, and assets (default: false) |
 | --assets-dir <path> | string | Custom assets directory for wikilink asset resolution |
 | --no-diagrams | flag | Skip rendering diagram fences to SVG |
 | --no-tables | flag | Skip rendering table fences to SVG |
+| --minify | flag | Minify CSS/JS/HTML in monolithic export (default: true) |
+| --no-minify | flag | Disable minification in monolithic export |
+| -f, --force | flag | Force overwrite without confirmation prompt |
 | -v, --verbose | flag | Enable verbose compiler logging |
+| -V, --version | flag | Output the version number |
 | -h, --help | flag | Display CLI help and options |
 ```
 
