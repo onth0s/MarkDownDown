@@ -225,7 +225,9 @@
   function setActive(id) {
     if (!id || id === lastActiveId) return;
     lastActiveId = id;
-    if (id !== '__doc-title__' && history.replaceState && location.hash !== `#${id}`) {
+    if (id === '__doc-title__' && history.replaceState && location.hash) {
+      history.replaceState(null, '', location.pathname + location.search);
+    } else if (id !== '__doc-title__' && history.replaceState && location.hash !== `#${id}`) {
       history.replaceState(null, '', `#${id}`);
     }
     const activeLink = tocLinks.find(a => a.dataset.target === id);
