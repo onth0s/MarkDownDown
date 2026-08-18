@@ -10,6 +10,8 @@
  * The `accent` parameter seeds the initial accent color (used as the fallback
  * if no user preference is stored in localStorage).
  */
+import { CLDS_FAVICON_TEMPLATE } from './logo.js';
+
 export function buildJs(accent: string): string {
   return `
 (() => {
@@ -42,6 +44,17 @@ export function buildJs(accent: string): string {
     return \`\${(v >> 16) & 255},\${(v >> 8) & 255},\${v & 255}\`;
   }
 
+  function darkenAccent(hex) {
+    const n = hex.replace('#', '');
+    const v = parseInt(n, 16);
+    const r = Math.round(((v >> 16) & 255) * 0.5);
+    const g = Math.round(((v >> 8) & 255) * 0.5);
+    const b = Math.round((v & 255) * 0.5);
+    return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+  }
+
+  const faviconTmpl = '${CLDS_FAVICON_TEMPLATE}';
+
   function setAccent(hex) {
     if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
     root.style.setProperty('--accent', hex);
@@ -53,8 +66,8 @@ export function buildJs(accent: string): string {
     root.style.setProperty('--accent-surface-dark', \`color-mix(in srgb, #111827 90%, \${hex} 10%)\`);
     root.style.setProperty('--accent-tint-light', \`color-mix(in srgb, #f4f7fb 94%, \${hex} 6%)\`);
     root.style.setProperty('--accent-surface-light', \`color-mix(in srgb, #ffffff 95%, \${hex} 5%)\`);
-    const fg = y > 170 ? '#172033' : '#ffffff';
-    const svg = \`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="\${hex}"/><text x="16" y="22" font-size="14" font-family="monospace" font-weight="bold" text-anchor="middle" fill="\${fg}">M+</text></svg>\`;
+    const dark = darkenAccent(hex);
+    const svg = faviconTmpl.replace(/\\{accent\\}/g, hex).replace(/\\{accentDark\\}/g, dark);
     const favicon = document.getElementById('dynamicFavicon');
     if (favicon) favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
     store.set('clds-accent', hex);

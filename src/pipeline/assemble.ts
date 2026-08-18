@@ -72,6 +72,7 @@ export function assembleAndWrite(
     jsSrc: 'app.js',
     customCss: customCssContent,
     customJs: customJsContent,
+    accent,
   });
 
   // Write output

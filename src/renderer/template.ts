@@ -39,10 +39,20 @@ function buildLogoSvg(): string {
   );
 }
 
+declare const __dirname: string;
+
 /** Load the HTML shell template. */
 function loadTemplate(): string {
-  const cwdPath = path.resolve(process.cwd(), 'templates/shell.html');
-  if (fs.existsSync(cwdPath)) return fs.readFileSync(cwdPath, 'utf8');
+  const candidates = [
+    path.resolve(process.cwd(), 'templates/shell.html'),
+    path.resolve(__dirname, '../templates/shell.html'),
+    path.resolve(__dirname, '../../templates/shell.html'),
+  ];
+
+  for (const p of candidates) {
+    try { if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8'); } catch { /* continue */ }
+  }
+
   throw new Error('shell.html template not found');
 }
 
