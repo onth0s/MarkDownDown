@@ -37,7 +37,7 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
       parsed = result as Record<string, unknown>;
     }
   } catch {
-    // Invalid YAML: ignore frontmatter, treat as body
+    process.stderr.write('WARN: Invalid YAML in frontmatter, ignoring.\n');
     return { meta: {}, body: source };
   }
 

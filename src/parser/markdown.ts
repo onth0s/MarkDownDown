@@ -6,6 +6,7 @@ import MarkdownIt from 'markdown-it';
 import { wikilinkPlugin } from './wikilink.js';
 import { diagramPlugin } from './diagram.js';
 import { tablePlugin } from './table.js';
+import { escHtml } from '../util/escape.js';
 
 export function createMarkdownParser(): MarkdownIt {
   const md = new MarkdownIt({
@@ -74,8 +75,4 @@ export function renderWikilinkToken(
     case 'doc':
       return `<a href="${resolved.asset.relativePath}">${escHtml(display)}</a>`;
   }
-}
-
-function escHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

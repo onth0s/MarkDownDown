@@ -49,7 +49,7 @@ export function resolveWikilink(
     asset = resolveAsset(target, assets);
   } catch (err) {
     // Collision inside asset resolution
-    throw new Error(`ERROR: ${(err as Error).message}`);
+    throw new Error(`ERROR: ${(err as Error).message}`, { cause: err });
   }
 
   if (asset === null) {

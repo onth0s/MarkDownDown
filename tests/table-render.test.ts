@@ -54,4 +54,19 @@ describe('tableBuildSvg', () => {
     const svg = tableBuildSvg(model, 'Test');
     expect(svg).toMatch(/viewBox="0 0 [\d.]+ [\d.]+"/);
   });
+
+  test('handles empty table (headers only, no rows)', () => {
+    const headerOnly = tableParse(`| Col A | Col B |\n|-------|-------|`);
+    const svg = tableBuildSvg(headerOnly, 'Empty');
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('Col A');
+  });
+
+  test('handles single column table', () => {
+    const single = tableParse(`| Item |\n|------|\n| One  |\n| Two  |`);
+    const svg = tableBuildSvg(single, 'Single');
+    expect(svg).toContain('Item');
+    expect(svg).toContain('One');
+    expect(svg).toContain('Two');
+  });
 });

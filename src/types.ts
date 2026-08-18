@@ -26,6 +26,17 @@ export interface Options {
   verbose: boolean;
 }
 
+/** Raw CLI options parsed by commander */
+export interface CliOptions {
+  output?: string;
+  single: boolean;
+  split: boolean;
+  assetsDir?: string;
+  noDiagrams: boolean;
+  noTables: boolean;
+  verbose: boolean;
+}
+
 /** A heading extracted from the document */
 export interface Heading {
   /** Raw display text of the heading */
@@ -88,4 +99,12 @@ export interface CompileResult {
   html: string;
   /** Any warnings accumulated during compilation */
   warnings: string[];
+}
+
+/** A wikilink collected during token walk, awaiting resolution */
+export interface PendingWikilink {
+  target: string;
+  display: string;
+  resolved?: import('./resolver/collision.js').ResolvedLink;
+  error?: string;
 }

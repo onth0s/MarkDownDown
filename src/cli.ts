@@ -6,7 +6,7 @@ import { Command } from 'commander';
 import path from 'node:path';
 import fs from 'node:fs';
 import { compile } from './compile.js';
-import type { Options } from './types.js';
+import type { Options, CliOptions } from './types.js';
 
 const program = new Command();
 
@@ -22,53 +22,51 @@ program
   .option('--no-diagrams', 'Skip diagram SVG rendering')
   .option('--no-tables', 'Skip table SVG rendering')
   .option('-v, --verbose', 'Verbose output', false)
-  .action(async (input: string, opts: Record<string, unknown>) => {
-    // Resolve input path
+  .action(async (input: string, opts: CliOptions) => {
     const inputFile = path.resolve(process.cwd(), input);
     if (!fs.existsSync(inputFile)) {
       process.stderr.write(`ERROR: Input file not found: ${inputFile}\n`);
       process.exit(1);
     }
 
+    if (!inputFile.endsWith('.mdd')) {
+      process.stderr.write(`WARN: Input file does not have .mdd extension: ${inputFile}\n`);
+    }
+
     const inputDir = path.dirname(inputFile);
     const stem = path.basename(inputFile, path.extname(inputFile));
 
-    // Output mode: --single takes precedence; default is --split
-    const outputMode: 'single' | 'split' = opts['single'] ? 'single' : 'split';
+    const outputMode: 'single' | 'split' = opts.single ? 'single' : 'split';
 
-    // Default output path
     let outputPath: string;
-    if (opts['output']) {
-      outputPath = path.resolve(process.cwd(), opts['output'] as string);
+    if (opts.output) {
+      outputPath = path.resolve(process.cwd(), opts.output);
     } else if (outputMode === 'single') {
       outputPath = path.join(inputDir, `${stem}.html`);
     } else {
       outputPath = path.join(inputDir, stem);
     }
 
-    // Default assets dir
-    const assetsDir = opts['assetsDir']
-      ? path.resolve(process.cwd(), opts['assetsDir'] as string)
+    const assetsDir = opts.assetsDir
+      ? path.resolve(process.cwd(), opts.assetsDir)
       : path.join(inputDir, 'assets');
 
     const options: Options = {
-      title: stem,                        // frontmatter overrides this
+      title: stem,
       assetsDir,
-      accent: '#3b82f6',                  // frontmatter overrides this
+      accent: '#3b82f6',
       inputFile,
       outputPath,
       outputMode,
-      noDiagrams: !!(opts['noDiagrams'] as boolean),
-      noTables: !!(opts['noTables'] as boolean),
-      verbose: !!(opts['verbose'] as boolean),
+      noDiagrams: opts.noDiagrams,
+      noTables: opts.noTables,
+      verbose: opts.verbose,
     };
 
     try {
       const result = await compile(options);
-      if (result.warnings.length > 0) {
-        for (const w of result.warnings) {
-          process.stderr.write(`WARN: ${w}\n`);
-        }
+      for (const w of result.warnings) {
+        process.stderr.write(`WARN: ${w}\n`);
       }
       process.exit(0);
     } catch (err) {

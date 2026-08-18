@@ -4,6 +4,7 @@
  * Ports tableParse / tableBuildSvg from CLDS_interactive_v15.html.
  * Text width is approximated via CHAR_WIDTH_PX constant.
  */
+import { escHtml as esc } from '../util/escape.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -21,13 +22,6 @@ const PAD = 14;
 
 function textWidth(text: string, bold = false): number {
   return text.length * (bold ? CHAR_WIDTH_BOLD_PX : CHAR_WIDTH_PX);
-}
-
-function esc(s: string): string {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────

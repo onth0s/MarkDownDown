@@ -4,6 +4,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { escAttr } from '../util/escape.js';
 
 declare const __dirname: string;
 
@@ -15,7 +16,7 @@ function loadTemplate(): string {
   ];
 
   for (const p of candidates) {
-    try { if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8'); } catch {}
+    try { if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8'); } catch { /* continue */ }
   }
 
   return `<!doctype html>
@@ -82,8 +83,4 @@ export function assembleHtml(opts: AssembleOptions): string {
   }
 
   return template;
-}
-
-function escAttr(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

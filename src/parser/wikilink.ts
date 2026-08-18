@@ -13,14 +13,6 @@ import type MarkdownIt from 'markdown-it';
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs';
 
 export function wikilinkPlugin(md: MarkdownIt): void {
-  md.core.ruler.push('wikilink_escape', (state) => {
-    // Pre-process: replace escaped \[[ with a placeholder
-    // markdown-it handles backslash escapes before inline rules run,
-    // so \[[ → literal [[ is already handled by GFM escaping.
-    // Nothing extra needed here.
-    return false;
-  });
-
   md.inline.ruler.before('link', 'wikilink', wikilinkRule);
 }
 
@@ -36,7 +28,7 @@ function wikilinkRule(state: StateInline, silent: boolean): boolean {
   }
 
   // Find closing ]]
-  let closePos = src.indexOf(']]', pos + 2);
+  const closePos = src.indexOf(']]', pos + 2);
   if (closePos < 0) return false;
 
   const inner = src.slice(pos + 2, closePos);

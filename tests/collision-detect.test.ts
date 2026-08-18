@@ -52,3 +52,27 @@ describe('resolveWikilink — display text', () => {
     expect(result.display).toBe('See Overview');
   });
 });
+
+describe('resolveWikilink — edge cases', () => {
+  test('empty target throws', () => {
+    expect(() =>
+      resolveWikilink('', '', headings, assets)
+    ).toThrow();
+  });
+
+  test('extension in target skips heading resolution', () => {
+    const result = resolveWikilink('logo.png', 'Logo', headings, assets);
+    expect(result.kind).toBe('image');
+    expect(result.display).toBe('Logo');
+  });
+
+  test('multiple assets with same extension causes collision', () => {
+    const dupAssets: Asset[] = [
+      { key: 'a/logo.png', absolutePath: '/x/a/logo.png', relativePath: 'a/logo.png', kind: 'image' },
+      { key: 'b/logo.png', absolutePath: '/x/b/logo.png', relativePath: 'b/logo.png', kind: 'image' },
+    ];
+    expect(() =>
+      resolveWikilink('logo.png', 'Logo', headings, dupAssets)
+    ).toThrow('ambiguous');
+  });
+});
