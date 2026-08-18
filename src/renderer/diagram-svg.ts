@@ -408,117 +408,96 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
 const LR_REF_W = 960;
 
 function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const REF = LR_REF_W;
 
-  const edgeG: string[] = [];
-  model.edges.forEach((e) => {
-    const from = model.nodes.get(e.from);
-    const to = model.nodes.get(e.to);
-    if (!from || !to) return;
-
-    const sx = model.cx.get(e.from)!;
-    const sy = model.cy.get(e.from)! + from.h / 2;
-    const ex = model.cx.get(e.to)!;
-    const ey = model.cy.get(e.to)! - to.h / 2;
-
-    let d: string;
-    let mx: number, my: number;
-    if (!e.directed) {
-      mx = (sx + ex) / 2;
-      my = (sy + ey) / 2;
-    } else {
-      const dy = ey - sy;
-      const c1x = sx, c1y = sy + dy * 0.5, c2x = ex, c2y = ey - dy * 0.5;
-      mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
-      my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
-    }
-
-    const osx = sy, osy = sx;
-    const oex = ey, oey = ex;
-    const omx = my, omy = mx;
-
-    if (!e.directed) {
-      d = `M ${P(osx, osy)} L ${P(oex, oey)}`;
-    } else {
-      const dx = oex - osx;
-      const c1x = osx + dx * 0.5, c1y = osy, c2x = oex - dx * 0.5, c2y = oey;
-      d = `M ${P(osx, osy)} C ${P(c1x, c1y)} ${P(c2x, c2y)} ${P(oex, oey)}`;
-    }
-
-    const label = e.label;
-    let labelSvg = '';
-    if (label) {
-      const lw = textWidth(label, EDGE_LABEL_SIZE, false) + 14;
-      labelSvg =
-        `<g class="edge-label" transform="translate(${P(omx, omy)})">` +
-        `<rect class="edge-label-bg" x="${-lw / 2}" y="${-EDGE_LABEL_H / 2}" width="${lw}" height="${EDGE_LABEL_H}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${EDGE_LABEL_SIZE}">${esc(label)}</text>` +
-        `</g>`;
-    }
-    const ord = e.labelOrd;
-    const ordAttr = ord !== undefined ? ` data-label-ord="${ord}"` : '';
-    edgeG.push(
-      `<g class="edge"${ordAttr}>` +
-      `<path class="edge-path" d="${d}" marker-end="url(#${arrowId})"/>` +
-      labelSvg +
-      `</g>`
-    );
-    minX = Math.min(minX, osx, oex);
-    minY = Math.min(minY, osy, oey);
-    maxX = Math.max(maxX, osx, oex);
-    maxY = Math.max(maxY, osy, oey);
-  });
-
-  const nodeG: string[] = [];
+  const nodeData: Array<{ lrX: number; lrY: number; w: number; h: number; rx: number; titleLines: string[]; subLines: string[]; labelOrd: number }> = [];
   for (const node of model.nodes.values()) {
-    const x = model.cx.get(node.id)! - node.w / 2;
-    const y = model.cy.get(node.id)! - node.h / 2;
-    const lx = y, ly = x;
-    minX = Math.min(minX, lx);
-    minY = Math.min(minY, ly);
-    maxX = Math.max(maxX, lx + node.h);
-    maxY = Math.max(maxY, ly + node.w);
-    const titleLines = node.titleLines.map((l, i) => {
-      const tx = model.cy.get(node.id)!;
-      const ty = x + PADY + TITLE_H * (i + 1) - 4;
-      return `<text class="node-title" ${AT(tx, ty)} text-anchor="middle" font-size="${TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
-    }).join('');
-    const subLines = node.subLines.map((l, i) => {
-      const tx = model.cy.get(node.id)!;
-      const ty = x + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3;
-      return `<text class="node-sub" ${AT(tx, ty)} text-anchor="middle" font-size="${SUB_SIZE}">${esc(l)}</text>`;
-    }).join('');
-    const rx = node.shape === 'rounded' ? 22 : 8;
-    nodeG.push(
-      `<g class="node" data-label-ord="${node.labelOrd}">` +
-      `<rect class="node-rect" x="${lx}" y="${ly}" width="${node.h}" height="${node.w}" rx="${rx}"/>` +
-      titleLines + subLines +
-      `</g>`
-    );
+    nodeData.push({ lrX: model.cy.get(node.id)!, lrY: model.cx.get(node.id)!, w: node.w, h: node.h, rx: node.shape === 'rounded' ? 22 : 8, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
   }
 
-  const natW = maxX - minX;
-  const natH = maxY - minY;
-  const S = natW > 0 ? LR_REF_W / natW : 1;
-  const scaledW = Math.round(natW * S);
-  const scaledH = Math.round(natH * S);
-  const ox = minX;
-  const oy = minY;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const nd of nodeData) {
+    minX = Math.min(minX, nd.lrX - nd.w / 2);
+    maxX = Math.max(maxX, nd.lrX + nd.w / 2);
+    minY = Math.min(minY, nd.lrY - nd.h / 2);
+    maxY = Math.max(maxY, nd.lrY + nd.h / 2);
+  }
+
+  const edgeInfo: Array<{ d: string; omx: number; omy: number; label: string; labelOrd: number }> = [];
+  model.edges.forEach((e) => {
+    const from = model.nodes.get(e.from)!;
+    const to = model.nodes.get(e.to)!;
+    const sx = model.cy.get(e.from)! + from.w / 2;
+    const sy = model.cx.get(e.from)!;
+    const ex = model.cy.get(e.to)! - to.w / 2;
+    const ey = model.cx.get(e.to)!;
+    let d: string;
+    if (!e.directed) {
+      d = `M ${P(sx, sy)} L ${P(ex, ey)}`;
+    } else {
+      const dx = ex - sx;
+      d = `M ${P(sx, sy)} C ${P(sx + dx * 0.5, sy)} ${P(ex - dx * 0.5, ey)} ${P(ex, ey)}`;
+    }
+    edgeInfo.push({ d, omx: (sx + ex) / 2, omy: (sy + ey) / 2, label: e.label, labelOrd: e.labelOrd });
+    minX = Math.min(minX, sx, ex); maxX = Math.max(maxX, sx, ex);
+    minY = Math.min(minY, sy, ey); maxY = Math.max(maxY, sy, ey);
+  });
+
+  const pad = PAD;
+  const ox = minX - pad, oy = minY - pad;
+  const natW = maxX - minX + pad * 2, natH = maxY - minY + pad * 2;
+  const sc = REF / natW;
+  const W = Math.round(natW * sc), H = Math.round(natH * sc);
+  const Sx = (v: number) => (v - ox) * sc;
+  const Sy = (v: number) => (v - oy) * sc;
+
+  const edgeG: string[] = edgeInfo.map(ed => {
+    let labelSvg = '';
+    if (ed.label) {
+      const lw = (textWidth(ed.label, EDGE_LABEL_SIZE, false) + 14) * sc;
+      const lx = Sx(ed.omx), ly = Sy(ed.omy);
+      labelSvg =
+        `<g class="edge-label" transform="translate(${P(lx, ly)})">` +
+        `<rect class="edge-label-bg" x="${R(-lw / 2)}" y="${R(-EDGE_LABEL_H * sc / 2)}" width="${R(lw)}" height="${R(EDGE_LABEL_H * sc)}" rx="6"/>` +
+        `<text class="edge-label-text" x="0" y="${R(EDGE_LABEL_H * sc / 2 - 4)}" text-anchor="middle" font-size="${EDGE_LABEL_SIZE}">${esc(ed.label)}</text>` +
+        `</g>`;
+    }
+    const pathD = ed.d.replace(/([0-9.]+) ([0-9.]+)/g, (_, x: string, y: string) => `${P(Sx(+x), Sy(+y))}`);
+    const ordAttr = ed.labelOrd !== undefined ? ` data-label-ord="${ed.labelOrd}"` : '';
+    return `<g class="edge"${ordAttr}><path class="edge-path" d="${pathD}" marker-end="url(#${arrowId})"/>${labelSvg}</g>`;
+  });
+
+  const nodeG: string[] = nodeData.map(nd => {
+    const cx = Sx(nd.lrX), cy = Sy(nd.lrY);
+    const w = nd.w * sc, h = nd.h * sc;
+    const titleLines = nd.titleLines.map((l, i) => {
+      const ty = cy - h / 2 + PADY * sc + TITLE_H * sc * (i + 1) - 4 * sc;
+      return `<text class="node-title" x="${R(cx)}" y="${R(ty)}" text-anchor="middle" font-size="${TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
+    }).join('');
+    const subLines = nd.subLines.map((l, i) => {
+      const ty = cy - h / 2 + PADY * sc + TITLE_H * sc * nd.titleLines.length + SUB_H * sc * (i + 1) - 3 * sc;
+      return `<text class="node-sub" x="${R(cx)}" y="${R(ty)}" text-anchor="middle" font-size="${SUB_SIZE}">${esc(l)}</text>`;
+    }).join('');
+    return `<g class="node" data-label-ord="${nd.labelOrd}"><rect class="node-rect" x="${R(cx - w / 2)}" y="${R(cy - h / 2)}" width="${R(w)}" height="${R(h)}" rx="${nd.rx}"/>${titleLines}${subLines}</g>`;
+  });
 
   return (
-    `<svg class="diagram-svg" width="${scaledW}" height="${scaledH}" ` +
+    `<svg class="diagram-svg" width="${W}" height="${H}" ` +
     `role="img" aria-label="${esc(title)}" xmlns="${NS}">` +
     `<defs><marker id="${arrowId}" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>` +
-    `<g transform="translate(${-ox * S},${-oy * S}) scale(${S})">` +
     nodeG.join('') + edgeG.join('') +
-    `</g></svg>`
+    `</svg>`
   );
 }
 
+function R(v: number): string {
+  return String(Math.round(v * 10) / 10);
+}
+
 function P(x: number, y: number): string {
-  return `${Math.round(x * 10) / 10} ${Math.round(y * 10) / 10}`;
+  return `${R(x)} ${R(y)}`;
 }
 
 function AT(x: number, y: number): string {
-  return `x="${Math.round(x * 10) / 10}" y="${Math.round(y * 10) / 10}"`;
+  return `x="${R(x)}" y="${R(y)}"`;
 }
