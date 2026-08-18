@@ -164,10 +164,15 @@ button, input { font:inherit; }
   background:var(--surface-2); color:var(--accent);
   white-space:pre-wrap; overflow-wrap:anywhere;
 }
-.code-wrap { position:relative; margin:20px 0; }
+.code-wrap {
+  position:relative; margin:20px 0; overflow:hidden; contain:paint;
+  border:1px solid var(--border); border-radius:12px;
+  background:var(--code); box-shadow:var(--shadow);
+}
 .code-wrap pre {
-  margin:0; overflow:auto; padding:20px; border:1px solid var(--border);
-  border-radius:12px; background:var(--code); color:var(--text); box-shadow:var(--shadow);
+  margin:0; overflow:auto; padding:20px;
+  border:0; border-radius:0;
+  background:transparent; color:var(--text);
 }
 .code-wrap pre code { background:none; padding:0; color:inherit; white-space:pre; overflow-wrap:normal; }
 .code-wrap.diagram pre, .code-wrap.table pre { display:none; }
