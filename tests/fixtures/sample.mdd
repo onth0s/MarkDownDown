@@ -14,7 +14,7 @@ This is a **Markdown++** document.
 
 ```diagram
 TITLE: Test Flow
-flowchart TB
+flowchart LR
   A[Start] --> B[Process]
   B --> C[End]
 ```
