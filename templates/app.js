@@ -396,8 +396,15 @@
 
   backtop.addEventListener('click', () => {
     tocScrollActive = true;
+    const topId = hasHero ? '__doc-title__' : (headings[0]?.id ?? null);
+    if (topId) setActive(topId);
+    animateSidebarTo(0, 300);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    onScrollEnd(() => { tocScrollActive = false; });
+    onScrollEnd(() => {
+      tocScrollActive = false;
+      sidebar.scrollTop = 0;
+      if (topId) setActive(topId);
+    });
   });
 
   // ── Diagram / Table SVG highlight sync ─────────────────────────────────────

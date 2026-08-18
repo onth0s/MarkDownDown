@@ -335,7 +335,7 @@ describe('Scroll guard', () => {
   });
 
   test('backtop click clears tocScrollActive via onScrollEnd', () => {
-    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?onScrollEnd\(\(\) => \{ tocScrollActive = false/);
+    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?onScrollEnd\(\(\)\s*=>\s*\{[\s\S]*?tocScrollActive\s*=\s*false/);
   });
 });
 
