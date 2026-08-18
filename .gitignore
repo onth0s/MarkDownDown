@@ -2,6 +2,7 @@ scratch/
 node_modules/
 dist/
 coverage/
+*.html
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
