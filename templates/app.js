@@ -268,7 +268,17 @@
   // ── Copy buttons ───────────────────────────────────────────────────────────
   document.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
-      const code = btn.parentElement.querySelector('code')?.textContent ?? '';
+      const parent = btn.parentElement;
+      let code = parent.querySelector('code')?.textContent ?? '';
+      if (parent.classList.contains('diagram')) {
+        const title = parent.getAttribute('data-title');
+        const titleLine = title ? `TITLE: ${title}\n` : '';
+        code = '```diagram\n' + titleLine + code.trim() + '\n```';
+      } else if (parent.classList.contains('table')) {
+        const title = parent.getAttribute('data-title');
+        const titleLine = title ? `TITLE: ${title}\n` : '';
+        code = '```table\n' + titleLine + code.trim() + '\n```';
+      }
       const old = btn.textContent;
       try {
         if (navigator.clipboard?.writeText) {

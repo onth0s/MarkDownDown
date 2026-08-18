@@ -369,8 +369,10 @@ describe('Section title heading anchors', () => {
     expect(js).toMatch(/anchor\.classList\.add\('copied'\)/);
   });
 
-  test('copy button reads code textContent to properly copy diagrams and tables', () => {
-    expect(js).toMatch(/const code = btn\.parentElement\.querySelector\('code'\)\?\.textContent \?\? ''/);
+  test('copy button reads code textContent and formats full fenced blocks for diagrams and tables', () => {
+    expect(js).toMatch(/let code = parent\.querySelector\('code'\)\?\.textContent \?\? ''/);
+    expect(js).toMatch(/code = '```diagram\\n'/);
+    expect(js).toMatch(/code = '```table\\n'/);
   });
 
   test('heading anchor is hidden by default with opacity 0 and transitions', () => {
