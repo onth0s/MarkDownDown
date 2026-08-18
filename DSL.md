@@ -14,7 +14,7 @@ This document specifies the two fenced code block languages in Markdown++: `diag
 ````markdown
 ```diagram
 TITLE: Diagram Title
-flowchart LR
+flowchart
   NODE_A["Title — Subtitle"]
   NODE_B["Another node"]
   NODE_A -->|edge label| NODE_B
@@ -210,7 +210,7 @@ Light mode overrides use `#ffffff` as the base surface instead of `var(--surface
 
 ```diagram
 TITLE: CLDS Artifact Relationship Flow
-flowchart LR
+flowchart
   SPEC["SPECIFICATION LAYER — DIEGETICS.md / README / YAML schemas / behavioral contracts"]
   AUDIT["AUDIT LAYER — INSPECTOR.md (procedure) → DISSONANCES.md (findings)"]
   IMPL["IMPLEMENTATION CYCLE — REP-governed corrections; findings become ratified changes"]

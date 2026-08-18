@@ -60,4 +60,54 @@ describe('diagramLayout + diagramBuildSvg', () => {
     expect(svg).toContain('Alpha');
     expect(svg).toContain('Beta');
   });
+
+  test('empty model produces SVG with no nodes', () => {
+    const model = diagramParse('flowchart TB');
+    diagramLayout(model);
+    expect(model.nodes.size).toBe(0);
+  });
+
+  test('handles diamond and rounded shapes in SVG', () => {
+    const model = diagramParse(`flowchart TB\n  D{Decision}\n  R(Rounded)\n  D --> R`);
+    diagramLayout(model);
+    const svg = diagramBuildSvg(model, 'Shapes');
+    expect(svg).toContain('Decision');
+    expect(svg).toContain('Rounded');
+  });
+
+  test('handles edge labels in SVG', () => {
+    const model = diagramParse(`flowchart TB\n  A[Start] -->|yes| B[End]`);
+    diagramLayout(model);
+    const svg = diagramBuildSvg(model, 'Edges');
+    expect(svg).toContain('yes');
+  });
+
+  test('handles undirected edges', () => {
+    const model = diagramParse(`flowchart TB\n  A[Alpha] --- B[Beta]`);
+    diagramLayout(model);
+    const svg = diagramBuildSvg(model, 'Undirected');
+    expect(svg).toContain('Alpha');
+  });
+
+  test('builds valid LR SVG via forceLR', () => {
+    const model = diagramParse(`flowchart TB\n  A[Alpha]\n  B[Beta]\n  A --> B`);
+    diagramLayout(model);
+    const svg = diagramBuildSvg(model, 'LR Test', true);
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('Alpha');
+    expect(svg).toContain('Beta');
+  });
+
+  test('parser defaults to auto when no direction specified', () => {
+    const model = diagramParse(`flowchart\n  A[Node A]\n  B[Node B]\n  A --> B`);
+    expect(model.direction).toBe('auto');
+    expect(model.horizontal).toBe(false);
+  });
+
+  test('parser still accepts explicit LR direction', () => {
+    const model = diagramParse(`flowchart LR\n  A[Alpha]\n  B[Beta]\n  A --> B`);
+    expect(model.direction).toBe('LR');
+    diagramLayout(model);
+    expect(model.horizontal).toBe(true);
+  });
 });

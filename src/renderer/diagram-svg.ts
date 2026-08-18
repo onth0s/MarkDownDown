@@ -5,6 +5,7 @@
  * CLDS_interactive_v15.html. Text width is approximated using a constant
  * character width; no canvas or DOM required.
  */
+import { escHtml as esc } from '../util/escape.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -22,7 +23,7 @@ const PAD = 24;
 const EDGE_LABEL_SIZE = 11;
 const EDGE_LABEL_H = 16;
 
-function textWidth(text: string, size: number, bold: boolean): number {
+function textWidth(text: string, size: number, _bold: boolean): number {
   const avgCharW = size <= 11 ? 6.8 : size <= 12 ? 7.5 : 8.2;
   return text.length * avgCharW;
 }
@@ -43,14 +44,6 @@ function wrapText(text: string, size: number, bold: boolean, maxW: number): stri
   }
   lines.push(cur);
   return lines;
-}
-
-function esc(s: string): string {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }
 
 type NodeShape = 'rect' | 'rounded' | 'diamond';
@@ -148,9 +141,9 @@ export function diagramParse(source: string): DiagramModel {
     const line = rawLine.trim();
     if (!line || line.startsWith('%%')) continue;
 
-    const headerMatch = line.match(/^(?:flowchart|graph)\s+(TB|TD|BT|LR|RL)\s*$/i);
+    const headerMatch = line.match(/^(?:flowchart|graph)\s*(TB|TD|BT|LR|RL)?\s*$/i);
     if (headerMatch) {
-      model.direction = headerMatch[1].toUpperCase();
+      model.direction = headerMatch[1]?.toUpperCase() ?? 'auto';
       continue;
     }
 
@@ -240,7 +233,7 @@ export function diagramLayout(model: DiagramModel): void {
   for (const id of model.nodes.keys()) assignRank(id);
 
   const ranks: string[][] = [];
-  for (const [id, node] of model.nodes) {
+  for (const [id] of model.nodes) {
     const r = rank.get(id)!;
     (ranks[r] ||= []).push(id);
   }
@@ -306,9 +299,9 @@ export function diagramLayout(model: DiagramModel): void {
   model.horizontal = model.direction === 'LR' || model.direction === 'RL';
 }
 
-export function diagramBuildSvg(model: DiagramModel, title: string): string {
+export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: boolean): string {
   const arrowId = `arrow-${Math.random().toString(36).slice(2, 8)}`;
-  const isLR = model.horizontal;
+  const isLR = forceLR !== undefined ? forceLR : model.horizontal;
 
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
@@ -346,9 +339,9 @@ export function diagramBuildSvg(model: DiagramModel, title: string): string {
     let labelSvg = '';
     if (label) {
       const lw = textWidth(label, EDGE_LABEL_SIZE, false) + 14;
-      const ly = my;
+      const [lx, ly] = isLR ? [my, mx] : [mx, my];
       labelSvg =
-        `<g class="edge-label" transform="translate(${P(mx, ly)})">` +
+        `<g class="edge-label" transform="translate(${P(lx, ly)})">` +
         `<rect class="edge-label-bg" x="${-lw / 2}" y="${-EDGE_LABEL_H / 2}" width="${lw}" height="${EDGE_LABEL_H}" rx="6"/>` +
         `<text class="edge-label-text" x="0" y="${EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${EDGE_LABEL_SIZE}">${esc(label)}</text>` +
         `</g>`;
@@ -361,26 +354,44 @@ export function diagramBuildSvg(model: DiagramModel, title: string): string {
       labelSvg +
       `</g>`
     );
-    minX = Math.min(minX, sx, ex);
-    minY = Math.min(minY, sy, ey);
-    maxX = Math.max(maxX, sx, ex);
-    maxY = Math.max(maxY, sy, ey);
+    if (isLR) {
+      minX = Math.min(minX, sy, ey);
+      minY = Math.min(minY, sx, ex);
+      maxX = Math.max(maxX, sy, ey);
+      maxY = Math.max(maxY, sx, ex);
+    } else {
+      minX = Math.min(minX, sx, ex);
+      minY = Math.min(minY, sy, ey);
+      maxX = Math.max(maxX, sx, ex);
+      maxY = Math.max(maxY, sy, ey);
+    }
   });
 
   const nodeG: string[] = [];
   for (const node of model.nodes.values()) {
     const x = model.cx.get(node.id)! - node.w / 2;
     const y = model.cy.get(node.id)! - node.h / 2;
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x + node.w);
-    maxY = Math.max(maxY, y + node.h);
-    const titleLines = node.titleLines.map((l, i) =>
-      `<text class="node-title" ${AT(model.cx.get(node.id)!, y + PADY + TITLE_H * (i + 1) - 4)} text-anchor="middle" font-size="${TITLE_SIZE}" font-weight="700">${esc(l)}</text>`
-    ).join('');
-    const subLines = node.subLines.map((l, i) =>
-      `<text class="node-sub" ${AT(model.cx.get(node.id)!, y + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3)} text-anchor="middle" font-size="${SUB_SIZE}">${esc(l)}</text>`
-    ).join('');
+    if (isLR) {
+      minX = Math.min(minX, y);
+      minY = Math.min(minY, x);
+      maxX = Math.max(maxX, y + node.h);
+      maxY = Math.max(maxY, x + node.w);
+    } else {
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + node.w);
+      maxY = Math.max(maxY, y + node.h);
+    }
+    const titleLines = node.titleLines.map((l, i) => {
+      const tx = isLR ? model.cy.get(node.id)! : model.cx.get(node.id)!;
+      const ty = isLR ? x + PADY + TITLE_H * (i + 1) - 4 : y + PADY + TITLE_H * (i + 1) - 4;
+      return `<text class="node-title" ${AT(tx, ty)} text-anchor="middle" font-size="${TITLE_SIZE}" font-weight="700">${esc(l)}</text>`;
+    }).join('');
+    const subLines = node.subLines.map((l, i) => {
+      const tx = isLR ? model.cy.get(node.id)! : model.cx.get(node.id)!;
+      const ty = isLR ? x + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3 : y + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3;
+      return `<text class="node-sub" ${AT(tx, ty)} text-anchor="middle" font-size="${SUB_SIZE}">${esc(l)}</text>`;
+    }).join('');
     const rx = node.shape === 'rounded' ? 22 : 8;
     nodeG.push(
       `<g class="node" data-label-ord="${node.labelOrd}">` +
@@ -393,7 +404,7 @@ export function diagramBuildSvg(model: DiagramModel, title: string): string {
   const vb = isLR
     ? `${minY - PAD} ${minX - PAD} ${(maxY - minY) + PAD * 2} ${(maxX - minX) + PAD * 2}`
     : `${minX - PAD} ${minY - PAD} ${(maxX - minX) + PAD * 2} ${(maxY - minY) + PAD * 2}`;
-  const [vbX, vbY, vbW, vbH] = vb.split(' ').map(Number);
+  const [, , vbW, vbH] = vb.split(' ').map(Number);
 
   return (
     `<svg class="diagram-svg" viewBox="${vb}" width="${vbW}" height="${vbH}" ` +
