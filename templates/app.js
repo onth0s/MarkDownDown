@@ -160,6 +160,7 @@
     tocScrollActive = true;
 
     const isFirstHeadingNoHero = !hasHero && targetId && headings[0]?.id === targetId;
+    let url = location.href.split('#')[0];
     if (targetId === '__doc-title__' || !targetId || isFirstHeadingNoHero) {
       if (targetId === '__doc-title__' || !targetId) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -178,20 +179,37 @@
     }
     onScrollEnd(() => { tocScrollActive = false; });
 
-    try {
-      if (navigator.clipboard?.writeText) {
+    let copied = false;
+    if (navigator.clipboard?.writeText) {
+      try {
         await navigator.clipboard.writeText(url);
-      } else {
+        copied = true;
+      } catch (_) {
+        copied = false;
+      }
+    }
+    if (!copied) {
+      try {
         const ta = document.createElement('textarea');
         ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        ta.style.left = '-9999px';
+        ta.style.opacity = '0';
         document.body.appendChild(ta);
+        ta.focus();
         ta.select();
-        document.execCommand('copy');
+        copied = document.execCommand('copy');
         ta.remove();
+      } catch (_) {
+        copied = false;
       }
+    }
+
+    if (copied) {
       anchor.textContent = 'Link copied!';
       anchor.classList.add('copied');
-    } catch (_) {
+    } else {
       anchor.textContent = 'Copy failed';
       anchor.classList.add('copied');
     }
