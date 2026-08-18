@@ -311,37 +311,45 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
     const to = model.nodes.get(e.to);
     if (!from || !to) return;
 
-    const sx = model.cx.get(e.from)! + (isLR ? from.w / 2 : 0);
-    const sy = model.cy.get(e.from)! + (isLR ? 0 : from.h / 2);
-    const ex = model.cx.get(e.to)! - (isLR ? to.w / 2 : 0);
-    const ey = model.cy.get(e.to)! - (isLR ? 0 : to.h / 2);
+    const sx = model.cx.get(e.from)!;
+    const sy = model.cy.get(e.from)! + from.h / 2;
+    const ex = model.cx.get(e.to)!;
+    const ey = model.cy.get(e.to)! - to.h / 2;
 
     let d: string;
     let mx: number, my: number;
     if (!e.directed) {
-      d = `M ${P(sx, sy)} L ${P(ex, ey)}`;
       mx = (sx + ex) / 2;
       my = (sy + ey) / 2;
-    } else if (isLR) {
-      const dx = ex - sx;
-      const c1x = sx + dx * 0.5, c1y = sy, c2x = ex - dx * 0.5, c2y = ey;
-      d = `M ${P(sx, sy)} C ${P(c1x, c1y)} ${P(c2x, c2y)} ${P(ex, ey)}`;
-      mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
-      my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
     } else {
       const dy = ey - sy;
       const c1x = sx, c1y = sy + dy * 0.5, c2x = ex, c2y = ey - dy * 0.5;
-      d = `M ${P(sx, sy)} C ${P(c1x, c1y)} ${P(c2x, c2y)} ${P(ex, ey)}`;
       mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
       my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
     }
+
+    const osx = isLR ? sy : sx, osy = isLR ? sx : sy;
+    const oex = isLR ? ey : ex, oey = isLR ? ex : ey;
+    const omx = isLR ? my : mx, omy = isLR ? mx : my;
+
+    if (!e.directed) {
+      d = `M ${P(osx, osy)} L ${P(oex, oey)}`;
+    } else if (isLR) {
+      const dx = oex - osx;
+      const c1x = osx + dx * 0.5, c1y = osy, c2x = oex - dx * 0.5, c2y = oey;
+      d = `M ${P(osx, osy)} C ${P(c1x, c1y)} ${P(c2x, c2y)} ${P(oex, oey)}`;
+    } else {
+      const dy = oey - osy;
+      const c1x = osx, c1y = osy + dy * 0.5, c2x = oex, c2y = oey - dy * 0.5;
+      d = `M ${P(osx, osy)} C ${P(c1x, c1y)} ${P(c2x, c2y)} ${P(oex, oey)}`;
+    }
+
     const label = e.label;
     let labelSvg = '';
     if (label) {
       const lw = textWidth(label, EDGE_LABEL_SIZE, false) + 14;
-      const [lx, ly] = isLR ? [my, mx] : [mx, my];
       labelSvg =
-        `<g class="edge-label" transform="translate(${P(lx, ly)})">` +
+        `<g class="edge-label" transform="translate(${P(omx, omy)})">` +
         `<rect class="edge-label-bg" x="${-lw / 2}" y="${-EDGE_LABEL_H / 2}" width="${lw}" height="${EDGE_LABEL_H}" rx="6"/>` +
         `<text class="edge-label-text" x="0" y="${EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${EDGE_LABEL_SIZE}">${esc(label)}</text>` +
         `</g>`;
@@ -354,17 +362,10 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
       labelSvg +
       `</g>`
     );
-    if (isLR) {
-      minX = Math.min(minX, sy, ey);
-      minY = Math.min(minY, sx, ex);
-      maxX = Math.max(maxX, sy, ey);
-      maxY = Math.max(maxY, sx, ex);
-    } else {
-      minX = Math.min(minX, sx, ex);
-      minY = Math.min(minY, sy, ey);
-      maxX = Math.max(maxX, sx, ex);
-      maxY = Math.max(maxY, sy, ey);
-    }
+    minX = Math.min(minX, osx, oex);
+    minY = Math.min(minY, osy, oey);
+    maxX = Math.max(maxX, osx, oex);
+    maxY = Math.max(maxY, osy, oey);
   });
 
   const nodeG: string[] = [];
@@ -401,9 +402,7 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
     );
   }
 
-  const vb = isLR
-    ? `${minY - PAD} ${minX - PAD} ${(maxY - minY) + PAD * 2} ${(maxX - minX) + PAD * 2}`
-    : `${minX - PAD} ${minY - PAD} ${(maxX - minX) + PAD * 2} ${(maxY - minY) + PAD * 2}`;
+  const vb = `${minX - PAD} ${minY - PAD} ${(maxX - minX) + PAD * 2} ${(maxY - minY) + PAD * 2}`;
   const [, , vbW, vbH] = vb.split(' ').map(Number);
 
   return (
