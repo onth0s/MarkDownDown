@@ -164,13 +164,17 @@ export function diagramParse(source: string): DiagramModel {
       const directed = !line.includes('---') || line.includes('-->');
 
       const parseInlineNode = (raw: string): string => {
-        const nm = raw.match(/^([A-Za-z0-9_.\\-]+)\["?([^"]+)"?\]$/) ||
-                   raw.match(/^([A-Za-z0-9_.\\-]+)\(["']?(.+?)["']?\)$/) ||
-                   raw.match(/^([A-Za-z0-9_.\\-]+)\{["']?(.+?)["']?\}$/);
-        if (nm) {
-          const shape: NodeShape = raw.includes('{') ? 'diamond' : raw.includes('(') ? 'rounded' : 'rect';
-          ensureNode(nm[1], nm[2], shape);
-          return nm[1];
+        let m: RegExpMatchArray | null = null;
+        let shape: NodeShape = 'rect';
+        const im1 = raw.match(/^([A-Za-z0-9_.\\-]+)\["?([^"]+)"?\]$/);
+        const im2 = raw.match(/^([A-Za-z0-9_.\\-]+)\(["']?(.+?)["']?\)$/);
+        const im3 = raw.match(/^([A-Za-z0-9_.\\-]+)\{["']?(.+?)["']?\}$/);
+        if (im1) { m = im1; shape = 'rect'; }
+        else if (im2) { m = im2; shape = 'rounded'; }
+        else if (im3) { m = im3; shape = 'diamond'; }
+        if (m) {
+          ensureNode(m[1], m[2], shape);
+          return m[1];
         }
         ensureNode(raw);
         return raw;
@@ -184,12 +188,17 @@ export function diagramParse(source: string): DiagramModel {
     }
     if (edgeMatched) continue;
 
-    const nodeFull = line.match(/^([A-Za-z0-9_.\\-]+)\["?([^"]+)"?\]$/) ||
-                     line.match(/^([A-Za-z0-9_.\\-]+)\(["']?(.+?)["']?\)$/) ||
-                     line.match(/^([A-Za-z0-9_.\\-]+)\{["']?(.+?)["']?\}$/);
-    if (nodeFull) {
-      const shape: NodeShape = line.includes('{') ? 'diamond' : line.includes('(') ? 'rounded' : 'rect';
-      ensureNode(nodeFull[1], nodeFull[2], shape);
+    let nodeMatched = false;
+    let nFull: RegExpMatchArray | null = null;
+    let nShape: NodeShape = 'rect';
+    const nm1 = line.match(/^([A-Za-z0-9_.\\-]+)\["?([^"]+)"?\]$/);
+    const nm2 = line.match(/^([A-Za-z0-9_.\\-]+)\(["']?(.+?)["']?\)$/);
+    const nm3 = line.match(/^([A-Za-z0-9_.\\-]+)\{["']?(.+?)["']?\}$/);
+    if (nm1) { nFull = nm1; nShape = 'rect'; nodeMatched = true; }
+    else if (nm2) { nFull = nm2; nShape = 'rounded'; nodeMatched = true; }
+    else if (nm3) { nFull = nm3; nShape = 'diamond'; nodeMatched = true; }
+    if (nodeMatched && nFull) {
+      ensureNode(nFull[1], nFull[2], nShape);
       continue;
     }
 
@@ -216,6 +225,9 @@ export function diagramLayout(model: DiagramModel): void {
     node.w = w;
     node.h = titleLines.length * TITLE_H + subLines.length * SUB_H + PADY * 2;
   }
+
+  const maxW = Math.max(...nodes.map(n => n.w));
+  for (const node of nodes) node.w = maxW;
 
   const rank = new Map<string, number>();
   const visiting = new Set<string>();
@@ -383,7 +395,7 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceLR?: bo
       const ty = y + PADY + TITLE_H * node.titleLines.length + SUB_H * (i + 1) - 3;
       return `<text class="node-sub" ${AT(tx, ty)} text-anchor="middle" font-size="${SUB_SIZE}">${esc(l)}</text>`;
     }).join('');
-    const rx = node.shape === 'rounded' ? 22 : 8;
+    const rx = 8;
     nodeG.push(
       `<g class="node" data-label-ord="${node.labelOrd}">` +
       `<rect class="node-rect" x="${x}" y="${y}" width="${node.w}" height="${node.h}" rx="${rx}"/>` +
@@ -419,7 +431,7 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
   let lrX = PAD;
   const nodeData: Array<{ lrX: number; lrY: number; w: number; h: number; rx: number; titleLines: string[]; subLines: string[]; labelOrd: number }> = [];
   for (const node of nodesInOrder) {
-    nodeData.push({ lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, rx: node.shape === 'rounded' ? 22 : 8, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
+    nodeData.push({ lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, rx: 8, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
     lrX += node.w + LR_H_GAP;
   }
 
