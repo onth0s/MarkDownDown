@@ -108,7 +108,7 @@ describe('Scroll spy', () => {
   });
 
   test('setActive updates URL hash via history.replaceState', () => {
-    expect(js).toMatch(/history\.replaceState\(null, '', `\#\$\{id\}`\)/);
+    expect(js).toMatch(/history\.replaceState\(null, '', `#\$\{id\}`\)/);
   });
 
   test('setActive toggles active class on correct link', () => {

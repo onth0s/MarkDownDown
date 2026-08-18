@@ -62,7 +62,7 @@ describe('resolveLinks', () => {
 
   test('builds base64 map in single mode', () => {
     const warnings: string[] = [];
-    const result = resolveLinks([], headings, assets, {
+    resolveLinks([], headings, assets, {
       ...baseOptions,
       outputMode: 'single',
     }, warnings);

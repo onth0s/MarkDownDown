@@ -1,4 +1,4 @@
-import { resolveHeading, extractHeadings } from '../src/resolver/heading.js';
+import { resolveHeading } from '../src/resolver/heading.js';
 import type { Heading } from '../src/types.js';
 
 const headings: Heading[] = [

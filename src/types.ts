@@ -24,6 +24,8 @@ export interface Options {
   noTables: boolean;
   /** Verbose output */
   verbose: boolean;
+  /** Minify inlined CSS, JS, and HTML in monolithic export (default: true) */
+  minify?: boolean;
 }
 
 /** Raw CLI options parsed by commander */
@@ -35,6 +37,8 @@ export interface CliOptions {
   noDiagrams: boolean;
   noTables: boolean;
   verbose: boolean;
+  minify?: boolean;
+  force?: boolean;
 }
 
 /** A heading extracted from the document */

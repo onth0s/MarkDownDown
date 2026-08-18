@@ -91,6 +91,7 @@ export function assembleAndWrite(
     customCss: customCssContent,
     customJs: customJsContent,
     accent,
+    minify: options.minify,
   });
 
   // Write output

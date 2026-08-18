@@ -5,25 +5,45 @@
 import { Command } from 'commander';
 import path from 'node:path';
 import fs from 'node:fs';
+import readline from 'node:readline';
 import { compile } from './compile.js';
 import type { Options, CliOptions } from './types.js';
 import { toErrorMessage } from './util/error.js';
 
+async function confirmOverwrite(targetPath: string): Promise<boolean> {
+  if (!process.stdin.isTTY) return true;
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(`File '${targetPath}' already exists. Overwrite? (y/N) `, (answer) => {
+      rl.close();
+      resolve(answer.trim().toLowerCase() === 'y');
+    });
+  });
+}
+
 const program = new Command();
 
 program
-  .name('markdown++')
+  .name('mdd')
   .description('Compile .mdd files to interactive HTML documents')
   .version('0.1.0')
   .argument('<input>', 'Input .mdd file')
-  .option('-o, --output <path>', 'Output file (--single) or directory (--split)')
-  .option('--single', 'Single self-contained HTML (all inlined)', false)
-  .option('--split', 'Separate CSS/JS/assets (default)', false)
+  .option('-o, --output <path>', 'Output file (single) or directory (split)')
+  .option('--single', 'Single self-contained HTML (default)', true)
+  .option('--split', 'Separate CSS/JS/assets', false)
   .option('--assets-dir <path>', 'Assets directory (default: ./assets/ relative to input)')
   .option('--no-diagrams', 'Skip diagram SVG rendering')
   .option('--no-tables', 'Skip table SVG rendering')
+  .option('--minify', 'Minify CSS/JS/HTML in monolithic export (default)', true)
+  .option('--no-minify', 'Disable minification in monolithic export')
+  .option('-f, --force', 'Force overwrite without confirmation prompt', false)
   .option('-v, --verbose', 'Verbose output', false)
-    .action((input: string, opts: CliOptions) => {
+  .action(async (input: string, opts: CliOptions) => {
     const inputFile = path.resolve(process.cwd(), input);
     if (!fs.existsSync(inputFile)) {
       process.stderr.write(`ERROR: Input file not found: ${inputFile}\n`);
@@ -37,15 +57,28 @@ program
     const inputDir = path.dirname(inputFile);
     const stem = path.basename(inputFile, path.extname(inputFile));
 
-    const outputMode: 'single' | 'split' = opts.single ? 'single' : 'split';
+    const outputMode: 'single' | 'split' = opts.split ? 'split' : 'single';
 
     let outputPath: string;
     if (opts.output) {
       outputPath = path.resolve(process.cwd(), opts.output);
     } else if (outputMode === 'single') {
-      outputPath = path.join(inputDir, `${stem}.html`);
+      outputPath = path.join(process.cwd(), `${stem}.html`);
     } else {
-      outputPath = path.join(inputDir, stem);
+      outputPath = path.join(process.cwd(), stem);
+    }
+
+    // Overwrite confirmation
+    const targetToCheck = outputMode === 'single'
+      ? (outputPath.endsWith('.html') ? outputPath : outputPath + '.html')
+      : outputPath;
+
+    if (fs.existsSync(targetToCheck) && !opts.force) {
+      const allowed = await confirmOverwrite(targetToCheck);
+      if (!allowed) {
+        process.stderr.write('Aborted.\n');
+        process.exit(0);
+      }
     }
 
     const assetsDir = opts.assetsDir
@@ -62,6 +95,7 @@ program
       noDiagrams: opts.noDiagrams,
       noTables: opts.noTables,
       verbose: opts.verbose,
+      minify: opts.minify !== false,
     };
 
     try {
@@ -77,3 +111,4 @@ program
   });
 
 program.parse(process.argv);
+
