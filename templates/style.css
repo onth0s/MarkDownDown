@@ -220,10 +220,13 @@ html[data-theme="light"] .alert-title {
 }
 .diagram-svg .node-rect { fill:var(--surface-2); stroke:var(--border); }
 .diagram-svg .node-title { fill:var(--accent); font-weight:700; }
+.diagram-svg .node-sub { fill:var(--muted); }
+.diagram-svg .edge-path { fill:none; stroke:var(--accent); stroke-width:1.6; }
+.diagram-svg .edge-label-bg { fill:var(--surface); stroke:var(--border); stroke-width:.8; }
+.diagram-svg .edge-label-text { fill:var(--text); }
 .diagram-svg .node.is-hit .node-rect {
-  stroke:var(--accent); stroke-width:2;
+  stroke:var(--accent); stroke-width:1.8;
   fill:color-mix(in srgb, var(--accent) 14%, var(--surface-2));
-  opacity: 0.85;
 }
 .diagram-svg .node.is-hit .node-title {
   fill:var(--accent); font-weight:700;
@@ -232,18 +235,15 @@ html[data-theme="light"] .alert-title {
   fill:var(--text);
 }
 .diagram-svg .node.is-current .node-rect {
-  stroke:var(--accent); stroke-width:3;
-  fill:color-mix(in srgb, var(--accent) 35%, var(--surface-2));
-  filter:drop-shadow(0 0 12px var(--accent)) drop-shadow(0 0 4px rgba(var(--accent-rgb),.8));
-  opacity: 1;
+  stroke:var(--accent); stroke-width:2.4;
+  fill:color-mix(in srgb, var(--accent) 26%, var(--surface-2));
+  filter:drop-shadow(0 0 5px rgba(var(--accent-rgb),.45));
 }
 .diagram-svg .node.is-current .node-title {
-  fill:var(--accent); font-weight:900;
-  filter:drop-shadow(0 0 6px var(--accent));
+  fill:var(--accent); font-weight:800;
 }
 .diagram-svg .node.is-current .node-sub {
-  fill:#ffffff; font-weight:700;
-  filter:drop-shadow(0 0 4px rgba(0,0,0,0.8));
+  fill:var(--text); font-weight:600;
 }
 .diagram-svg .svg-mark.is-hit {
   fill: var(--accent);
@@ -252,19 +252,13 @@ html[data-theme="light"] .alert-title {
   text-decoration-color: var(--accent);
 }
 .diagram-svg .svg-mark.is-current {
-  fill: #ffffff;
+  fill: var(--accent);
   font-weight: 900;
-  filter: drop-shadow(0 0 4px var(--accent)) drop-shadow(0 0 8px var(--accent));
   text-decoration: underline;
   text-decoration-thickness: 2px;
-  text-decoration-color: #ffffff;
-}
-html[data-theme="light"] .diagram-svg .svg-mark.is-current {
-  fill: var(--accent);
-  filter: drop-shadow(0 0 4px rgba(var(--accent-rgb),.6));
   text-decoration-color: var(--accent);
 }
-.diagram-svg .edge.is-current .edge-path { stroke-width:3; }
+.diagram-svg .edge.is-current .edge-path { stroke-width:2.6; }
 .diagram-svg .edge.is-current .edge-label-text { fill:var(--accent); font-weight:700; }
 .code-wrap.table .table-render {
   overflow-x:auto; border:1px solid var(--border); border-radius:12px;
@@ -284,12 +278,22 @@ html[data-theme="light"] .diagram-svg .svg-mark.is-current {
 }
 .table-svg .tcell.is-current .tbl-head-text, .table-svg .tcell.is-current .tbl-cell-text { fill:var(--accent); font-weight:700; }
 
-/* Light mode: diagram nodes and table cells get solid white surfaces (the
-   render container stays code-block-colored). Search states tint over white. */
+/* Light mode: crisp text contrast, subtle shadows */
 html[data-theme="light"] .diagram-svg .node-rect { fill:#ffffff; }
-html[data-theme="light"] .diagram-svg .node.is-hit .node-rect { fill:color-mix(in srgb, var(--accent) 12%, #ffffff); }
-html[data-theme="light"] .diagram-svg .node.is-current .node-rect { fill:color-mix(in srgb, var(--accent) 22%, #ffffff); }
+html[data-theme="light"] .diagram-svg .node.is-hit .node-rect { fill:color-mix(in srgb, var(--accent) 14%, #ffffff); }
+html[data-theme="light"] .diagram-svg .node.is-current .node-rect {
+  fill:color-mix(in srgb, var(--accent) 20%, #ffffff);
+  filter:drop-shadow(0 2px 8px rgba(0,0,0,0.12));
+}
+html[data-theme="light"] .diagram-svg .node .node-sub { fill:#475569; }
+html[data-theme="light"] .diagram-svg .node.is-hit .node-sub { fill:#1e293b; font-weight:600; }
+html[data-theme="light"] .diagram-svg .node.is-current .node-sub { fill:#0f172a; font-weight:700; }
+html[data-theme="light"] .diagram-svg .svg-mark.is-current {
+  fill: var(--accent);
+  text-decoration-color: var(--accent);
+}
 html[data-theme="light"] .table-svg .tbl-cell-bg { fill:#ffffff; }
+html[data-theme="light"] .table-svg .tbl-cell-text { fill:#1e293b; }
 html[data-theme="light"] .table-svg .tcell.is-hit .tbl-cell-bg, html[data-theme="light"] .table-svg .tcell.is-hit .tbl-head-bg { fill:color-mix(in srgb, var(--accent) 12%, #ffffff); }
 html[data-theme="light"] .table-svg .tcell.is-current .tbl-cell-bg, html[data-theme="light"] .table-svg .tcell.is-current .tbl-head-bg { fill:color-mix(in srgb, var(--accent) 22%, #ffffff); }
 .copy-btn {
