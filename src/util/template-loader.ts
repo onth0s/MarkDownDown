@@ -1,12 +1,15 @@
 /**
  * Unified template file loader.
- * Probes candidate paths relative to CWD and throws if not found.
+ * Probes candidate paths relative to the CLI binary and CWD, throws if not found.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 
+declare const __dirname: string;
+
 export function loadTemplate(filename: string): string {
   const candidates = [
+    path.resolve(__dirname, '..', 'templates', filename),
     path.resolve(process.cwd(), 'templates', filename),
     path.resolve(process.cwd(), 'src', 'templates', filename),
     path.resolve(process.cwd(), '..', 'templates', filename),
