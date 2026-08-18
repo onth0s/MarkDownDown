@@ -409,28 +409,48 @@ const LR_REF_W = 960;
 
 function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string {
   const REF = LR_REF_W;
+  const LR_H_GAP = 80;
 
+  const nodesInOrder: DiagramNode[] = [];
+  for (const rid of model.ranks) {
+    for (const id of rid) nodesInOrder.push(model.nodes.get(id)!);
+  }
+
+  let lrX = PAD;
   const nodeData: Array<{ lrX: number; lrY: number; w: number; h: number; rx: number; titleLines: string[]; subLines: string[]; labelOrd: number }> = [];
-  for (const node of model.nodes.values()) {
-    nodeData.push({ lrX: model.cy.get(node.id)!, lrY: model.cx.get(node.id)!, w: node.w, h: node.h, rx: node.shape === 'rounded' ? 22 : 8, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
+  for (const node of nodesInOrder) {
+    nodeData.push({ lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, rx: node.shape === 'rounded' ? 22 : 8, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
+    lrX += node.w + LR_H_GAP;
   }
 
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  const totalW = lrX - LR_H_GAP + PAD;
+  const totalH = Math.max(...nodeData.map(n => n.h)) + PAD * 2;
+  const sc = REF / totalW;
+  const W = Math.round(totalW * sc);
+  const H = Math.round(totalH * sc);
+  const midY = totalH / 2;
+
   for (const nd of nodeData) {
-    minX = Math.min(minX, nd.lrX - nd.w / 2);
-    maxX = Math.max(maxX, nd.lrX + nd.w / 2);
-    minY = Math.min(minY, nd.lrY - nd.h / 2);
-    maxY = Math.max(maxY, nd.lrY + nd.h / 2);
+    nd.lrY = midY;
   }
+
+  const nodeById = new Map<string, typeof nodeData[0]>();
+  model.nodes.forEach((node, id) => {
+    const nd = nodeData.find(n => n.titleLines[0] === node.titleLines[0] && n.labelOrd === node.labelOrd);
+    if (nd) nodeById.set(id, nd);
+  });
 
   const edgeInfo: Array<{ d: string; omx: number; omy: number; label: string; labelOrd: number }> = [];
-  model.edges.forEach((e) => {
-    const from = model.nodes.get(e.from)!;
-    const to = model.nodes.get(e.to)!;
-    const sx = model.cy.get(e.from)! + from.w / 2;
-    const sy = model.cx.get(e.from)!;
-    const ex = model.cy.get(e.to)! - to.w / 2;
-    const ey = model.cx.get(e.to)!;
+  model.edges.forEach(e => {
+    const fromNd = nodeById.get(e.from)!;
+    const toNd = nodeById.get(e.to)!;
+    if (!fromNd || !toNd) return;
+
+    const sx = fromNd.lrX + fromNd.w / 2;
+    const sy = fromNd.lrY;
+    const ex = toNd.lrX - toNd.w / 2;
+    const ey = toNd.lrY;
+
     let d: string;
     if (!e.directed) {
       d = `M ${P(sx, sy)} L ${P(ex, ey)}`;
@@ -438,18 +458,14 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
       const dx = ex - sx;
       d = `M ${P(sx, sy)} C ${P(sx + dx * 0.5, sy)} ${P(ex - dx * 0.5, ey)} ${P(ex, ey)}`;
     }
-    edgeInfo.push({ d, omx: (sx + ex) / 2, omy: (sy + ey) / 2, label: e.label, labelOrd: e.labelOrd });
-    minX = Math.min(minX, sx, ex); maxX = Math.max(maxX, sx, ex);
-    minY = Math.min(minY, sy, ey); maxY = Math.max(maxY, sy, ey);
+
+    const omx = (sx + ex) / 2;
+    const omy = (sy + ey) / 2;
+    edgeInfo.push({ d, omx, omy, label: e.label, labelOrd: e.labelOrd });
   });
 
-  const pad = PAD;
-  const ox = minX - pad, oy = minY - pad;
-  const natW = maxX - minX + pad * 2, natH = maxY - minY + pad * 2;
-  const sc = REF / natW;
-  const W = Math.round(natW * sc), H = Math.round(natH * sc);
-  const Sx = (v: number) => (v - ox) * sc;
-  const Sy = (v: number) => (v - oy) * sc;
+  const Sx = (v: number) => v * sc;
+  const Sy = (v: number) => v * sc;
 
   const edgeG: string[] = edgeInfo.map(ed => {
     let labelSvg = '';
