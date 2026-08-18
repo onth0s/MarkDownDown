@@ -107,8 +107,8 @@ export function buildJs(accent: string): string {
       const target = document.getElementById(link.dataset.target);
       if (!target) return;
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      history.replaceState(null, '', \`#\${target.id}\`);
     }
+    setActive(link.dataset.target);
     if (window.innerWidth <= 900) body.classList.remove('nav-open');
   });
 
