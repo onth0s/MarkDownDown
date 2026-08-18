@@ -24,8 +24,8 @@ const EDGE_LABEL_SIZE = 11;
 const EDGE_LABEL_H = 16;
 
 function textWidth(text: string, size: number, bold: boolean): number {
-  const base = size <= 11 ? 7.2 : size <= 12 ? 8.0 : 8.8;
-  const boldExtra = bold ? 0.6 : 0;
+  const base = size <= 11 ? 7.8 : size <= 12 ? 8.6 : 9.6;
+  const boldExtra = bold ? 0.8 : 0;
   return text.length * (base + boldExtra);
 }
 
@@ -212,7 +212,7 @@ export function diagramLayout(model: DiagramModel): void {
     node.subLines = subLines;
     const w = Math.min(MAX_W, Math.max(MIN_W,
       Math.max(0, ...titleLines.map(l => textWidth(l, TITLE_SIZE, true)),
-               ...subLines.map(l => textWidth(l, SUB_SIZE, false))) + PADX * 2));
+               ...subLines.map(l => textWidth(l, SUB_SIZE, false))) * 1.1 + PADX * 2));
     node.w = w;
     node.h = titleLines.length * TITLE_H + subLines.length * SUB_H + PADY * 2;
   }
