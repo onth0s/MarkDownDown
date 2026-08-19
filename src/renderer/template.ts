@@ -21,7 +21,7 @@ function buildFaviconHref(accent: string): string {
 function buildLogoSvg(): string {
   return (
     `<svg class="brand-logo" aria-hidden="true" focusable="false" ` +
-    `width="30" height="30" viewBox="0 0 1024 1024" ` +
+    `width="34.5" height="34.5" viewBox="0 0 1024 1024" ` +
     `fill="none" xmlns="http://www.w3.org/2000/svg">` +
     DEFAULT_LOGO_PATHS +
     `</svg>`

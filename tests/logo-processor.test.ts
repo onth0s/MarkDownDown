@@ -35,6 +35,23 @@ describe('Logo Processor Unit Tests', () => {
     }
   });
 
+  test('processes custom SVG logo with named colors (stroke="black")', () => {
+    const svgPath = path.join(scratchDir, 'test-black-logo.svg');
+    const svgContent = `<svg width="400" height="400" viewBox="0 0 400 400" fill="none">
+      <path d="M10 10 L100 100" stroke="black" stroke-width="20"/>
+    </svg>`;
+    fs.writeFileSync(svgPath, svgContent, 'utf8');
+
+    try {
+      const res = processLogo(svgPath, '#d10000');
+      expect(res.navbarLogo).toContain('stroke="#d10000"');
+      expect(res.navbarLogo).toContain('data-l="41"');
+      expect(res.faviconTemplate).toContain('stroke="{L_41}"');
+    } finally {
+      if (fs.existsSync(svgPath)) fs.unlinkSync(svgPath);
+    }
+  });
+
   test('processes custom raster image (PNG) as base64 data URI', () => {
     const pngPath = path.join(scratchDir, 'test-logo.png');
     // 1x1 transparent PNG buffer

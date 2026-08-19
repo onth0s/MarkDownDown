@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DEFAULT_LOGO_PATHS, DEFAULT_FAVICON_TEMPLATE } from './logo.js';
-import { darkenHex, rgbToHsl, hexToHsl, hslToHex } from '../util/color.js';
+import { darkenHex, parseAnyColor, hexToHsl, hslToHex } from '../util/color.js';
 import { getMime } from '../util/mime.js';
 
 export interface ProcessedLogo {
@@ -65,48 +65,48 @@ export function processLogo(logoPath?: string, accent = '#3b82f6'): ProcessedLog
       .replace(/\s+/g, ' ')
       .trim();
 
-    // Map all non-transparent hex / rgb colors to accent hue + saturation with preserved lightness
-    // Match colors in fill="...", stroke="...", style="fill:...", style="stroke:..."
-    const colorRegex = /(fill|stroke|stop-color)\s*[:=]\s*["']?((?:#(?:[0-9a-fA-F]{3}){1,2})|(?:rgb\s*\([^)]+\)))["']?/gi;
+    const [targetH, targetS, targetL] = hexToHsl(accent);
+
+    // Regex matching fill="...", stroke="...", stop-color="...", and style="..." declarations
+    const colorRegex = /(fill|stroke|stop-color)\s*[:=]\s*["']?([^"';>]+)["']?/gi;
 
     // Helper to transform any color string
-    const transformColor = (colorStr: string): { recoloredHex: string; lightness: number } => {
-      const hex = colorStr.trim();
-      if (hex.startsWith('rgb')) {
-        const nums = hex.match(/\d+/g);
-        if (nums && nums.length >= 3) {
-          const r = parseInt(nums[0], 10);
-          const g = parseInt(nums[1], 10);
-          const b = parseInt(nums[2], 10);
-          const [, , l] = rgbToHsl(r, g, b);
-          const [targetH, targetS] = hexToHsl(accent);
-          return { recoloredHex: hslToHex(targetH, targetS, l), lightness: l };
-        }
+    const transformColor = (colorStr: string): { recoloredHex: string; lightness: number } | null => {
+      const hsl = parseAnyColor(colorStr);
+      if (!hsl) return null;
+      const [, , l] = hsl;
+      
+      // If the source element is monochromatic black / very dark (L <= 15),
+      // map it to the target accent's lightness so it takes the true accent color
+      // instead of remaining pitch black.
+      let effectiveL = l;
+      if (l <= 15) {
+        effectiveL = targetL;
       }
-      const [, , l] = hexToHsl(hex);
-      const [targetH, targetS] = hexToHsl(accent);
-      return { recoloredHex: hslToHex(targetH, targetS, l), lightness: l };
+
+      return {
+        recoloredHex: hslToHex(targetH, targetS, effectiveL),
+        lightness: effectiveL,
+      };
     };
 
     // Static recolored content for compile-time navbar
     const staticRecolored = innerContent.replace(colorRegex, (match, prop, color) => {
-      const lower = color.toLowerCase().trim();
-      if (lower === 'none' || lower === 'transparent') return match;
-      const { recoloredHex, lightness } = transformColor(color);
-      return `${prop}="${recoloredHex}" data-l="${lightness}"`;
+      const res = transformColor(color);
+      if (!res) return match;
+      return `${prop}="${res.recoloredHex}" data-l="${res.lightness}"`;
     });
 
     // Dynamic template for runtime favicon (placeholders {L_xx})
     const dynamicTemplateContent = innerContent.replace(colorRegex, (match, prop, color) => {
-      const lower = color.toLowerCase().trim();
-      if (lower === 'none' || lower === 'transparent') return match;
-      const { lightness } = transformColor(color);
-      return `${prop}="{L_${lightness}}"`;
+      const res = transformColor(color);
+      if (!res) return match;
+      return `${prop}="{L_${res.lightness}}"`;
     });
 
     const navbarLogo =
       `<svg class="brand-logo" aria-hidden="true" focusable="false" ` +
-      `width="30" height="30" viewBox="${viewBox}" ` +
+      `width="34.5" height="34.5" viewBox="${viewBox}" ` +
       `fill="none" xmlns="http://www.w3.org/2000/svg">` +
       staticRecolored +
       `</svg>`;

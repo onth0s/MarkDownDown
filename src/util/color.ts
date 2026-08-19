@@ -24,6 +24,67 @@ export function darkenHex(hex: string): string {
   return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
 }
 
+const NAMED_COLORS: Record<string, string> = {
+  black: '#000000',
+  white: '#ffffff',
+  red: '#ff0000',
+  green: '#008000',
+  blue: '#0000ff',
+  yellow: '#ffff00',
+  cyan: '#00ffff',
+  magenta: '#ff00ff',
+  gray: '#808080',
+  grey: '#808080',
+  darkgray: '#a9a9a9',
+  darkgrey: '#a9a9a9',
+  lightgray: '#d3d3d3',
+  lightgrey: '#d3d3d3',
+  silver: '#c0c0c0',
+  maroon: '#800000',
+  olive: '#808000',
+  navy: '#000080',
+  purple: '#800080',
+  teal: '#008080',
+  orange: '#ffa500',
+  gold: '#ffd700',
+};
+
+/** Convert any color string (hex, rgb, rgba, named color) to HSL [h, s, l]. */
+export function parseAnyColor(colorStr: string): [number, number, number] | null {
+  const clean = colorStr.trim().toLowerCase();
+  if (clean === 'none' || clean === 'transparent') return null;
+
+  if (NAMED_COLORS[clean]) {
+    return hexToHsl(NAMED_COLORS[clean]);
+  }
+
+  if (clean.startsWith('rgb')) {
+    const nums = clean.match(/\d+(?:\.\d+)?/g);
+    if (nums && nums.length >= 3) {
+      const r = Math.round(parseFloat(nums[0]));
+      const g = Math.round(parseFloat(nums[1]));
+      const b = Math.round(parseFloat(nums[2]));
+      return rgbToHsl(r, g, b);
+    }
+  }
+
+  if (clean.startsWith('hsl')) {
+    const nums = clean.match(/\d+(?:\.\d+)?/g);
+    if (nums && nums.length >= 3) {
+      const h = Math.round(parseFloat(nums[0]));
+      const s = Math.round(parseFloat(nums[1]));
+      const l = Math.round(parseFloat(nums[2]));
+      return [h, s, l];
+    }
+  }
+
+  if (clean.startsWith('#')) {
+    return hexToHsl(clean);
+  }
+
+  return null;
+}
+
 /** Validate that a string is a valid 3- or 6-digit hex color. */
 export function isValidHex(color: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color);
