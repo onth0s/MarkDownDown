@@ -401,16 +401,10 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
 .swatch {
   width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;
 }
-.main {
-  min-width: 0;
-  position: relative;
-}
 .nav-history-bar {
   position: fixed;
-  bottom: max(20px, env(safe-area-inset-bottom));
   left: max(16px, env(safe-area-inset-left));
-  width: fit-content;
-  max-width: calc(100vw - 32px);
+  bottom: max(20px, env(safe-area-inset-bottom));
   display: flex;
   align-items: center;
   gap: 6px;
@@ -426,8 +420,7 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
 }
 @media (min-width: 901px) {
   .nav-history-bar {
-    left: max(24px, calc((100vw - 1500px) / 2 + 280px + 24px));
-    max-width: min(calc(100vw - 340px), 700px);
+    left: calc(max(0px, (100vw - 1500px) / 2) + 280px + 20px);
   }
 }
 .nav-history-bar[hidden] { display: none; }
