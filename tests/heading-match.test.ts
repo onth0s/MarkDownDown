@@ -91,3 +91,17 @@ describe('resolveHeading - Ambiguity', () => {
     expect(result.type).toBe('ambiguous');
   });
 });
+
+describe('Bulleted Item Headings', () => {
+  test('extractHeadings and slug generation for bulleted item headings', () => {
+    const itemHeadings: Heading[] = [
+      { text: 'Romanism', id: 'romanism', level: 4 },
+      { text: 'Liquidation', id: 'liquidation', level: 4 },
+    ];
+    const res = resolveHeading('Romanism', itemHeadings);
+    expect(res.type).toBe('match');
+    if (res.type === 'match') {
+      expect(res.heading.id).toBe('romanism');
+    }
+  });
+});

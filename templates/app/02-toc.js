@@ -15,6 +15,7 @@ if (hasHero) {
 }
 headings.forEach((heading) => {
   const isAlert = heading.classList.contains('alert');
+  const isItem = heading.classList.contains('item-heading');
   const li = document.createElement('li');
   const a = document.createElement('a');
   const level = isAlert ? 3 : Number(heading.tagName.substring(1));
@@ -23,7 +24,7 @@ headings.forEach((heading) => {
   if (isAlert) {
     a.textContent = heading.querySelector('.alert-label')?.textContent.trim() || heading.id;
   }
-  a.className = `l${level}`;
+  a.className = `l${level}` + (isItem ? ' item-link' : '');
   a.dataset.target = heading.id;
   li.appendChild(a);
   toc.appendChild(li);

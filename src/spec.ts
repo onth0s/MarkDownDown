@@ -189,7 +189,22 @@ slugify(text) = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g,
 
 This matches GFM anchor behavior. Example: \`## Part I: The Two Regimes\` → \`id="part-i-the-two-regimes"\`.
 
-IDs are assigned during the parse phase (core rule), not during rendering, so they are available to the heading resolver before \`md.render()\` is called.
+### 6.1 Item / Glossary Headings
+
+Headings starting with a bullet marker (\`*\`, \`-\`, or \`•\`) are treated as **Item / Glossary Headings**:
+
+\`\`\`markdown
+### Doctrine & State Theory
+
+#### * Romanism
+The doctrine of state-directed, militarized internal colonization.
+
+#### * Liquidation
+Systematic dissolution of national sovereignty and civilizational capacity.
+\`\`\`
+
+- **ID Generation**: The leading bullet marker is automatically stripped from the slug (\`#### * Romanism\` generates \`id="romanism"\`). Wikilinks resolve directly as \`[[Romanism]]\` or \`[[romanism]]\`.
+- **TOC & Main Content Styling**: Renders with an accent bullet dot (\`•\`) in both the sidebar TOC and the document body. The heading text is cleanly aligned and coupled tightly with its following definition paragraph.
 
 ---
 

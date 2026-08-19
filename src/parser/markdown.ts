@@ -17,16 +17,29 @@ export function createMarkdownParser(): MarkdownIt {
 
   // Add id attributes to headings for wikilink resolution and TOC.
   // Uses a core rule so IDs are present during parse (needed by extractHeadings).
+  // Supports bulleted glossary/item headings: # * Term, ## * Term, ### * Term, #### * Term
 
   md.core.ruler.push('heading_ids', (state) => {
     const tokens = state.tokens;
     for (let i = 0; i < tokens.length; i++) {
       if (tokens[i].type === 'heading_open') {
         const inline = tokens[i + 1];
-        const text = inline?.children
+        let text = inline?.children
           ?.filter(t => t.type === 'text' || t.type === 'code_inline')
           .map(t => t.content)
           .join('') ?? '';
+
+        // Detect bullet marker: "* Term", "- Term", "• Term"
+        const bulletMatch = text.match(/^([*\-•])\s+(.+)$/);
+        if (bulletMatch) {
+          tokens[i].attrJoin('class', 'item-heading');
+          text = bulletMatch[2].trim();
+          // Clean first text child so rendered HTML has clean markup with bullet bulleted styling
+          if (inline.children && inline.children[0] && inline.children[0].type === 'text') {
+            inline.children[0].content = inline.children[0].content.replace(/^[*\-•]\s+/, '');
+          }
+        }
+
         tokens[i].attrSet('id', slugify(text));
       }
     }
