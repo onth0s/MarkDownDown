@@ -11,7 +11,7 @@ import { CompileError, toErrorMessage } from '../util/error.js';
 
 export interface FrontmatterResult {
   /** Parsed option overrides from frontmatter */
-  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'customCss' | 'customJs' | 'logo' | 'bgLum'>>;
+  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'theme' | 'customCss' | 'customJs' | 'logo' | 'bgLum'>>;
   /** Hero presentation metadata (kicker, subtitle, pills) */
   hero: HeroMeta;
   /** The markdown body with frontmatter stripped */
@@ -101,7 +101,7 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
   }
 
   const VALID_KEYS = new Set([
-    'title', 'author', 'accent', 'bg_lum', 'bg-lum', 'bglum',
+    'title', 'author', 'accent', 'theme', 'bg_lum', 'bg-lum', 'bglum',
     'kicker', 'subtitle', 'pills',
     'assets_dir', 'custom_css', 'custom_js', 'logo'
   ]);
@@ -134,6 +134,14 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
       throw new CompileError(`Invalid frontmatter: "accent" must be a string hex color (e.g. "#3b82f6")`);
     }
     meta.accent = parsed['accent'];
+  }
+
+  if (parsed['theme'] !== undefined) {
+    const themeVal = String(parsed['theme']).trim().toLowerCase();
+    if (themeVal !== 'dark' && themeVal !== 'light') {
+      throw new CompileError(`Invalid frontmatter: "theme" must be either "dark" or "light"`);
+    }
+    meta.theme = themeVal as 'dark' | 'light';
   }
 
   const rawBgLum = parsed['bg_lum'] ?? parsed['bg-lum'] ?? parsed['bglum'];

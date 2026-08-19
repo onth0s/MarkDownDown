@@ -22,9 +22,11 @@ export function buildJs(
   lightBgTint = '6%',
   lightSurfMix = '95%',
   lightSurfTint = '5%',
+  theme = 'dark',
 ): string {
   return loadTemplate('app.js')
     .replace(/__ACCENT__/g, accent)
+    .replace(/'__THEME__'/g, () => JSON.stringify(theme))
     .replace(/'__FAVICON__'/g, () => JSON.stringify(faviconTemplate))
     .replace(/__ROUTES__/g, () => JSON.stringify(routes))
     .replace(/__BASE_DARK_BG__/g, darkBg)

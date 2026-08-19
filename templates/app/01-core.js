@@ -326,4 +326,4 @@ function setTheme(theme) {
 }
 
 setAccent(store.get('mdd-accent', '__ACCENT__'));
-setTheme(store.get('mdd-theme', 'dark'));
+setTheme(store.get('mdd-theme', '__THEME__'));

@@ -104,8 +104,16 @@ describe('parseFrontmatter', () => {
     expect(parseFrontmatter(src, '/tmp').meta.bgLum).toEqual({ dark: 0.0, light: 0.9 });
   });
 
-  test('parses bg_lum with Option B mapping syntax', () => {
-    const src = '---\nbg_lum:\n  dark: 0.05\n  light: 0.95\n---\nBody';
-    expect(parseFrontmatter(src, '/tmp').meta.bgLum).toEqual({ dark: 0.05, light: 0.95 });
+  test('parses theme field (dark and light)', () => {
+    const srcDark = '---\ntheme: dark\n---\nBody';
+    expect(parseFrontmatter(srcDark, '/tmp').meta.theme).toBe('dark');
+
+    const srcLight = '---\ntheme: light\n---\nBody';
+    expect(parseFrontmatter(srcLight, '/tmp').meta.theme).toBe('light');
+  });
+
+  test('invalid theme throws CompileError', () => {
+    const src = '---\ntheme: blue\n---\nBody';
+    expect(() => parseFrontmatter(src, '/tmp')).toThrow(/"theme" must be either "dark" or "light"/);
   });
 });

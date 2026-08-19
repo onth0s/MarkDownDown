@@ -86,6 +86,7 @@ pills:
 | \`title\` | string | \`.mdd\` filename stem | Document title. Injected into \`<title>\`, topbar brand, and hero. |
 | \`author\` | string | (none) | Author name. Informational only. |
 | \`accent\` | string | \`#3b82f6\` | Hex accent color. Drives CSS custom properties and SVG fills. |
+| \`theme\` | string | \`dark\` | Initial default color theme (\`dark\` or \`light\`). |
 | \`bg_lum\` | string / array / object | \`[0.08 : 0.96]\` | Background luminosity overrides for dark/light modes (\`0.0\` to \`1.0\`). |
 | \`logo\` | string | (none) | Path to custom brand logo SVG or image. Used for navbar and dynamic favicon. |
 | \`assets_dir\` | string | \`./assets/\` relative to \`.mdd\` | Directory to scan for wikilink file resolution. |

@@ -146,6 +146,7 @@ Documents can start with an optional YAML block delimited by `---`:
 ---
 title: "System Architecture Specification"
 accent: "#2563eb"
+theme: "dark" # or "light"
 bg_lum: "0.0 : 0.95" # or bg_lum: { dark: 0.0, light: 0.95 }
 assets_dir: "./assets"
 custom_css: "./theme.css"

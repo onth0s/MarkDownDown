@@ -63,7 +63,7 @@ button, input { font:inherit; }
 }
 .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:-.02em; min-width:0; }
 .brand-logo {
-  width:34.5px;height:34.5px; flex:none; display:block;
+  width:45px;height:45px; flex:none; display:block;
   overflow:visible;
   filter: drop-shadow(0 0 0 rgba(var(--accent-rgb),.13));
 }

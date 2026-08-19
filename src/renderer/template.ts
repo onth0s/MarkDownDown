@@ -41,6 +41,7 @@ export interface AssembleOptions {
   customCss?: string;
   customJs?: string;
   accent?: string;
+  theme?: 'dark' | 'light';
   minify?: boolean;
   logoSvg?: string;
   faviconHref?: string;
@@ -48,6 +49,10 @@ export interface AssembleOptions {
 
 export function assembleHtml(opts: AssembleOptions): string {
   let template = loadTemplate('shell.html');
+
+  // Initial theme
+  const initialTheme = opts.theme ?? 'dark';
+  template = template.replace('data-theme="dark"', `data-theme="${initialTheme}"`);
 
   // Basic replacements
   template = template.replace(/\{\{title\}\}/g, escAttr(opts.title));

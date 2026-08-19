@@ -16,6 +16,8 @@ export interface Options {
   assetsDir: string;
   /** Accent color hex (default: #3b82f6) */
   accent: string;
+  /** Initial default color theme: 'dark' or 'light' (default: 'dark') */
+  theme?: 'dark' | 'light';
   /** Background luminosity overrides for dark and light modes (0.0 to 1.0) */
   bgLum?: BgLum;
   /** Path to optional extra CSS file (content will be inlined) */

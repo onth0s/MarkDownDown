@@ -107,6 +107,7 @@ export function assembleAndWrite(
     `${lumParams.lightTintPct}%`,
     `${lumParams.lightSurfaceMixPct}%`,
     `${lumParams.lightSurfaceTintPct}%`,
+    meta.theme ?? options.theme ?? 'dark',
   );
 
   let customCssContent: string | undefined;
@@ -117,6 +118,8 @@ export function assembleAndWrite(
   if (meta.customJs && fs.existsSync(meta.customJs)) {
     customJsContent = fs.readFileSync(meta.customJs, 'utf8');
   }
+
+  const effectiveTheme = meta.theme ?? options.theme ?? 'dark';
 
   const html = assembleHtml({
     title,
@@ -131,6 +134,7 @@ export function assembleAndWrite(
     customCss: customCssContent,
     customJs: customJsContent,
     accent,
+    theme: effectiveTheme,
     minify: options.minify,
     logoSvg: processedLogo.navbarLogo,
     faviconHref: processedLogo.faviconHref,
