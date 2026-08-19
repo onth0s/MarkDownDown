@@ -64,7 +64,8 @@ program
 
     const ext = path.extname(inputFile).toLowerCase();
     if (ext !== '.mdd' && ext !== '.md' && ext !== '.markdown') {
-      process.stderr.write(`WARN: Input file is not a Markdown file (.mdd/.md): ${inputFile}\n`);
+      process.stderr.write(`ERROR: Input file is not a supported Markdown file (.mdd, .md, .markdown): ${inputFile}\n`);
+      process.exit(1);
     }
 
     const inputDir = path.dirname(inputFile);
