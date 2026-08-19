@@ -65,7 +65,7 @@ window.addEventListener('resize', () => {
 // ── Copy buttons ───────────────────────────────────────────────────────────
 document.querySelectorAll('.copy-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
-    const parent = btn.parentElement;
+    const parent = btn.closest('.code-wrap') || btn.parentElement;
     let code = parent.getAttribute('data-raw');
     if (!code) {
       code = parent.querySelector('code')?.textContent ?? '';

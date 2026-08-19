@@ -324,6 +324,10 @@ html[data-theme="light"] .table-svg .tcell.is-current .tbl-cell-bg, html[data-th
   background:var(--surface-2); color:var(--text); border-radius:7px; padding:5px 8px;
   cursor:pointer; font-size:11px; opacity:0; transition:opacity .15s;
 }
+.copy-btn.in-title-bar {
+  position:static; top:auto; right:auto; opacity:0.85; margin-left:auto;
+}
+.code-wrap:hover .copy-btn.in-title-bar { opacity:1; }
 .code-actions {
   position:absolute; bottom:9px; right:9px; z-index:10; display:flex; align-items:center; gap:6px;
   opacity:0; transition:opacity .15s;

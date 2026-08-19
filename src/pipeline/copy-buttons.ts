@@ -32,13 +32,14 @@ export function wrapCodeBlocksWithCopyButtons(html: string): string {
         const titleText = titleMatch ? titleMatch[1].trim() : '';
 
         let headerHtml = '';
-        if (isGraphic && titleText) {
-          headerHtml = `<div class="code-title-bar"><span class="code-title-text">${titleText}</span></div>`;
-        }
-
         let prefix = '';
         if (isGraphic && !hasDl) prefix += DOWNLOAD_BTNS_HTML;
-        if (!hasCopy) prefix += '<button class="copy-btn" type="button">Copy</button>';
+
+        if (isGraphic && titleText) {
+          headerHtml = `<div class="code-title-bar"><span class="code-title-text">${titleText}</span>${!hasCopy ? '<button class="copy-btn in-title-bar" type="button">Copy</button>' : ''}</div>`;
+        } else if (!hasCopy) {
+          prefix += '<button class="copy-btn" type="button">Copy</button>';
+        }
 
         return `${openWrapTag}${headerHtml}${prefix}${wrapBody}`;
       }
