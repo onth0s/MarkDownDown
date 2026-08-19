@@ -236,7 +236,7 @@ html[data-theme="light"] .alert-title {
 }
 .code-wrap.diagram .diagram-render,
 .code-wrap.table .table-render {
-  margin-top:0; padding:18px; overflow-x:auto; background:transparent;
+  margin-top:0; padding:18px 18px 26px 18px; overflow-x:auto; background:transparent;
 }
 .code-wrap.diagram .diagram-render svg { display:block; margin:0 auto; max-width:100%; height:auto; }
 .diagram-auto .diagram-lr { display:none; }
