@@ -5,13 +5,13 @@
 import { diagramParse, diagramLayout, diagramBuildSvg } from '../renderer/diagram-svg.js';
 import { escAttr, escHtml, htmlDecode } from '../util/escape.js';
 
-const DIAGRAM_SVG_RE = /<div class="code-wrap diagram" data-title="([^"]*)"(?:\s+data-direction="([^"]*)")?>\s*<pre><code class="language-diagram">([\s\S]*?)<\/code><\/pre>\s*<div class="diagram-render"><\/div>\s*<\/div>/g;
+const DIAGRAM_SVG_RE = /<div class="code-wrap diagram" data-title="([^"]*)"(?:\s+data-direction="([^"]*)")?(?:\s+data-raw="([^"]*)")?>\s*<pre><code class="language-diagram">([\s\S]*?)<\/code><\/pre>\s*<div class="diagram-render"><\/div>\s*<\/div>/g;
 
 export function injectDiagramSvgs(html: string, docTitle: string, warnings: string[]): string {
   DIAGRAM_SVG_RE.lastIndex = 0;
   return html.replace(
     DIAGRAM_SVG_RE,
-    (match, titleAttr, dirAttr, codeContent) => {
+    (match, titleAttr, dirAttr, rawAttr, codeContent) => {
       const rawCode = htmlDecode(codeContent);
       const diagTitle = titleAttr || docTitle;
       const model = diagramParse(rawCode, dirAttr);
@@ -32,8 +32,9 @@ export function injectDiagramSvgs(html: string, docTitle: string, warnings: stri
       const wrapperClass = model.direction === 'auto' ? 'code-wrap diagram diagram-auto' : 'code-wrap diagram';
       const labelsJson = escAttr(JSON.stringify(model.labels));
       const dirOutAttr = dirAttr ? ` data-direction="${escAttr(dirAttr)}"` : '';
+      const rawOutAttr = rawAttr ? ` data-raw="${rawAttr}"` : '';
       return (
-        `<div class="${wrapperClass}" data-title="${escAttr(diagTitle)}"${dirOutAttr} data-labels="${labelsJson}">` +
+        `<div class="${wrapperClass}" data-title="${escAttr(diagTitle)}"${dirOutAttr}${rawOutAttr} data-labels="${labelsJson}">` +
         `<pre><code class="language-diagram">${safeContent}</code></pre>` +
         `<div class="diagram-render">${svg}</div>` +
         `</div>`

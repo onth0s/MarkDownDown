@@ -35,9 +35,16 @@ export function createFenceRenderer(md: MarkdownIt, block: FenceBlock): void {
     const { title, body } = parseTitleDirective(token.content);
     const safeTitle = title.replace(/"/g, '&quot;');
     const safeContent = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const rawFence = `\`\`\`${token.info.trim()}\n${token.content.endsWith('\n') ? token.content : token.content + '\n'}\`\`\``;
+    const safeRaw = rawFence
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\r?\n/g, '&#10;');
 
     return (
-      `<div class="code-wrap ${block.kind}" data-title="${safeTitle}"${dirAttr}>` +
+      `<div class="code-wrap ${block.kind}" data-title="${safeTitle}"${dirAttr} data-raw="${safeRaw}">` +
       `<pre><code class="language-${block.kind}">${safeContent}</code></pre>` +
       `<div class="${block.renderDivClass}"></div>` +
       `</div>\n`

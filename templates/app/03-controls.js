@@ -66,17 +66,9 @@ window.addEventListener('resize', () => {
 document.querySelectorAll('.copy-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
     const parent = btn.parentElement;
-    let code = parent.querySelector('code')?.textContent ?? '';
-    if (parent.classList.contains('diagram')) {
-      const title = parent.getAttribute('data-title');
-      const titleLine = title ? `TITLE: ${title}\n\n` : '';
-      const dir = parent.getAttribute('data-direction');
-      const fenceHeader = dir ? `diagram ${dir}` : 'diagram';
-      code = '```' + fenceHeader + '\n' + titleLine + code.trim() + '\n```';
-    } else if (parent.classList.contains('table')) {
-      const title = parent.getAttribute('data-title');
-      const titleLine = title ? `TITLE: ${title}\n\n` : '';
-      code = '```table\n' + titleLine + code.trim() + '\n```';
+    let code = parent.getAttribute('data-raw');
+    if (!code) {
+      code = parent.querySelector('code')?.textContent ?? '';
     }
     const old = btn.textContent;
     try {

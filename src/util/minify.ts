@@ -56,22 +56,26 @@ export function minifySvg(svg: string): string {
 
 /**
  * Minify monolithic HTML document.
- * Preserves the exact contents of <pre><code>...</code></pre> tags.
+ * Preserves the exact contents of <pre><code>...</code></pre> tags and code-wrap data attributes.
  */
 export function minifyHtml(html: string): string {
-  const preBlocks: string[] = [];
-  const placeholder = (idx: number) => `<!--__PRE_BLOCK_${idx}__-->`;
+  const protectedBlocks: string[] = [];
+  const placeholder = (idx: number) => `<!--__PROTECTED_BLOCK_${idx}__-->`;
 
-  const protectedHtml = html.replace(/<pre[\s\S]*?<\/pre>/g, (match) => {
-    preBlocks.push(match);
-    return placeholder(preBlocks.length - 1);
+  // Protect code-wrap blocks (including their data-raw attributes and <pre> tags)
+  const protectedHtml = html.replace(/<div class="code-wrap[\s\S]*?<\/pre>/g, (match) => {
+    protectedBlocks.push(match);
+    return placeholder(protectedBlocks.length - 1);
+  }).replace(/<pre[\s\S]*?<\/pre>/g, (match) => {
+    protectedBlocks.push(match);
+    return placeholder(protectedBlocks.length - 1);
   });
 
   // Block elements where whitespace between tags can be safely eliminated
   const blockTags = 'html|head|body|title|meta|link|style|script|div|section|article|aside|header|footer|nav|main|ul|ol|li|table|thead|tbody|tr|th|td|blockquote|h[1-6]|p|hr';
 
   let minified = protectedHtml
-    .replace(/<!--(?!__PRE_BLOCK_)[\s\S]*?-->/g, '')
+    .replace(/<!--(?!__PROTECTED_BLOCK_)[\s\S]*?-->/g, '')
     // Collapse multi-whitespace into a single space
     .replace(/[ \t\r\n]+/g, ' ')
     // Eliminate spaces between closing and opening block-level elements
@@ -79,8 +83,8 @@ export function minifyHtml(html: string): string {
     .replace(new RegExp(`(</?(?:${blockTags})[^>]*>)(?:\\s+)<`, 'gi'), '$1<')
     .trim();
 
-  for (let idx = 0; idx < preBlocks.length; idx++) {
-    minified = minified.replace(placeholder(idx), preBlocks[idx]);
+  for (let idx = 0; idx < protectedBlocks.length; idx++) {
+    minified = minified.replace(placeholder(idx), protectedBlocks[idx]);
   }
 
   return minified;

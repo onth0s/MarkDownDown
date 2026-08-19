@@ -7,7 +7,7 @@
  *    wrap the entire <pre><code...</code></pre> block in a .code-wrap div with the copy button inside.
  * 3. Validate that no .code-wrap divs are nested within each other; throw an error if detected.
  */
-const CODE_BLOCK_OR_WRAPPER_RE = /(<div\s+class="code-wrap\b[^"]*"[^>]*>)([\s\S]*?<\/div>)|(<pre><code[\s\S]*?<\/code><\/pre>)|(<table\b[\s\S]*?<\/table>)/g;
+const CODE_BLOCK_OR_WRAPPER_RE = /(<div\s+class="[^"]*\bcode-wrap\b[^"]*"[^>]*>)([\s\S]*?<\/div>)|(<pre><code[\s\S]*?<\/code><\/pre>)|(<table\b[\s\S]*?<\/table>)/g;
 
 const DOWNLOAD_BTNS_HTML =
   '<div class="code-actions">' +
