@@ -75,8 +75,46 @@ button, input { font:inherit; }
 .icon-btn, .tool-btn {
   border:1px solid var(--border); background:var(--surface); color:var(--text);
   border-radius:10px; height:38px; padding:0 11px; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.tool-btn.icon-only {
+  width:38px; padding:0; flex:none;
 }
 .icon-btn:hover,.tool-btn:hover { border-color:rgba(var(--accent-rgb),.55); }
+.icon-theme, .icon-accent {
+  display:block; flex:none; pointer-events:none;
+}
+.icon-accent {
+  transform: translateY(0.5px);
+}
+
+/* Theme icon dynamic luminosity & highlights based on active theme */
+:root .theme-moon {
+  fill: var(--accent);
+  transition: fill .2s ease, opacity .2s ease;
+}
+:root .theme-sun-ring {
+  opacity: .45;
+  transition: opacity .2s ease;
+}
+:root .theme-rays {
+  opacity: .35;
+  transition: opacity .2s ease;
+}
+
+html[data-theme="light"] .theme-moon {
+  fill: currentColor;
+  opacity: .25;
+}
+html[data-theme="light"] .theme-sun-ring {
+  fill: var(--accent);
+  opacity: 1;
+}
+html[data-theme="light"] .theme-rays {
+  stroke: var(--accent);
+  opacity: 1;
+}
+
 .search-toggle { display:none; flex:none; align-items:center; justify-content:center; }
 .search-toggle svg { display:block; }
 .search-toggle.close { font-size:20px; line-height:1; color:var(--muted); }
