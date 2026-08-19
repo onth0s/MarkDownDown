@@ -163,6 +163,24 @@ describe('diagramLayout + diagramBuildSvg', () => {
     expect(model.horizontal).toBe(false);
   });
 
+  test('dynamically resolves 5-node snapping pipeline in auto mode to TB', () => {
+    const model = diagramParse(`
+      A["Raw Pointer Movement"]
+      B["Extract Box Bounding Rect"]
+      C["Proximity Math Filter in Threshold Check (<= 4px) — Is Target Found?"]
+      D["Apply Snap — Coordinates"]
+      E["Inject Guide Paths into UI Store"]
+      A --> B
+      B --> C
+      C --> D
+      D --> E
+    `);
+    expect(model.direction).toBe('auto');
+    diagramLayout(model);
+    expect(model.direction).toBe('TB');
+    expect(model.horizontal).toBe(false);
+  });
+
   test('throws compilation error when nodes overlap in layout', () => {
     const model = diagramParse(`flowchart TB\n  A[Node A]\n  B[Node B]`);
     // Manually force overlapping coordinates to verify error
