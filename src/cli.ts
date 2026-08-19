@@ -40,10 +40,10 @@ program
   .option('--split', 'Separate CSS/JS/assets', false)
   .option('--assets-dir <path>', 'Assets directory (default: ./assets/ relative to input)')
   .option('--no-diagrams', 'Skip diagram SVG rendering')
-  .option('--no-tables', 'Skip table SVG rendering')
   .option('--minify', 'Minify CSS/JS/HTML in monolithic export (default)', true)
   .option('--no-minify', 'Disable minification in monolithic export')
-  .option('-f, --force', 'Force overwrite without confirmation prompt', false)
+  .option('-L, --logo <path>', 'Custom SVG or image brand logo and favicon')
+  .option('-F, --force', 'Force overwrite without confirmation prompt', false)
   .option('-v, --verbose', 'Verbose output', false)
   .action(async (input: string | undefined, opts: CliOptions) => {
     if (opts.spec) {
@@ -77,9 +77,9 @@ program
     if (opts.output) {
       outputPath = path.resolve(process.cwd(), opts.output);
     } else if (outputMode === 'single') {
-      outputPath = path.join(process.cwd(), `${stem}.html`);
+      outputPath = path.join(inputDir, `${stem}.html`);
     } else {
-      outputPath = path.join(process.cwd(), stem);
+      outputPath = path.join(inputDir, stem);
     }
 
     // Overwrite confirmation
@@ -99,10 +99,13 @@ program
       ? path.resolve(process.cwd(), opts.assetsDir)
       : path.join(inputDir, 'assets');
 
+    const logoPath = opts.logo ? path.resolve(process.cwd(), opts.logo) : undefined;
+
     const options: Options = {
       title: stem,
       assetsDir,
       accent: '#3b82f6',
+      logo: logoPath,
       inputFile,
       outputPath,
       outputMode,
@@ -132,6 +135,10 @@ program
         process.stdout.write(` ---------------------------\n`);
         process.stdout.write(` Title:       ${title}\n`);
         process.stdout.write(` Accent:      ${accent}\n`);
+        if (result.stats.logo) {
+          const relLogo = path.relative(process.cwd(), result.stats.logo) || result.stats.logo;
+          process.stdout.write(` Logo:        ${relLogo}\n`);
+        }
         process.stdout.write(` Sections:    ${sections}\n`);
         process.stdout.write(` Wikilinks:   ${wikilinks}\n`);
         process.stdout.write(` Frontmatter: ${frontmatterKeys} entries\n`);

@@ -1,7 +1,6 @@
 /**
  * Pipe-table → SVG renderer (server-side, no DOM).
  *
- * Ports tableParse / tableBuildSvg from CLDS_interactive_v15.html.
  * Text width is approximated via CHAR_WIDTH_PX constant.
  */
 import { escHtml as esc } from '../util/escape.js';

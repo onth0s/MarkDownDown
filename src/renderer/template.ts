@@ -3,15 +3,15 @@
  * Reads shell.html, injects {{placeholders}}, and handles --single vs --split.
  */
 import { loadTemplate } from '../util/template-loader.js';
-import { darkenHex } from '../util/color.js';
+import { darkenHex, hexToHsl, hslToHex } from '../util/color.js';
 import { escAttr } from '../util/escape.js';
-import { CLDS_LOGO_PATHS, CLDS_FAVICON_TEMPLATE } from './logo.js';
+import { DEFAULT_LOGO_PATHS, DEFAULT_FAVICON_TEMPLATE } from './logo.js';
 import { minifyCss, minifyJs, minifyHtml } from '../util/minify.js';
 
 /** Builds the favicon data URI with the given accent. */
 function buildFaviconHref(accent: string): string {
   const dark = darkenHex(accent);
-  const svg = CLDS_FAVICON_TEMPLATE
+  const svg = DEFAULT_FAVICON_TEMPLATE
     .replace(/\{accent\}/g, accent)
     .replace(/\{accentDark\}/g, dark);
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
@@ -23,7 +23,7 @@ function buildLogoSvg(): string {
     `<svg class="brand-logo" aria-hidden="true" focusable="false" ` +
     `width="30" height="30" viewBox="0 0 1024 1024" ` +
     `fill="none" xmlns="http://www.w3.org/2000/svg">` +
-    CLDS_LOGO_PATHS +
+    DEFAULT_LOGO_PATHS +
     `</svg>`
   );
 }
@@ -42,6 +42,8 @@ export interface AssembleOptions {
   customJs?: string;
   accent?: string;
   minify?: boolean;
+  logoSvg?: string;
+  faviconHref?: string;
 }
 
 export function assembleHtml(opts: AssembleOptions): string {
@@ -53,11 +55,19 @@ export function assembleHtml(opts: AssembleOptions): string {
   template = template.replace('{{body}}', () => opts.body);
   template = template.replace('{{hero}}', () => opts.hero ?? '');
 
-  // Logo and favicon always inject — fall back to default blue if no accent in frontmatter
+  // Logo and favicon injection
   const effectiveAccent = opts.accent ?? '#3b82f6';
-  const faviconHref = buildFaviconHref(effectiveAccent);
+  const faviconHref = opts.faviconHref ?? buildFaviconHref(effectiveAccent);
+  let logoMarkup = opts.logoSvg ?? buildLogoSvg();
+
+  // If logoMarkup contains static {L_xx} placeholders, populate them with the initial accent
+  if (logoMarkup.includes('{L_')) {
+    const [targetH, targetS] = hexToHsl(effectiveAccent);
+    logoMarkup = logoMarkup.replace(/\{L_(\d+)\}/g, (_, l) => hslToHex(targetH, targetS, parseInt(l, 10)));
+  }
+
   template = template.replace('{{favicon_href}}', () => faviconHref);
-  template = template.replace('{{logo_svg}}', () => buildLogoSvg());
+  template = template.replace('{{logo_svg}}', () => logoMarkup);
 
   if (opts.outputMode === 'single') {
     let css = opts.css;

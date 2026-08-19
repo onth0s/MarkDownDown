@@ -25,7 +25,6 @@ export function compile(options: Options): CompileResult {
   // 2. Frontmatter
   const { meta, hero, body: markdownBody, warnings: fmWarnings } = parseFrontmatter(rawSource, inputDir);
   warnings.push(...fmWarnings);
-  const title = meta.title ?? options.title;
   const accent = meta.accent ?? options.accent;
   if (!isValidHex(accent)) {
     warnings.push(`Invalid accent color "${accent}", falling back to #3b82f6`);
@@ -39,6 +38,10 @@ export function compile(options: Options): CompileResult {
   // 4. Extract headings + scan assets
   const headings: Heading[] = extractHeadings(tokens);
   const assets: Asset[] = scanAssets(assetsDir);
+
+  // Determine document title: frontmatter.title -> first H1 -> options.title
+  const firstH1 = headings.find((h) => h.level === 1);
+  const title = meta.title ?? (firstH1 ? firstH1.text : options.title);
 
   // 5. Resolve wikilinks + build base64 map
   const { pendingLinks, assetBase64Map } = resolveLinks(

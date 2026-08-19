@@ -12,6 +12,8 @@ export interface Options {
   customCss?: string;
   /** Path to optional extra JS file (content will be inlined) */
   customJs?: string;
+  /** Path to optional custom brand logo (SVG or image) */
+  logo?: string;
   /** Absolute path to the source .mdd file */
   inputFile: string;
   /** Absolute path to the output file (--single) or directory (--split) */
@@ -34,6 +36,7 @@ export interface CliOptions {
   single: boolean;
   split: boolean;
   assetsDir?: string;
+  logo?: string;
   noDiagrams: boolean;
   noTables: boolean;
   verbose: boolean;
@@ -84,6 +87,7 @@ export interface CompileResult {
     frontmatterKeys: number;
     title: string;
     accent: string;
+    logo?: string;
     outputFile: string;
     sizeBytes: number;
   };

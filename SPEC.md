@@ -38,6 +38,7 @@ custom_js: "./extras.js"
 | `author` | string | (none) | Author name. Not rendered in v1. |
 | `assets_dir` | string | `./assets/` relative to `.mdd` | Directory to scan for wikilink file resolution. |
 | `accent` | string | `#3b82f6` | Hex accent color. Drives CSS custom properties and SVG fills. |
+| `logo` | string | (none) | Path to custom brand logo SVG or image. Used for navbar and dynamic favicon. |
 | `custom_css` | string | (none) | Path to extra CSS file. Inlined in output. |
 | `custom_js` | string | (none) | Path to extra JS file. Inlined in output. |
 

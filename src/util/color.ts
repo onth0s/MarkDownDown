@@ -28,3 +28,93 @@ export function darkenHex(hex: string): string {
 export function isValidHex(color: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color);
 }
+
+/** Convert RGB [0..255] to HSL [h: 0..360, s: 0..100, l: 0..100]. */
+export function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  const rNorm = r / 255;
+  const gNorm = g / 255;
+  const bNorm = b / 255;
+
+  const max = Math.max(rNorm, gNorm, bNorm);
+  const min = Math.min(rNorm, gNorm, bNorm);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case rNorm:
+        h = (gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0);
+        break;
+      case gNorm:
+        h = (bNorm - rNorm) / d + 2;
+        break;
+      case bNorm:
+        h = (rNorm - gNorm) / d + 4;
+        break;
+    }
+    h /= 6;
+  }
+
+  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+}
+
+/** Convert HSL [h: 0..360, s: 0..100, l: 0..100] to RGB [r: 0..255, g: 0..255, b: 0..255]. */
+export function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  const hNorm = h / 360;
+  const sNorm = s / 100;
+  const lNorm = l / 100;
+
+  let r: number, g: number, b: number;
+
+  if (sNorm === 0) {
+    r = g = b = lNorm;
+  } else {
+    const hue2rgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+
+    const q = lNorm < 0.5 ? lNorm * (1 + sNorm) : lNorm + sNorm - lNorm * sNorm;
+    const p = 2 * lNorm - q;
+    r = hue2rgb(p, q, hNorm + 1 / 3);
+    g = hue2rgb(p, q, hNorm);
+    b = hue2rgb(p, q, hNorm - 1 / 3);
+  }
+
+  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+/** Convert hex color to HSL [h, s, l]. */
+export function hexToHsl(hex: string): [number, number, number] {
+  let n = hex.replace('#', '');
+  if (n.length === 3) {
+    n = n.split('').map(c => c + c).join('');
+  }
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  return rgbToHsl(r, g, b);
+}
+
+/** Convert HSL [h, s, l] to 6-digit hex color. */
+export function hslToHex(h: number, s: number, l: number): string {
+  const [r, g, b] = hslToRgb(h, s, l);
+  return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Transforms a source color (hex, rgb) to have the target accent's Hue and Saturation,
+ * while preserving the source color's perceived Lightness.
+ */
+export function recolorToAccent(sourceHex: string, targetAccentHex: string): string {
+  const [, , sourceL] = hexToHsl(sourceHex);
+  const [targetH, targetS] = hexToHsl(targetAccentHex);
+  return hslToHex(targetH, targetS, sourceL);
+}

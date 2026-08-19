@@ -11,7 +11,7 @@ import { toErrorMessage } from '../util/error.js';
 
 export interface FrontmatterResult {
   /** Parsed option overrides from frontmatter */
-  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'customCss' | 'customJs'>>;
+  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'customCss' | 'customJs' | 'logo'>>;
   /** Hero presentation metadata (kicker, subtitle, pills) */
   hero: HeroMeta;
   /** The markdown body with frontmatter stripped */
@@ -62,6 +62,9 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
   }
   if (typeof parsed['custom_js'] === 'string') {
     meta.customJs = path.resolve(inputDir, parsed['custom_js']);
+  }
+  if (typeof parsed['logo'] === 'string') {
+    meta.logo = path.resolve(inputDir, parsed['logo']);
   }
 
   return { meta, hero, body, warnings: [] };

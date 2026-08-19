@@ -184,9 +184,9 @@ describe('end-to-end: compile pipeline', () => {
     expect(result.html).not.toContain('<svg class="table-svg"');
   });
 
-  test('title falls back to filename when no frontmatter', async () => {
+  test('title falls back to first heading or filename when no frontmatter', async () => {
     const inputFile = path.join(tmpDir, 'mydoc.mdd');
-    fs.writeFileSync(inputFile, '# Hello\n\nWorld.');
+    fs.writeFileSync(inputFile, 'World without heading.');
     const opts = baseOptions(inputFile, tmpDir);
     opts.title = 'mydoc';
     const result = await compile(opts);

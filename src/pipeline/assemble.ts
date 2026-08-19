@@ -14,6 +14,7 @@ import { assembleHtml } from '../renderer/template.js';
 import { escHtml } from '../util/escape.js';
 import { hexToRgb } from '../util/color.js';
 import { toErrorMessage } from '../util/error.js';
+import { processLogo } from '../renderer/logo-processor.js';
 
 /** Recursively copy a directory, skipping dotfiles and symlinks. */
 function safeCopyDir(src: string, dest: string): void {
@@ -84,8 +85,11 @@ export function assembleAndWrite(
     routes[h.id] = cleanText.length > 40 ? cleanText.slice(0, 37) + '…' : cleanText;
   }
 
+  const effectiveLogoPath = meta.logo ?? options.logo;
+  const processedLogo = processLogo(effectiveLogoPath, accent);
+
   const css = buildCss(accent, accentRgb);
-  const js = buildJs(accent, routes);
+  const js = buildJs(accent, routes, processedLogo.faviconTemplate);
 
   let customCssContent: string | undefined;
   if (meta.customCss && fs.existsSync(meta.customCss)) {
@@ -110,6 +114,8 @@ export function assembleAndWrite(
     customJs: customJsContent,
     accent,
     minify: options.minify,
+    logoSvg: processedLogo.navbarLogo,
+    faviconHref: processedLogo.faviconHref,
   });
 
   // Write output
@@ -155,6 +161,7 @@ export function assembleAndWrite(
       frontmatterKeys: Object.keys(meta).length + (hero.kicker ? 1 : 0) + (hero.subtitle ? 1 : 0) + (hero.pills?.length ? 1 : 0),
       title,
       accent,
+      logo: effectiveLogoPath,
       outputFile: finalOutputFile,
       sizeBytes: finalSize,
     },

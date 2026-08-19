@@ -46,7 +46,8 @@ mdd --spec
 | \`--no-tables\` | flag | false | Skip table SVG rendering |
 | \`--minify\` | flag | true | Minify CSS/JS/HTML in monolithic export |
 | \`--no-minify\` | flag | false | Disable minification |
-| \`-f, --force\` | flag | false | Force overwrite without confirmation prompt |
+| \`-L, --logo <path>\` | string | (none) | Custom SVG or image brand logo and dynamic favicon |
+| \`-F, --force\` | flag | false | Force overwrite without confirmation prompt |
 | \`-v, --verbose\` | flag | false | Verbose output |
 | \`--spec\` | flag | false | Print this specification to stdout and exit |
 | \`-V, --version\` | flag | — | Output version number |
@@ -68,6 +69,7 @@ Delimited by \`---\\n\` fences at the start of the document.
 title: "Document Title"
 author: "Author Name"
 accent: "#3b82f6"
+logo: "./assets/logo.svg"
 assets_dir: "./assets"
 custom_css: "./extras.css"
 custom_js: "./extras.js"
@@ -86,6 +88,7 @@ pills:
 | \`title\` | string | \`.mdd\` filename stem | Document title. Injected into \`<title>\`, topbar brand, and hero. |
 | \`author\` | string | (none) | Author name. Informational only. |
 | \`accent\` | string | \`#3b82f6\` | Hex accent color. Drives CSS custom properties and SVG fills. |
+| \`logo\` | string | (none) | Path to custom brand logo SVG or image. Used for navbar and dynamic favicon. |
 | \`assets_dir\` | string | \`./assets/\` relative to \`.mdd\` | Directory to scan for wikilink file resolution. |
 | \`custom_css\` | string | (none) | Path to extra CSS file. Inlined in output. |
 | \`custom_js\` | string | (none) | Path to extra JS file. Inlined in output. |

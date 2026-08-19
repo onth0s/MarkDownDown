@@ -219,6 +219,57 @@ function darkenAccent(hex) {
   return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
 }
 
+function rgbToHsl(r, g, b) {
+  const rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
+  const max = Math.max(rNorm, gNorm, bNorm), min = Math.min(rNorm, gNorm, bNorm);
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case rNorm: h = (gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0); break;
+      case gNorm: h = (bNorm - rNorm) / d + 2; break;
+      case bNorm: h = (rNorm - gNorm) / d + 4; break;
+    }
+    h /= 6;
+  }
+  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+}
+
+function hslToRgb(h, s, l) {
+  const hNorm = h / 360, sNorm = s / 100, lNorm = l / 100;
+  if (sNorm === 0) {
+    const v = Math.round(lNorm * 255);
+    return [v, v, v];
+  }
+  const hue2rgb = (p, q, t) => {
+    if (t < 0) t += 1;
+    if (t > 1) t -= 1;
+    if (t < 1 / 6) return p + (q - p) * 6 * t;
+    if (t < 1 / 2) return q;
+    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  };
+  const q = lNorm < 0.5 ? lNorm * (1 + sNorm) : lNorm + sNorm - lNorm * sNorm;
+  const p = 2 * lNorm - q;
+  return [
+    Math.round(hue2rgb(p, q, hNorm + 1 / 3) * 255),
+    Math.round(hue2rgb(p, q, hNorm) * 255),
+    Math.round(hue2rgb(p, q, hNorm - 1 / 3) * 255)
+  ];
+}
+
+function hexToHsl(hex) {
+  let n = hex.replace('#', '');
+  if (n.length === 3) n = n.split('').map(c => c + c).join('');
+  return rgbToHsl(parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16));
+}
+
+function hslToHex(h, s, l) {
+  const [r, g, b] = hslToRgb(h, s, l);
+  return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
 const faviconTmpl = '__FAVICON__';
 
 function setAccent(hex) {
@@ -232,11 +283,36 @@ function setAccent(hex) {
   root.style.setProperty('--accent-surface-dark', `color-mix(in srgb, #111827 90%, ${hex} 10%)`);
   root.style.setProperty('--accent-tint-light', `color-mix(in srgb, #f4f7fb 94%, ${hex} 6%)`);
   root.style.setProperty('--accent-surface-light', `color-mix(in srgb, #ffffff 95%, ${hex} 5%)`);
+  
   const dark = darkenAccent(hex);
-  const svg = faviconTmpl.replace(/\{accent\}/g, hex).replace(/\{accentDark\}/g, dark);
+  const [targetH, targetS] = hexToHsl(hex);
+  
+  // Render dynamic favicon replacing {accent}, {accentDark}, and lightness placeholders {L_xx}
+  const svg = faviconTmpl
+    .replace(/\{accent\}/g, hex)
+    .replace(/\{accentDark\}/g, dark)
+    .replace(/\{L_(\d+)\}/g, (_, l) => hslToHex(targetH, targetS, parseInt(l, 10)));
+  
   const favicon = document.getElementById('dynamicFavicon');
   if (favicon) favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
-  store.set('clds-accent', hex);
+
+  // Dynamically recolor navbar SVG elements if it contains data-l lightness attributes
+  const navBrandLogo = document.querySelector('.brand svg.brand-logo');
+  if (navBrandLogo) {
+    navBrandLogo.querySelectorAll('[data-l]').forEach(el => {
+      const l = parseInt(el.getAttribute('data-l'), 10);
+      if (!isNaN(l)) {
+        if (el.hasAttribute('fill') && el.getAttribute('fill') !== 'none') {
+          el.setAttribute('fill', hslToHex(targetH, targetS, l));
+        }
+        if (el.hasAttribute('stroke') && el.getAttribute('stroke') !== 'none') {
+          el.setAttribute('stroke', hslToHex(targetH, targetS, l));
+        }
+      }
+    });
+  }
+
+  store.set('mdd-accent', hex);
   const picker = document.getElementById('colorPicker');
   if (picker) picker.value = hex;
   document.querySelectorAll('.swatch').forEach(s =>
@@ -246,8 +322,8 @@ function setAccent(hex) {
 
 function setTheme(theme) {
   root.dataset.theme = theme === 'light' ? 'light' : 'dark';
-  store.set('clds-theme', root.dataset.theme);
+  store.set('mdd-theme', root.dataset.theme);
 }
 
-setAccent(store.get('clds-accent', '__ACCENT__'));
-setTheme(store.get('clds-theme', 'dark'));
+setAccent(store.get('mdd-accent', '__ACCENT__'));
+setTheme(store.get('mdd-theme', 'dark'));

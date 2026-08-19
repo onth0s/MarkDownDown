@@ -1,11 +1,11 @@
 /**
- * CLDS logo constants.
+ * Default logo constants.
  *
- * CLDS_LOGO_PATHS: All 8 paths for the full inline navbar SVG.
+ * DEFAULT_LOGO_PATHS: All 8 paths for the full inline navbar SVG.
  *   Every path fill uses `var(--accent)` or `color-mix(in srgb, var(--accent), black 50%)`.
  *   CSS variables resolve correctly when the SVG is inlined into the DOM.
  *
- * FAVICON_TEMPLATE: A 6-path subset (paths 1, 2, 3, 4, 5, 8 — the most visually
+ * DEFAULT_FAVICON_TEMPLATE: A 6-path subset (paths 1, 2, 3, 4, 5, 8 — the most visually
  *   distinctive at small sizes) with `{accent}` and `{accentDark}` string
  *   placeholders. Used by js.ts setAccent() to produce a data-URI favicon whose
  *   colors are baked in (CSS variables don't resolve inside data URIs).
@@ -45,7 +45,8 @@ const P8 = `<path d="M230.001 733.806C231.886 732.835 233.342 735.749 234.203 73
  *   {CLDS_LOGO_PATHS}
  * </svg>
  */
-export const CLDS_LOGO_PATHS: string = P1 + P2 + P3 + P4 + P5 + P6 + P7 + P8;
+export const DEFAULT_LOGO_PATHS: string = P1 + P2 + P3 + P4 + P5 + P6 + P7 + P8;
+export const CLDS_LOGO_PATHS: string = DEFAULT_LOGO_PATHS;
 
 // ── Favicon template (runtime, data-URI) ────────────────────────────────────
 
@@ -58,7 +59,7 @@ export const CLDS_LOGO_PATHS: string = P1 + P2 + P3 + P4 + P5 + P6 + P7 + P8;
  * `{accentDark}` ≈ color-mix(in srgb, <hex>, black 50%) — compute with
  * darkenAccent() in js.ts.
  */
-export const CLDS_FAVICON_TEMPLATE: string =
+export const DEFAULT_FAVICON_TEMPLATE: string =
   `<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">` +
   P1.replace(/color-mix\(in srgb, var\(--accent\), black 50%\)/g, '{accentDark}') +
   P2.replace(/var\(--accent\)/g, '{accent}') +
@@ -68,3 +69,4 @@ export const CLDS_FAVICON_TEMPLATE: string =
   P5.replace(/color-mix\(in srgb, var\(--accent\), black 50%\)/g, '{accentDark}') +
   P8.replace(/var\(--accent\)/g, '{accent}') +
   `</svg>`;
+export const CLDS_FAVICON_TEMPLATE: string = DEFAULT_FAVICON_TEMPLATE;
