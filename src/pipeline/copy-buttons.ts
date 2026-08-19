@@ -28,10 +28,19 @@ export function wrapCodeBlocksWithCopyButtons(html: string): string {
         const isGraphic = openWrapTag.includes('diagram') || openWrapTag.includes('table');
         const hasCopy = wrapBody.includes('class="copy-btn"');
         const hasDl = wrapBody.includes('class="download-btn"');
+        const titleMatch = openWrapTag.match(/data-title="([^"]*)"/);
+        const titleText = titleMatch ? titleMatch[1].trim() : '';
+
+        let headerHtml = '';
+        if (isGraphic && titleText) {
+          headerHtml = `<div class="code-title-bar"><span class="code-title-text">${titleText}</span></div>`;
+        }
+
         let prefix = '';
-        if (!hasCopy) prefix += '<button class="copy-btn" type="button">Copy</button>';
         if (isGraphic && !hasDl) prefix += DOWNLOAD_BTNS_HTML;
-        return `${openWrapTag}${prefix}${wrapBody}`;
+        if (!hasCopy) prefix += '<button class="copy-btn" type="button">Copy</button>';
+
+        return `${openWrapTag}${headerHtml}${prefix}${wrapBody}`;
       }
       if (plainPreBlock) {
         return `<div class="code-wrap"><button class="copy-btn" type="button">Copy</button>${plainPreBlock}</div>`;
