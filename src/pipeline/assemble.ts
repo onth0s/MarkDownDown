@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Options, CompileResult, HeroMeta } from '../types.js';
 import type { FrontmatterResult } from '../parser/frontmatter.js';
-import { buildCss } from '../renderer/css.js';
+import { buildCss, computeLuminosityParams } from '../renderer/css.js';
 import { buildJs } from '../renderer/js.js';
 import { assembleHtml } from '../renderer/template.js';
 import { escHtml } from '../util/escape.js';
@@ -89,8 +89,25 @@ export function assembleAndWrite(
   const processedLogo = processLogo(effectiveLogoPath, accent);
 
   const effectiveBgLum = meta.bgLum ?? options.bgLum;
+  const lumParams = computeLuminosityParams(effectiveBgLum);
   const css = buildCss(accent, accentRgb, effectiveBgLum);
-  const js = buildJs(accent, routes, processedLogo.faviconTemplate);
+  const js = buildJs(
+    accent,
+    routes,
+    processedLogo.faviconTemplate,
+    lumParams.darkBg,
+    lumParams.darkSurface,
+    `${lumParams.darkBgMixPct}%`,
+    `${lumParams.darkTintPct}%`,
+    `${lumParams.darkSurfaceMixPct}%`,
+    `${lumParams.darkSurfaceTintPct}%`,
+    lumParams.lightBg,
+    lumParams.lightSurface,
+    `${lumParams.lightBgMixPct}%`,
+    `${lumParams.lightTintPct}%`,
+    `${lumParams.lightSurfaceMixPct}%`,
+    `${lumParams.lightSurfaceTintPct}%`,
+  );
 
   let customCssContent: string | undefined;
   if (meta.customCss && fs.existsSync(meta.customCss)) {

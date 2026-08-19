@@ -279,10 +279,10 @@ function setAccent(hex) {
   const rgb = hexToRgb(hex).split(',').map(Number);
   const y = 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
   root.style.setProperty('--accent-fg', y > 170 ? '#172033' : '#ffffff');
-  root.style.setProperty('--accent-tint-dark', `color-mix(in srgb, #0b0f16 92%, ${hex} 8%)`);
-  root.style.setProperty('--accent-surface-dark', `color-mix(in srgb, #111827 90%, ${hex} 10%)`);
-  root.style.setProperty('--accent-tint-light', `color-mix(in srgb, #f4f7fb 94%, ${hex} 6%)`);
-  root.style.setProperty('--accent-surface-light', `color-mix(in srgb, #ffffff 95%, ${hex} 5%)`);
+  root.style.setProperty('--accent-tint-dark', `color-mix(in srgb, __BASE_DARK_BG__ __DARK_BG_MIX__, ${hex} __DARK_BG_TINT__)`);
+  root.style.setProperty('--accent-surface-dark', `color-mix(in srgb, __BASE_DARK_SURFACE__ __DARK_SURF_MIX__, ${hex} __DARK_SURF_TINT__)`);
+  root.style.setProperty('--accent-tint-light', `color-mix(in srgb, __BASE_LIGHT_BG__ __LIGHT_BG_MIX__, ${hex} __LIGHT_BG_TINT__)`);
+  root.style.setProperty('--accent-surface-light', `color-mix(in srgb, __BASE_LIGHT_SURFACE__ __LIGHT_SURF_MIX__, ${hex} __LIGHT_SURF_TINT__)`);
   
   const dark = darkenAccent(hex);
   const [targetH, targetS] = hexToHsl(hex);
