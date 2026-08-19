@@ -3,7 +3,7 @@
  * Reads shell.html, injects {{placeholders}}, and handles --single vs --split.
  */
 import { loadTemplate } from '../util/template-loader.js';
-import { darkenHex, hexToHsl, hslToHex } from '../util/color.js';
+import { darkenHex, getContrastFg, hexToHsl, hslToHex } from '../util/color.js';
 import { escAttr } from '../util/escape.js';
 import { DEFAULT_LOGO_PATHS, DEFAULT_FAVICON_TEMPLATE } from './logo.js';
 import { minifyCss, minifyJs, minifyHtml } from '../util/minify.js';
@@ -11,9 +11,11 @@ import { minifyCss, minifyJs, minifyHtml } from '../util/minify.js';
 /** Builds the favicon data URI with the given accent. */
 function buildFaviconHref(accent: string): string {
   const dark = darkenHex(accent);
+  const fg = getContrastFg(accent);
   const svg = DEFAULT_FAVICON_TEMPLATE
     .replace(/\{accent\}/g, accent)
-    .replace(/\{accentDark\}/g, dark);
+    .replace(/\{accentDark\}/g, dark)
+    .replace(/\{accentFg\}/g, fg);
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 

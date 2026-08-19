@@ -6,18 +6,18 @@
 
 /** Path / shape definition for the inline navbar SVG. */
 export const DEFAULT_LOGO_PATHS: string =
-  `<rect x="64" y="64" width="896" height="896" rx="220" fill="color-mix(in srgb, var(--accent), black 50%)"/>` +
-  `<rect x="96" y="96" width="832" height="832" rx="190" fill="none" stroke="var(--accent)" stroke-width="48"/>` +
-  `<text x="512" y="580" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="280" letter-spacing="-0.04em" fill="var(--accent)">MDD</text>`;
+  `<rect x="64" y="64" width="896" height="896" rx="220" fill="var(--accent)"/>` +
+  `<rect x="96" y="96" width="832" height="832" rx="190" fill="none" stroke="var(--accent-fg)" stroke-width="48" opacity="0.35"/>` +
+  `<text x="512" y="580" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="280" letter-spacing="-0.04em" fill="var(--accent-fg)">MDD</text>`;
 
 export const CLDS_LOGO_PATHS: string = DEFAULT_LOGO_PATHS;
 
-/** Favicon SVG template with {accent} and {accentDark} placeholders. */
+/** Favicon SVG template with {accent}, {accentDark}, and {accentFg} placeholders. */
 export const DEFAULT_FAVICON_TEMPLATE: string =
   `<svg viewBox="0 0 1024 1024" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg">` +
-  `<rect x="64" y="64" width="896" height="896" rx="220" fill="{accentDark}"/>` +
-  `<rect x="96" y="96" width="832" height="832" rx="190" fill="none" stroke="{accent}" stroke-width="48"/>` +
-  `<text x="512" y="580" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="280" letter-spacing="-0.04em" fill="{accent}">MDD</text>` +
+  `<rect x="64" y="64" width="896" height="896" rx="220" fill="{accent}"/>` +
+  `<rect x="96" y="96" width="832" height="832" rx="190" fill="none" stroke="{accentFg}" stroke-width="48" opacity="0.35"/>` +
+  `<text x="512" y="580" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="280" letter-spacing="-0.04em" fill="{accentFg}">MDD</text>` +
   `</svg>`;
 
 export const CLDS_FAVICON_TEMPLATE: string = DEFAULT_FAVICON_TEMPLATE;

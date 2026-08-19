@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DEFAULT_LOGO_PATHS, DEFAULT_FAVICON_TEMPLATE } from './logo.js';
-import { darkenHex, parseAnyColor, hexToHsl, hslToHex } from '../util/color.js';
+import { darkenHex, getContrastFg, parseAnyColor, hexToHsl, hslToHex } from '../util/color.js';
 import { getMime } from '../util/mime.js';
 
 export interface ProcessedLogo {
@@ -20,16 +20,18 @@ export function processLogo(logoPath?: string, accent = '#3b82f6'): ProcessedLog
   const darkAccent = darkenHex(accent);
 
   if (!logoPath || !fs.existsSync(logoPath)) {
+    const fgAccent = getContrastFg(accent);
     const defaultNavLogo =
       `<svg class="brand-logo" aria-hidden="true" focusable="false" ` +
-      `width="30" height="30" viewBox="0 0 1024 1024" ` +
+      `width="34.5" height="34.5" viewBox="0 0 1024 1024" ` +
       `fill="none" xmlns="http://www.w3.org/2000/svg">` +
       DEFAULT_LOGO_PATHS +
       `</svg>`;
 
     const faviconSvg = DEFAULT_FAVICON_TEMPLATE
       .replace(/\{accent\}/g, accent)
-      .replace(/\{accentDark\}/g, darkAccent);
+      .replace(/\{accentDark\}/g, darkAccent)
+      .replace(/\{accentFg\}/g, fgAccent);
 
     return {
       navbarLogo: defaultNavLogo,
@@ -76,12 +78,19 @@ export function processLogo(logoPath?: string, accent = '#3b82f6'): ProcessedLog
       if (!hsl) return null;
       const [, , l] = hsl;
       
+      // Determine effective lightness:
       // If the source element is monochromatic black / very dark (L <= 15),
-      // map it to the target accent's lightness so it takes the true accent color
-      // instead of remaining pitch black.
-      let effectiveL = l;
-      if (l <= 15) {
-        effectiveL = targetL;
+      // map it to the target accent's lightness.
+      let effectiveL = l <= 15 ? targetL : l;
+
+      // If the target accent is pure black (L <= 5) or pure white (L >= 95),
+      // ensure elements stay clearly visible by assigning high-contrast luminance
+      if (targetL <= 5) {
+        // Black accent -> use light/white tone for logo paths
+        effectiveL = 90;
+      } else if (targetL >= 95) {
+        // White accent -> use high-contrast dark tone for logo paths
+        effectiveL = 15;
       }
 
       return {

@@ -285,13 +285,20 @@ function setAccent(hex) {
   root.style.setProperty('--accent-surface-light', `color-mix(in srgb, __BASE_LIGHT_SURFACE__ __LIGHT_SURF_MIX__, ${hex} __LIGHT_SURF_TINT__)`);
   
   const dark = darkenAccent(hex);
-  const [targetH, targetS] = hexToHsl(hex);
+  const fg = y > 170 ? '#172033' : '#ffffff';
+  const [targetH, targetS, targetL] = hexToHsl(hex);
   
-  // Render dynamic favicon replacing {accent}, {accentDark}, and lightness placeholders {L_xx}
+  // Render dynamic favicon replacing {accent}, {accentDark}, {accentFg}, and lightness placeholders {L_xx}
   const svg = faviconTmpl
     .replace(/\{accent\}/g, hex)
     .replace(/\{accentDark\}/g, dark)
-    .replace(/\{L_(\d+)\}/g, (_, l) => hslToHex(targetH, targetS, parseInt(l, 10)));
+    .replace(/\{accentFg\}/g, fg)
+    .replace(/\{L_(\d+)\}/g, (_, lStr) => {
+      let l = parseInt(lStr, 10);
+      if (targetL <= 5) l = 90;
+      else if (targetL >= 95) l = 15;
+      return hslToHex(targetH, targetS, l);
+    });
   
   const favicon = document.getElementById('dynamicFavicon');
   if (favicon) favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
@@ -300,13 +307,16 @@ function setAccent(hex) {
   const navBrandLogo = document.querySelector('.brand svg.brand-logo');
   if (navBrandLogo) {
     navBrandLogo.querySelectorAll('[data-l]').forEach(el => {
-      const l = parseInt(el.getAttribute('data-l'), 10);
+      let l = parseInt(el.getAttribute('data-l'), 10);
       if (!isNaN(l)) {
+        if (targetL <= 5) l = 90;
+        else if (targetL >= 95) l = 15;
+        const mappedHex = hslToHex(targetH, targetS, l);
         if (el.hasAttribute('fill') && el.getAttribute('fill') !== 'none') {
-          el.setAttribute('fill', hslToHex(targetH, targetS, l));
+          el.setAttribute('fill', mappedHex);
         }
         if (el.hasAttribute('stroke') && el.getAttribute('stroke') !== 'none') {
-          el.setAttribute('stroke', hslToHex(targetH, targetS, l));
+          el.setAttribute('stroke', mappedHex);
         }
       }
     });

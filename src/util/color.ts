@@ -24,6 +24,19 @@ export function darkenHex(hex: string): string {
   return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
 }
 
+/** Compute contrasting text color (#ffffff vs #172033) for a given background hex. */
+export function getContrastFg(hex: string): string {
+  let n = hex.replace('#', '');
+  if (n.length === 3) {
+    n = n.split('').map(c => c + c).join('');
+  }
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  const y = 0.299 * r + 0.587 * g + 0.114 * b;
+  return y > 170 ? '#172033' : '#ffffff';
+}
+
 const NAMED_COLORS: Record<string, string> = {
   black: '#000000',
   white: '#ffffff',

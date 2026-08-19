@@ -52,6 +52,40 @@ describe('Logo Processor Unit Tests', () => {
     }
   });
 
+  test('processes custom SVG logo with pure black accent (#000000)', () => {
+    const svgPath = path.join(scratchDir, 'test-black-accent.svg');
+    const svgContent = `<svg width="400" height="400" viewBox="0 0 400 400" fill="none">
+      <path d="M10 10 L100 100" stroke="#000000" stroke-width="20"/>
+    </svg>`;
+    fs.writeFileSync(svgPath, svgContent, 'utf8');
+
+    try {
+      const res = processLogo(svgPath, '#000000');
+      // Should not collapse to pitch black; mapped to lightness 90%
+      expect(res.navbarLogo).toContain('stroke="#e6e6e6"');
+      expect(res.navbarLogo).toContain('data-l="90"');
+    } finally {
+      if (fs.existsSync(svgPath)) fs.unlinkSync(svgPath);
+    }
+  });
+
+  test('processes custom SVG logo with pure white accent (#ffffff)', () => {
+    const svgPath = path.join(scratchDir, 'test-white-accent.svg');
+    const svgContent = `<svg width="400" height="400" viewBox="0 0 400 400" fill="none">
+      <circle cx="200" cy="200" r="100" fill="#ffffff"/>
+    </svg>`;
+    fs.writeFileSync(svgPath, svgContent, 'utf8');
+
+    try {
+      const res = processLogo(svgPath, '#ffffff');
+      // Should not collapse to pure white; mapped to high-contrast dark tone lightness 15%
+      expect(res.navbarLogo).toContain('fill="#262626"');
+      expect(res.navbarLogo).toContain('data-l="15"');
+    } finally {
+      if (fs.existsSync(svgPath)) fs.unlinkSync(svgPath);
+    }
+  });
+
   test('processes custom raster image (PNG) as base64 data URI', () => {
     const pngPath = path.join(scratchDir, 'test-logo.png');
     // 1x1 transparent PNG buffer
