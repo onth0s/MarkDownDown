@@ -1,11 +1,13 @@
 ---
 title: "Markdown++ (MarkDownDown)"
 accent: "#3b82f6"
+theme: "dark"
 ---
 
 # Markdown++ (`.mdd`)
 
-> **Markdown++** (packaged as `markdowndown` / `mdd`) is GitHub-Flavored Markdown (GFM) extended with native wikilinks, interactive SVG diagram DSLs, SVG pipe tables, YAML frontmatter, and standalone HTML compilation.
+> [!NOTE]
+> **Markdown++** (packaged as `markdowndown` / `mdd`) is GitHub-Flavored Markdown (GFM) extended with native wikilinks, interactive SVG diagram DSLs, SVG pipe tables, YAML frontmatter, item headings, and standalone HTML compilation.
 
 ---
 
@@ -21,6 +23,7 @@ accent: "#3b82f6"
   - [[Wikilinks & Heading Resolution]]
   - [[Diagram DSL]]
   - [[Table DSL]]
+  - [[Callout Alerts]]
 - [[Development & Testing]]
 - [[License]]
 
@@ -48,19 +51,12 @@ Unlike traditional static site generators, Markdown++ produces self-contained or
 
 ```diagram 
 TITLE: Markdown++ Compilation Pipeline 
-
 INPUT["Input .mdd Document — Source file with frontmatter, wikilinks, diagrams & tables"]
-
 FRONT["Frontmatter Parser — Extracts title, accent, assets_dir & styling options"]
-
 LEX["Lexer & Tokenizer — markdown-it core tokens, wikilink & fence rules"]
-
 RESOLVE["Fuzzy Link & Asset Resolver — 4-pass heading matching + assets directory scan"]
-
 RENDER["Renderer — GFM to HTML, diagram & table ASTs to SVG"]
-
 ASSEMBLE["Output Assembler — Inlines/links scripts, styles, base64 images into shell"]
-
 OUTPUT["HTML Output — Standalone single-file or split distribution"]
 
 INPUT --> FRONT
@@ -235,22 +231,15 @@ npm install
 
 ### Available Scripts
 
-- **Test Suite**:
-  ```powershell
-  npm test
-  ```
-- **Type Checking**:
-  ```powershell
-  npm run typecheck
-  ```
-- **Linting**:
-  ```powershell
-  npm run lint
-  ```
-- **Build Distribution**:
-  ```powershell
-  npm run build
-  ```
+```table
+TITLE: NPM Build & Verification Scripts
+| Command | Purpose |
+| npm test | Run Jest test suite across all parser, compiler, and pipeline tests |
+| npm run typecheck | Execute TypeScript strict typecheck (tsc --noEmit) |
+| npm run lint | Execute ESLint across entire codebase |
+| npm run build | Compile TypeScript CLI entry point into dist/cli.cjs via esbuild |
+| npm run dev | Run compiler directly in development mode via tsx |
+```
 
 ---
 

@@ -1,9 +1,13 @@
+---
+title: "Markdown++ DSL Specification"
+accent: "#3b82f6"
+theme: "dark"
+---
+
 # Markdown++ DSL Specification
 
-**Version:** 1.0
-**Status:** Ratified against `scratch/CLDS_interactive_v15.html` (reference implementation)
-
-This document specifies the two fenced code block languages in Markdown++: `diagram` and `table`.
+> [!NOTE]
+> **Status:** Ratified specification for the two fenced code block languages in Markdown++: `diagram` and `table`.
 
 ---
 
@@ -45,31 +49,37 @@ comment      := "%%" [^\n]* (stripped, ignored)
 
 ### 1.4 Node Shapes
 
+```table
+TITLE: Diagram Node Shapes
 | Syntax | Shape | Use Case |
-|--------|-------|----------|
-| `[text]` | Rectangle (sharp corners) | Default. States, layers, artifacts. |
-| `(text)` | Rounded rectangle (`rx=18`) | Processes, protocols, frameworks. |
-| `{text}` | Diamond/rhombus | Decisions, conditions, branches. |
+| [text] | Rectangle (sharp corners) | Default. States, layers, artifacts. |
+| (text) | Rounded rectangle (rx=18) | Processes, protocols, frameworks. |
+| {text} | Diamond / rhombus | Decisions, conditions, branches. |
+```
 
 If no shape delimiter is provided, the node defaults to `[text]` (rectangle).
 
 ### 1.5 Edge Types
 
+```table
+TITLE: Diagram Edge Types
 | Syntax | Meaning |
-|--------|---------|
-| `-->` | Directed arrow (with arrowhead marker) |
-| `---` | Undirected line (no arrowhead) |
-| `-->|label|` | Directed arrow with edge label |
-| `-- label -->` | Alternative label syntax (not yet implemented) |
+| --> | Directed arrow (with arrowhead marker) |
+| --- | Undirected line (no arrowhead) |
+| -->\|label\| | Directed arrow with inline edge label |
+```
 
 ### 1.6 Directions
 
+```table
+TITLE: Diagram Flow Directions
 | Value | Flow Direction |
-|-------|---------------|
-| `TB` / `TD` | Top to bottom (default) |
-| `LR` | Left to right |
-| `RL` | Right to left |
-| `BT` | Bottom to top (reversed rank order) |
+| TB / TD | Top to bottom (default) |
+| LR | Left to right |
+| RL | Right to left |
+| BT | Bottom to top (reversed rank order) |
+| auto | Responsive dynamic layout (TB on mobile, LR on desktop) |
+```
 
 ### 1.7 Title–Subtitle Split
 
@@ -85,28 +95,36 @@ Long labels are word-wrapped to fit within the node width. Text width is estimat
 
 ### 1.9 Layout Algorithm
 
-1. **Parse** — Extract nodes and edges from the DSL.
-2. **Rank** — Assign vertical (or horizontal) ranks based on edge direction. Uses longest-path ranking from a virtual root.
-3. **Order** — Within each rank, minimize edge crossings using median ordering.
-4. **Position** — Compute (x, y) coordinates with fixed vertical spacing (`RANK_SEP = 130px`) and node padding.
-5. **Render** — Emit SVG with `<rect>`, `<text>`, `<line>`/`<path>`, and `<marker>` elements.
+```diagram
+TITLE: Diagram Layout Engine Pipeline
+PARSE["1. Parse AST — Extract nodes, labels, shapes & edges"]
+RANK["2. Rank Assignment — Longest-path ranking from virtual root"]
+ORDER["3. Crossing Reduction — Median heuristic within each rank"]
+POS["4. Coordinate Geometry — Compute bounding boxes & edge paths"]
+RENDER["5. SVG Emission — Render nodes, labels, paths & arrow markers"]
 
-### 1.10 SVG Output
+PARSE --> RANK
+RANK --> ORDER
+ORDER --> POS
+POS --> RENDER
+```
 
-The rendered SVG uses these CSS classes for styling and interactivity:
+### 1.10 SVG Output Elements & Classes
 
+```table
+TITLE: Diagram SVG Element Classes
 | Class | Element | Purpose |
-|-------|---------|---------|
-| `diagram-svg` | `<svg>` | Root container |
-| `node-group` | `<g>` | Groups a node's rect + text |
-| `node-bg` | `<rect>` | Node background |
-| `node-rect` | `<rect>` | Node background (interactive states) |
-| `node-title` | `<text>` | Title text (bold, accent color) |
-| `node-sub` | `<text>` | Subtitle text (muted) |
-| `edge-line` | `<line>` | Edge connector |
-| `edge-path` | `<path>` | Edge connector (curved) |
-| `is-hit` | modifier | Matched during search |
-| `is-current` | modifier | Current search match |
+| diagram-svg | <svg> | Root diagram SVG container |
+| node-group | <g> | Groups a node's rect + text |
+| node-bg | <rect> | Base node background fill |
+| node-rect | <rect> | Interactive node rectangle |
+| node-title | <text> | Bold accent title text |
+| node-sub | <text> | Muted subtitle text |
+| edge-line | <line> | Straight edge connector |
+| edge-path | <path> | Curved edge connector |
+| is-hit | modifier | Matched during document search |
+| is-current | modifier | Current active search selection |
+```
 
 ---
 
@@ -126,7 +144,7 @@ TITLE: Table Title
 
 ### 2.2 TITLE Directive
 
-Same as `diagram` (§1.2). Optional first-line `TITLE: <text>`.
+Optional first-line `TITLE: <text>` metadata rendered into the code wrap header bar and SVG accessibility label.
 
 ### 2.3 Grammar
 
@@ -141,26 +159,21 @@ cell            := [^\|]*
 
 Standard GFM pipe-table syntax. Separator-row alignment markers (`:---`, `:---:`, `---:`) are parsed but ignored — all cells render left-aligned.
 
-### 2.4 Layout
+### 2.4 Layout & SVG Classes
 
-- Column widths are determined by the longest cell content in each column, plus padding.
-- Row heights are fixed (30px for data rows, 34px for header rows).
-- The header row gets a distinct background (accent-tinted surface).
-- Cell padding: 12px horizontal, vertical centering.
-
-### 2.5 SVG Output
-
+```table
+TITLE: Table SVG Element Classes
 | Class | Element | Purpose |
-|-------|---------|---------|
-| `table-svg` | `<svg>` | Root container |
-| `tcell` | `<g>` | Groups a cell's rect + text |
-| `tbl-head-bg` | `<rect>` | Header cell background |
-| `tbl-cell-bg` | `<rect>` | Data cell background |
-| `tbl-head-text` | `<text>` | Header cell text (bold, accent) |
-| `tbl-cell-text` | `<text>` | Data cell text |
-| `tbl-grid` | `<line>` | Cell border grid |
-| `is-hit` | modifier | Matched during search |
-| `is-current` | modifier | Current search match |
+| table-svg | <svg> | Root table SVG container |
+| tcell | <g> | Groups a cell's rect + text |
+| tbl-head-bg | <rect> | Header cell accent-tinted surface |
+| tbl-cell-bg | <rect> | Data cell surface |
+| tbl-head-text | <text> | Header bold accent text |
+| tbl-cell-text | <text> | Data cell body text |
+| tbl-grid | <line> | Border grid strokes |
+| is-hit | modifier | Highlighted during document search |
+| is-current | modifier | Active search result match |
+```
 
 ---
 
@@ -168,43 +181,37 @@ Standard GFM pipe-table syntax. Separator-row alignment markers (`:---`, `:---:`
 
 ### 3.1 Copy Button
 
-Each `diagram` and `table` block gets a `<button class="copy-btn">` that copies the raw DSL source to the clipboard. The source code `<pre>` is hidden via CSS (`.code-wrap.diagram pre, .code-wrap.table pre { display:none; }`).
+Each `diagram` and `table` block includes a `<button class="copy-btn">` that copies the raw DSL source to the clipboard. The source code `<pre>` is hidden via CSS (`.code-wrap.diagram pre, .code-wrap.table pre { display:none; }`).
 
 ### 3.2 Search Highlight Sync
 
-When the user searches, the JS runtime synchronizes search-match highlights onto the pre-rendered SVG nodes:
+When the user searches, the runtime synchronizes search-match highlights onto the pre-rendered SVG nodes:
 
 1. For each `<mark data-search-match="true">` inside a code block, compute its character offset within the `<code>` element.
 2. Map the offset to a diagram node or table cell using the `data-label-ord` attribute.
 3. Add `.is-hit` / `.is-current` classes to the matching SVG group.
 
-This enables search to highlight individual nodes and cells within the SVG diagrams and tables.
+### 3.3 Responsive Behavior & Theme
 
-### 3.3 Responsive Behavior
+- On viewports ≤ 900px, the sidebar collapses to a mobile drawer.
+- Diagram and table SVGs overflow horizontally with smooth 2px custom scrollbars.
+- SVG fills automatically inherit dynamic CSS custom properties:
 
-- On viewports ≤ 900px, the sidebar collapses to a hamburger menu.
-- Diagram and table SVGs overflow horizontally with smooth scrolling.
-- SVG `viewBox` ensures diagrams scale proportionally.
-
-### 3.4 Theme Integration
-
-SVG fills use CSS custom properties:
-
+```table
+TITLE: Theme Integration CSS Variables
 | Property | Usage |
-|----------|-------|
-| `var(--accent)` | Node borders, edge strokes, header text |
-| `var(--surface-2)` | Node/cell backgrounds (dark mode) |
-| `var(--muted)` | Subtitle text, grid lines |
-| `var(--text)` | Cell body text |
-| `var(--border)` | Grid strokes, container borders |
-
-Light mode overrides use `#ffffff` as the base surface instead of `var(--surface-2)`.
+| var(--accent) | Node borders, edge strokes, header text |
+| var(--surface-2) | Node / cell backgrounds in dark mode |
+| var(--muted) | Subtitle text, grid lines |
+| var(--text) | Cell body text |
+| var(--border) | Grid strokes, container borders |
+```
 
 ---
 
 ## 4. Reference Examples
 
-### 4.1 Diagram (from CLDS)
+### 4.1 Diagram Example
 
 ```diagram
 TITLE: CLDS Artifact Relationship Flow
@@ -215,12 +222,11 @@ SPEC -->|defines expected behavior| AUDIT
 AUDIT -->|surfaces conformance gaps| IMPL
 ```
 
-### 4.2 Pipe Table (from CLDS)
+### 4.2 Pipe Table Example
 
 ```table
 TITLE: Reading Cost Calibration
 | Step | Reading Cost | Authority Exercised |
-|------|-------------|---------------------|
 | Minimal plan review | ~2 minutes | Architectural ratification |
 | Annotation | ~5 minutes | Structural decisions |
 | Full plan review | ~5 minutes | Drift check, not re-evaluation |
