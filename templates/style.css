@@ -43,7 +43,11 @@ body {
   line-height:1.72; transition:background .2s,color .2s;
   overflow-wrap:anywhere; word-break:normal;
 }
-a { color:var(--accent); }
+a {
+  color:var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
 button, input { font:inherit; }
 .topbar {
   position:sticky; top:0; z-index:50; height:64px;
@@ -471,12 +475,29 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
 }
 
 @keyframes jump-pulse {
-  0% { background-color: transparent; }
-  30% { background-color: rgba(var(--accent-rgb), .18); }
-  100% { background-color: transparent; }
+  0% {
+    background-color: transparent;
+    color: inherit;
+  }
+  20% {
+    background-color: var(--accent);
+    color: var(--accent-fg);
+  }
+  45% {
+    background-color: transparent;
+    color: inherit;
+  }
+  65% {
+    background-color: var(--accent);
+    color: var(--accent-fg);
+  }
+  100% {
+    background-color: transparent;
+    color: inherit;
+  }
 }
 .is-jump-returned {
-  animation: jump-pulse 1.2s ease-out;
+  animation: jump-pulse 1.6s cubic-bezier(0.22, 1, 0.36, 1);
   border-radius: 6px;
 }
 

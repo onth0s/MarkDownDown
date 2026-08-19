@@ -85,7 +85,7 @@
       el.classList.remove('is-jump-returned');
       void el.offsetWidth; // trigger reflow
       el.classList.add('is-jump-returned');
-      setTimeout(() => el.classList.remove('is-jump-returned'), 1300);
+      setTimeout(() => el.classList.remove('is-jump-returned'), 1700);
     }
   }
 
