@@ -526,12 +526,21 @@ if (initialHash) {
   if (savedState.id) setActive(savedState.id);
 }
 
+doScrollUpdate();
+
 if (typeof savedSidebarScroll === 'number' && sidebar) {
   sidebar.scrollTop = savedSidebarScroll;
 }
 
-doScrollUpdate();
-initialScrollDone = true;
+// Keep initialScrollDone = false across initial frames/scroll restorations to suppress unwanted animation transitions
+requestAnimationFrame(() => {
+  if (typeof savedSidebarScroll === 'number' && sidebar) {
+    sidebar.scrollTop = savedSidebarScroll;
+  }
+  setTimeout(() => {
+    initialScrollDone = true;
+  }, 120);
+});
 
 if (sidebar) {
   sidebar.addEventListener('scroll', () => {

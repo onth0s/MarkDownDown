@@ -192,6 +192,12 @@ describe('Hash navigation', () => {
   test('restores saved state from sessionStorage on page load', () => {
     expect(js).toMatch(/savedState = JSON\.parse\(sessionStorage\.getItem\(scrollStateKey\) \|\| 'null'\)/);
   });
+
+  test('persists and restores sidebar scroll position without premature animation', () => {
+    expect(js).toMatch(/sessionStorage\.setItem\(sidebarScrollKey, JSON\.stringify\(sidebar\.scrollTop\)\)/);
+    expect(js).toMatch(/savedSidebarScroll = JSON\.parse\(sessionStorage\.getItem\(sidebarScrollKey\) \|\| 'null'\)/);
+    expect(js).toMatch(/sidebar\.scrollTop = savedSidebarScroll/);
+  });
 });
 
 // ── TOC CSS ────────────────────────────────────────────────────────────────
