@@ -61,42 +61,60 @@ function barycenterOrder(model: DiagramModel, ranks: string[][]): void {
   }
 }
 
+export interface NodeBox {
+  id: string;
+  cx: number;
+  cy: number;
+  w: number;
+  h: number;
+}
+
+/**
+ * Validate that no two 2D boxes overlap.
+ */
+export function checkBoxesOverlap(boxes: NodeBox[], layoutName = 'layout'): void {
+  if (boxes.length < 2) return;
+  for (let i = 0; i < boxes.length; i++) {
+    const a = boxes[i];
+    const aLeft = a.cx - a.w / 2;
+    const aRight = a.cx + a.w / 2;
+    const aTop = a.cy - a.h / 2;
+    const aBottom = a.cy + a.h / 2;
+
+    for (let j = i + 1; j < boxes.length; j++) {
+      const b = boxes[j];
+      const bLeft = b.cx - b.w / 2;
+      const bRight = b.cx + b.w / 2;
+      const bTop = b.cy - b.h / 2;
+      const bBottom = b.cy + b.h / 2;
+
+      const overlaps =
+        aLeft < bRight - C.OVERLAP_TOLERANCE &&
+        aRight > bLeft + C.OVERLAP_TOLERANCE &&
+        aTop < bBottom - C.OVERLAP_TOLERANCE &&
+        aBottom > bTop + C.OVERLAP_TOLERANCE;
+      if (overlaps) {
+        throw new CompileError(`Diagram compilation error: nodes "${a.id}" and "${b.id}" overlap in ${layoutName}.`);
+      }
+    }
+  }
+}
+
 /**
  * Validate that no two nodes overlap in 2D space.
  * Throws a CompileError if any node overlaps with another.
  */
 export function validateNoNodeOverlap(model: DiagramModel, isLR: boolean): void {
-  const nodes = [...model.nodes.values()];
-  if (nodes.length < 2) return;
-
   if (!isLR) {
-    for (let i = 0; i < nodes.length; i++) {
-      const a = nodes[i];
-      const aCx = model.cx.get(a.id);
-      const aCy = model.cy.get(a.id);
-      if (aCx === undefined || aCy === undefined) continue;
-      const aLeft = aCx - a.w / 2;
-      const aRight = aCx + a.w / 2;
-      const aTop = aCy - a.h / 2;
-      const aBottom = aCy + a.h / 2;
-
-      for (let j = i + 1; j < nodes.length; j++) {
-        const b = nodes[j];
-        const bCx = model.cx.get(b.id);
-        const bCy = model.cy.get(b.id);
-        if (bCx === undefined || bCy === undefined) continue;
-        const bLeft = bCx - b.w / 2;
-        const bRight = bCx + b.w / 2;
-        const bTop = bCy - b.h / 2;
-        const bBottom = bCy + b.h / 2;
-
-        const overlaps = (aLeft < bRight - C.OVERLAP_TOLERANCE) && (aRight > bLeft + C.OVERLAP_TOLERANCE) &&
-                         (aTop < bBottom - C.OVERLAP_TOLERANCE) && (aBottom > bTop + C.OVERLAP_TOLERANCE);
-        if (overlaps) {
-          throw new CompileError(`Diagram compilation error: nodes "${a.id}" and "${b.id}" overlap in layout.`);
-        }
+    const boxes: NodeBox[] = [];
+    for (const node of model.nodes.values()) {
+      const cx = model.cx.get(node.id);
+      const cy = model.cy.get(node.id);
+      if (cx !== undefined && cy !== undefined) {
+        boxes.push({ id: node.id, cx, cy, w: node.w, h: node.h });
       }
     }
+    checkBoxesOverlap(boxes, 'layout');
   }
 }
 

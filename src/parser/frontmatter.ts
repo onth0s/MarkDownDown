@@ -115,25 +115,23 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
   const meta: FrontmatterResult['meta'] = {};
   const hero: HeroMeta = {};
 
-  if (parsed['title'] !== undefined) {
-    if (typeof parsed['title'] !== 'string') {
-      throw new CompileError(`Invalid frontmatter: "title" must be a string`);
+  const validateString = (key: string, customMsg?: string): string => {
+    const val = parsed[key];
+    if (typeof val !== 'string') {
+      throw new CompileError(customMsg ?? `Invalid frontmatter: "${key}" must be a string`);
     }
-    meta.title = parsed['title'];
-  }
+    return val;
+  };
 
-  if (parsed['author'] !== undefined) {
-    if (typeof parsed['author'] !== 'string') {
-      throw new CompileError(`Invalid frontmatter: "author" must be a string`);
-    }
-    meta.author = parsed['author'];
-  }
+  const validatePath = (key: string): string => {
+    const val = validateString(key, `Invalid frontmatter: "${key}" must be a file path string`);
+    return path.resolve(inputDir, val);
+  };
 
+  if (parsed['title'] !== undefined) meta.title = validateString('title');
+  if (parsed['author'] !== undefined) meta.author = validateString('author');
   if (parsed['accent'] !== undefined) {
-    if (typeof parsed['accent'] !== 'string') {
-      throw new CompileError(`Invalid frontmatter: "accent" must be a string hex color (e.g. "#3b82f6")`);
-    }
-    meta.accent = parsed['accent'];
+    meta.accent = validateString('accent', 'Invalid frontmatter: "accent" must be a string hex color (e.g. "#3b82f6")');
   }
 
   if (parsed['theme'] !== undefined) {
@@ -153,20 +151,8 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
     meta.bgLum = parsedLum;
   }
 
-  if (parsed['kicker'] !== undefined) {
-    if (typeof parsed['kicker'] !== 'string') {
-      throw new CompileError(`Invalid frontmatter: "kicker" must be a string`);
-    }
-    hero.kicker = parsed['kicker'];
-  }
-
-  if (parsed['subtitle'] !== undefined) {
-    if (typeof parsed['subtitle'] !== 'string') {
-      throw new CompileError(`Invalid frontmatter: "subtitle" must be a string`);
-    }
-    hero.subtitle = parsed['subtitle'];
-  }
-
+  if (parsed['kicker'] !== undefined) hero.kicker = validateString('kicker');
+  if (parsed['subtitle'] !== undefined) hero.subtitle = validateString('subtitle');
   if (parsed['pills'] !== undefined) {
     if (!Array.isArray(parsed['pills']) || !parsed['pills'].every((p: unknown) => typeof p === 'string')) {
       throw new CompileError(`Invalid frontmatter: "pills" must be an array of strings`);
@@ -174,33 +160,10 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
     hero.pills = parsed['pills'] as string[];
   }
 
-  if (parsed['assets_dir'] !== undefined) {
-    if (typeof parsed['assets_dir'] !== 'string') {
-      throw new CompileError(`Invalid frontmatter: "assets_dir" must be a file path string`);
-    }
-    meta.assetsDir = path.resolve(inputDir, parsed['assets_dir']);
-  }
-
-  if (parsed['custom_css'] !== undefined) {
-    if (typeof parsed['custom_css'] !== 'string') {
-      throw new CompileError(`Invalid frontmatter: "custom_css" must be a file path string`);
-    }
-    meta.customCss = path.resolve(inputDir, parsed['custom_css']);
-  }
-
-  if (parsed['custom_js'] !== undefined) {
-    if (typeof parsed['custom_js'] !== 'string') {
-      throw new CompileError(`Invalid frontmatter: "custom_js" must be a file path string`);
-    }
-    meta.customJs = path.resolve(inputDir, parsed['custom_js']);
-  }
-
-  if (parsed['logo'] !== undefined) {
-    if (typeof parsed['logo'] !== 'string') {
-      throw new CompileError(`Invalid frontmatter: "logo" must be a file path string`);
-    }
-    meta.logo = path.resolve(inputDir, parsed['logo']);
-  }
+  if (parsed['assets_dir'] !== undefined) meta.assetsDir = validatePath('assets_dir');
+  if (parsed['custom_css'] !== undefined) meta.customCss = validatePath('custom_css');
+  if (parsed['custom_js'] !== undefined) meta.customJs = validatePath('custom_js');
+  if (parsed['logo'] !== undefined) meta.logo = validatePath('logo');
 
   return { meta, hero, body, warnings: [] };
 }

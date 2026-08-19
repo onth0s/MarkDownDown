@@ -1,7 +1,7 @@
 import type { Heading, Asset } from '../types.js';
 import { resolveHeading, formatAmbiguityError } from './heading.js';
 import { resolveAsset } from './asset.js';
-import { toErrorMessage } from '../util/error.js';
+import { CompileError } from '../util/error.js';
 
 /**
  * Describes a fully resolved wikilink ready for HTML rendering.
@@ -39,23 +39,17 @@ export function resolveWikilink(
       return { kind: 'heading', heading: headingResult.heading, display };
     }
     if (headingResult.type === 'ambiguous') {
-      throw new Error(formatAmbiguityError(target, headingResult.candidates));
+      throw new CompileError(formatAmbiguityError(target, headingResult.candidates));
     }
     // 'not-found' in headings → fall through to asset resolution
   }
 
   // Step 2: asset resolution
-  let asset: Asset | null;
-  try {
-    asset = resolveAsset(target, assets);
-  } catch (err) {
-    // Collision inside asset resolution
-    throw new Error(`ERROR: ${toErrorMessage(err)}`, { cause: err });
-  }
+  const asset = resolveAsset(target, assets);
 
   if (asset === null) {
-    throw new Error(
-      `ERROR: [[${target}]] could not be resolved — no matching heading or file found.`
+    throw new CompileError(
+      `[[${target}]] could not be resolved — no matching heading or file found.`
     );
   }
 

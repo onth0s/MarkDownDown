@@ -4,6 +4,7 @@
  * Renders via markdown-it, injects diagram/table SVGs, and wraps code blocks
  * with copy buttons.
  */
+import path from 'node:path';
 import type { Options, PendingWikilink } from '../types.js';
 import type MarkdownIt from 'markdown-it';
 import type { ResolvedLink } from '../resolver/wikilink.js';
@@ -75,8 +76,10 @@ export function renderBody(
     return renderWikilinkToken(target, display, pw.resolution, options.outputMode, assetBase64Map, md);
   };
 
+  const inputDir = path.dirname(options.inputFile);
+
   // Render markdown to HTML, then inject SVGs and copy buttons
-  let bodyHtml = md.render(markdownBody);
+  let bodyHtml = md.render(markdownBody, { warnings, inputDir, options, docTitle });
   if (!options.noDiagrams) bodyHtml = injectDiagramSvgs(bodyHtml, docTitle, warnings);
   if (!options.noTables) bodyHtml = injectTableSvgs(bodyHtml, docTitle, warnings);
   bodyHtml = wrapCodeBlocksWithCopyButtons(bodyHtml);

@@ -6,3 +6,4 @@ export * from './mime.js';
 export * from './minify.js';
 export * from './slugify.js';
 export * from './template-loader.js';
+export * from './file-link.js';

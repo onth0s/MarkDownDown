@@ -40,6 +40,7 @@ program
   .option('--split', 'Separate CSS/JS/assets', false)
   .option('--assets-dir <path>', 'Assets directory (default: ./assets/ relative to input)')
   .option('--no-diagrams', 'Skip diagram SVG rendering')
+  .option('--no-tables', 'Skip table SVG rendering')
   .option('--minify', 'Minify CSS/JS/HTML in monolithic export (default)', true)
   .option('--no-minify', 'Disable minification in monolithic export')
   .option('-L, --logo [path]', 'Custom SVG or image brand logo and favicon (auto-detects if single .svg exists in working dir)')
@@ -78,9 +79,8 @@ program
       outputPath = path.join(inputDir, `${stem}.html`);
     }
 
-    const targetToCheck = isSplit ? outputPath : outputPath;
-    if (fs.existsSync(targetToCheck) && !opts.force) {
-      const allowed = await confirmOverwrite(targetToCheck);
+    if (fs.existsSync(outputPath) && !opts.force) {
+      const allowed = await confirmOverwrite(outputPath);
       if (!allowed) {
         process.stderr.write('Aborted.\n');
         process.exit(0);

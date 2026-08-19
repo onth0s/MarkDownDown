@@ -1,6 +1,16 @@
 import { DIAGRAM as C } from '../../constants.js';
 import type { DiagramDirection, DiagramModel, DiagramNode, NodeShape } from './types.js';
 
+function parseNodeShape(raw: string): { id: string; label?: string; shape: NodeShape } | null {
+  const mRect = raw.match(/^([A-Za-z0-9_.\\-]+)\["?([^"\]]+)"?\]$/);
+  if (mRect) return { id: mRect[1], label: mRect[2], shape: 'rect' };
+  const mRounded = raw.match(/^([A-Za-z0-9_.\\-]+)\(["']?([^"')]+)["']?\)$/);
+  if (mRounded) return { id: mRounded[1], label: mRounded[2], shape: 'rounded' };
+  const mDiamond = raw.match(/^([A-Za-z0-9_.\\-]+)\{["']?([^"'}]+)["']?\}$/);
+  if (mDiamond) return { id: mDiamond[1], label: mDiamond[2], shape: 'diamond' };
+  return null;
+}
+
 export function diagramParse(source: string, initialDirection?: string): DiagramModel {
   const normalizedInitial = (initialDirection?.toUpperCase() ?? 'auto') as DiagramDirection;
   const model: DiagramModel = {
@@ -92,22 +102,13 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
       const directed = !line.includes('---') || line.includes('-->');
 
       const parseInlineNode = (raw: string): string => {
-        let match: RegExpMatchArray | null = null;
-        let shape: NodeShape = 'rect';
-        const im1 = raw.match(/^([A-Za-z0-9_.\\-]+)\["?([^"\]]+)"?\]$/);
-        const im2 = raw.match(/^([A-Za-z0-9_.\\-]+)\(["']?([^"')]+)["']?\)$/);
-        const im3 = raw.match(/^([A-Za-z0-9_.\\-]+)\{["']?([^"'}]+)["']?\}$/);
-        if (im1) { match = im1; shape = 'rect'; }
-        else if (im2) { match = im2; shape = 'rounded'; }
-        else if (im3) { match = im3; shape = 'diamond'; }
-        if (match) {
-          const rawIdxInLine = rawLine.indexOf(raw);
-          const nodeOffset = rawIdxInLine >= 0 ? lineStartPos + rawIdxInLine : lineStartPos;
-          ensureNode(match[1], match[2], shape, nodeOffset);
-          return match[1];
-        }
+        const parsed = parseNodeShape(raw);
         const rawIdxInLine = rawLine.indexOf(raw);
         const nodeOffset = rawIdxInLine >= 0 ? lineStartPos + rawIdxInLine : lineStartPos;
+        if (parsed) {
+          ensureNode(parsed.id, parsed.label, parsed.shape, nodeOffset);
+          return parsed.id;
+        }
         ensureNode(raw, undefined, undefined, nodeOffset);
         return raw;
       };
@@ -120,19 +121,11 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
     }
     if (edgeMatched) continue;
 
-    let nodeMatched = false;
-    let nFull: RegExpMatchArray | null = null;
-    let nShape: NodeShape = 'rect';
-    const nm1 = line.match(/^([A-Za-z0-9_.\\-]+)\["?([^"\]]+)"?\]$/);
-    const nm2 = line.match(/^([A-Za-z0-9_.\\-]+)\(["']?([^"')]+)["']?\)$/);
-    const nm3 = line.match(/^([A-Za-z0-9_.\\-]+)\{["']?([^"'}]+)["']?\}$/);
-    if (nm1) { nFull = nm1; nShape = 'rect'; nodeMatched = true; }
-    else if (nm2) { nFull = nm2; nShape = 'rounded'; nodeMatched = true; }
-    else if (nm3) { nFull = nm3; nShape = 'diamond'; nodeMatched = true; }
-    if (nodeMatched && nFull) {
+    const parsedStandalone = parseNodeShape(line);
+    if (parsedStandalone) {
       const rawIdxInLine = rawLine.indexOf(line);
       const nodeOffset = rawIdxInLine >= 0 ? lineStartPos + rawIdxInLine : lineStartPos;
-      ensureNode(nFull[1], nFull[2], nShape, nodeOffset);
+      ensureNode(parsedStandalone.id, parsedStandalone.label, parsedStandalone.shape, nodeOffset);
       continue;
     }
 

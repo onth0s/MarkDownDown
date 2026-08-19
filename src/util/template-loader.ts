@@ -49,3 +49,16 @@ export function loadTemplate(filename: string): string {
 
   throw new Error(`${filename} template not found (searched: ${candidateDirs.join(', ')})`);
 }
+
+/**
+ * Replace all variable keys in a template string in a single regex pass.
+ */
+export function substituteTokens(template: string, vars: Record<string, string | (() => string)>): string {
+  const keys = Object.keys(vars);
+  if (keys.length === 0) return template;
+  const pattern = new RegExp(keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
+  return template.replace(pattern, (match) => {
+    const val = vars[match];
+    return typeof val === 'function' ? val() : val ?? match;
+  });
+}

@@ -7,6 +7,7 @@ import { wikilinkPlugin } from './wikilink.js';
 import { diagramPlugin } from './diagram.js';
 import { tablePlugin } from './table.js';
 import { slugify } from '../util/slugify.js';
+import { resolveFileLink } from '../util/file-link.js';
 
 export function createMarkdownParser(): MarkdownIt {
   const md = new MarkdownIt({
@@ -14,6 +15,13 @@ export function createMarkdownParser(): MarkdownIt {
     linkify: false,
     typographer: true,
   });
+
+  // Allow file:, vscode:, http:, https:, mailto:, relative URLs while blocking unsafe scripting
+  const BAD_PROTO_RE = /^(?:vbscript|javascript):/i;
+  md.validateLink = (url: string) => {
+    const trimmed = url.trim();
+    return !BAD_PROTO_RE.test(trimmed);
+  };
 
   // Add id attributes to headings for wikilink resolution and TOC.
   // Uses a core rule so IDs are present during parse (needed by extractHeadings).
@@ -113,6 +121,24 @@ export function createMarkdownParser(): MarkdownIt {
   diagramPlugin(md);
   tablePlugin(md);
   wikilinkPlugin(md);
+
+  // Intercept links to validate and resolve file:// links
+  const defaultLinkOpen = md.renderer.rules.link_open || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));
+  md.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+    const token = tokens[idx];
+    const rawHref = token.attrGet('href');
+    if (rawHref) {
+      const baseDir = (env && env.inputDir) || process.cwd();
+      const resolved = resolveFileLink(rawHref, baseDir);
+      if (resolved.href !== rawHref) {
+        token.attrSet('href', resolved.href);
+      }
+      if (!resolved.exists && resolved.warning && env && Array.isArray(env.warnings)) {
+        env.warnings.push(resolved.warning);
+      }
+    }
+    return defaultLinkOpen(tokens, idx, options, env, self);
+  };
 
   // Splice word/word slashes in plain text with <wbr> break opportunities for mobile responsive wrapping
   const defaultTextRender = md.renderer.rules.text || ((tokens, idx) => md.utils.escapeHtml(tokens[idx].content));

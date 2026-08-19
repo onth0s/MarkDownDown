@@ -59,20 +59,27 @@ function buildHeroHtml(
   return html;
 }
 
-export function assembleAndWrite(
+export interface AssembledDocument {
+  html: string;
+  css: string;
+  js: string;
+  customCssContent?: string;
+  customJsContent?: string;
+  finalOutputFile: string;
+  effectiveLogoPath?: string;
+}
+
+export function assembleDocument(
   options: Options,
   meta: FrontmatterResult['meta'],
   hero: HeroMeta,
   title: string,
   accent: string,
   bodyHtml: string,
-  assetsDir: string,
   headings: import('../types.js').Heading[],
-  warnings: string[],
   md?: import('markdown-it').default,
-): CompileResult {
+): AssembledDocument {
   const heroHtml = buildHeroHtml(hero, title, md);
-
   const accentRgb = hexToRgb(accent);
 
   const routes: Record<string, string> = {};
@@ -91,24 +98,24 @@ export function assembleAndWrite(
   const effectiveBgLum = meta.bgLum ?? options.bgLum;
   const lumParams = computeLuminosityParams(effectiveBgLum);
   const css = buildCss(accent, accentRgb, effectiveBgLum);
-  const js = buildJs(
+  const js = buildJs({
     accent,
     routes,
-    processedLogo.faviconTemplate,
-    lumParams.darkBg,
-    lumParams.darkSurface,
-    `${lumParams.darkBgMixPct}%`,
-    `${lumParams.darkTintPct}%`,
-    `${lumParams.darkSurfaceMixPct}%`,
-    `${lumParams.darkSurfaceTintPct}%`,
-    lumParams.lightBg,
-    lumParams.lightSurface,
-    `${lumParams.lightBgMixPct}%`,
-    `${lumParams.lightTintPct}%`,
-    `${lumParams.lightSurfaceMixPct}%`,
-    `${lumParams.lightSurfaceTintPct}%`,
-    meta.theme ?? options.theme ?? 'dark',
-  );
+    faviconTemplate: processedLogo.faviconTemplate,
+    darkBg: lumParams.darkBg,
+    darkSurface: lumParams.darkSurface,
+    darkBgMix: `${lumParams.darkBgMixPct}%`,
+    darkBgTint: `${lumParams.darkTintPct}%`,
+    darkSurfMix: `${lumParams.darkSurfaceMixPct}%`,
+    darkSurfTint: `${lumParams.darkSurfaceTintPct}%`,
+    lightBg: lumParams.lightBg,
+    lightSurface: lumParams.lightSurface,
+    lightBgMix: `${lumParams.lightBgMixPct}%`,
+    lightBgTint: `${lumParams.lightTintPct}%`,
+    lightSurfMix: `${lumParams.lightSurfaceMixPct}%`,
+    lightSurfTint: `${lumParams.lightSurfaceTintPct}%`,
+    theme: meta.theme ?? options.theme ?? 'dark',
+  });
 
   let customCssContent: string | undefined;
   if (meta.customCss && fs.existsSync(meta.customCss)) {
@@ -140,17 +147,34 @@ export function assembleAndWrite(
     faviconHref: processedLogo.faviconHref,
   });
 
-  // Write output
   const outFile = options.outputPath.endsWith('.html')
     ? options.outputPath
     : options.outputPath + '.html';
   const finalOutputFile = options.outputMode === 'single' ? outFile : options.outputPath;
-  let finalSize = Buffer.byteLength(html, 'utf8');
+
+  return {
+    html,
+    css,
+    js,
+    customCssContent,
+    customJsContent,
+    finalOutputFile,
+    effectiveLogoPath,
+  };
+}
+
+export function writeOutput(
+  options: Options,
+  assembled: AssembledDocument,
+  assetsDir: string,
+  warnings: string[],
+): number {
+  let finalSize = Buffer.byteLength(assembled.html, 'utf8');
 
   if (options.outputMode === 'single') {
-    fs.mkdirSync(path.dirname(outFile), { recursive: true });
-    fs.writeFileSync(outFile, html, 'utf8');
-    if (options.verbose) process.stderr.write(`Written: ${outFile}\n`);
+    fs.mkdirSync(path.dirname(assembled.finalOutputFile), { recursive: true });
+    fs.writeFileSync(assembled.finalOutputFile, assembled.html, 'utf8');
+    if (options.verbose) process.stderr.write(`Written: ${assembled.finalOutputFile}\n`);
   } else {
     const outDir = options.outputPath;
     fs.mkdirSync(outDir, { recursive: true });
@@ -158,10 +182,10 @@ export function assembleAndWrite(
     const htmlPath = path.join(outDir, `${stem}.html`);
     const cssPath = path.join(outDir, 'style.css');
     const jsPath = path.join(outDir, 'app.js');
-    fs.writeFileSync(htmlPath, html, 'utf8');
-    fs.writeFileSync(cssPath, css + (customCssContent ?? ''), 'utf8');
-    fs.writeFileSync(jsPath, js + (customJsContent ?? ''), 'utf8');
-    finalSize = Buffer.byteLength(html, 'utf8') + Buffer.byteLength(css, 'utf8') + Buffer.byteLength(js, 'utf8');
+    fs.writeFileSync(htmlPath, assembled.html, 'utf8');
+    fs.writeFileSync(cssPath, assembled.css + (assembled.customCssContent ?? ''), 'utf8');
+    fs.writeFileSync(jsPath, assembled.js + (assembled.customJsContent ?? ''), 'utf8');
+    finalSize = Buffer.byteLength(assembled.html, 'utf8') + Buffer.byteLength(assembled.css, 'utf8') + Buffer.byteLength(assembled.js, 'utf8');
 
     if (fs.existsSync(assetsDir)) {
       const destAssets = path.join(outDir, 'assets');
@@ -174,8 +198,26 @@ export function assembleAndWrite(
     if (options.verbose) process.stderr.write(`Written: ${outDir}\n`);
   }
 
+  return finalSize;
+}
+
+export function assembleAndWrite(
+  options: Options,
+  meta: FrontmatterResult['meta'],
+  hero: HeroMeta,
+  title: string,
+  accent: string,
+  bodyHtml: string,
+  assetsDir: string,
+  headings: import('../types.js').Heading[],
+  warnings: string[],
+  md?: import('markdown-it').default,
+): CompileResult {
+  const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md);
+  const finalSize = writeOutput(options, assembled, assetsDir, warnings);
+
   return {
-    html,
+    html: assembled.html,
     warnings,
     stats: {
       sections: headings.length,
@@ -183,8 +225,8 @@ export function assembleAndWrite(
       frontmatterKeys: Object.keys(meta).length + (hero.kicker ? 1 : 0) + (hero.subtitle ? 1 : 0) + (hero.pills?.length ? 1 : 0),
       title,
       accent,
-      logo: effectiveLogoPath,
-      outputFile: finalOutputFile,
+      logo: assembled.effectiveLogoPath,
+      outputFile: assembled.finalOutputFile,
       sizeBytes: finalSize,
     },
   };

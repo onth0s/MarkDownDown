@@ -1,6 +1,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import type { Asset } from '../types.js';
+import { CompileError } from '../util/error.js';
 
 /** Probe order for no-extension wikilinks */
 const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'];
@@ -71,7 +72,7 @@ export function resolveAsset(str: string, assets: Asset[]): Asset | null {
     );
     if (matches.length === 0) return null;
     if (matches.length === 1) return matches[0];
-    throw new Error(
+    throw new CompileError(
       `[[${str}]] is ambiguous — matched ${matches.length} files:\n` +
       matches.map((m, i) => `  ${i + 1}. ${m.relativePath}`).join('\n')
     );
@@ -85,7 +86,7 @@ export function resolveAsset(str: string, assets: Asset[]): Asset | null {
     );
     if (matches.length === 1) return matches[0];
     if (matches.length > 1) {
-      throw new Error(
+      throw new CompileError(
         `[[${str}]] is ambiguous — matched ${matches.length} files with extension ${ext}:\n` +
         matches.map((m, i) => `  ${i + 1}. ${m.relativePath}`).join('\n')
       );

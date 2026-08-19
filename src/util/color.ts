@@ -2,39 +2,56 @@
  * Color utility functions for hex manipulation.
  */
 
-/** Convert a 3- or 6-digit hex color to an "R,G,B" string. */
-export function hexToRgb(hex: string): string {
+/** Normalize 3- or 6-digit hex (with optional #) to clean 6-character hex without #. */
+export function normalizeHex(hex: string): string {
   let n = hex.replace('#', '');
   if (n.length === 3) {
     n = n.split('').map(c => c + c).join('');
   }
-  return `${parseInt(n.slice(0, 2), 16)},${parseInt(n.slice(2, 4), 16)},${parseInt(n.slice(4, 6), 16)}`;
+  return n;
+}
+
+/** Parse hex color to numeric RGB tuple [r, g, b]. */
+export function hexToRgbValues(hex: string): [number, number, number] {
+  const n = normalizeHex(hex);
+  return [
+    parseInt(n.slice(0, 2), 16),
+    parseInt(n.slice(2, 4), 16),
+    parseInt(n.slice(4, 6), 16),
+  ];
+}
+
+/** Convert a 3- or 6-digit hex color to an "R,G,B" string. */
+export function hexToRgb(hex: string): string {
+  const [r, g, b] = hexToRgbValues(hex);
+  return `${r},${g},${b}`;
 }
 
 /** Darken a hex color by mixing with 50% black. */
 export function darkenHex(hex: string): string {
-  let n = hex.replace('#', '');
-  if (n.length === 3) {
-    n = n.split('').map(c => c + c).join('');
-  }
-  const v = parseInt(n, 16);
-  const r = Math.round(((v >> 16) & 255) * 0.5);
-  const g = Math.round(((v >> 8) & 255) * 0.5);
-  const b = Math.round((v & 255) * 0.5);
-  return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+  const [r, g, b] = hexToRgbValues(hex);
+  const dr = Math.round(r * 0.5);
+  const dg = Math.round(g * 0.5);
+  const db = Math.round(b * 0.5);
+  return '#' + [dr, dg, db].map(c => c.toString(16).padStart(2, '0')).join('');
 }
 
 /** Compute contrasting text color (#ffffff vs #172033) for a given background hex. */
 export function getContrastFg(hex: string): string {
-  let n = hex.replace('#', '');
-  if (n.length === 3) {
-    n = n.split('').map(c => c + c).join('');
-  }
-  const r = parseInt(n.slice(0, 2), 16);
-  const g = parseInt(n.slice(2, 4), 16);
-  const b = parseInt(n.slice(4, 6), 16);
+  const [r, g, b] = hexToRgbValues(hex);
   const y = 0.299 * r + 0.587 * g + 0.114 * b;
   return y > 170 ? '#172033' : '#ffffff';
+}
+
+/** Linearly interpolate between two hex colors. */
+export function lerpColor(hexA: string, hexB: string, t: number): string {
+  const [r1, g1, b1] = hexToRgbValues(hexA);
+  const [r2, g2, b2] = hexToRgbValues(hexB);
+  const r = Math.round(r1 + (r2 - r1) * t);
+  const g = Math.round(g1 + (g2 - g1) * t);
+  const b = Math.round(b1 + (b2 - b1) * t);
+  const toHex = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 const NAMED_COLORS: Record<string, string> = {
@@ -167,13 +184,7 @@ export function hslToRgb(h: number, s: number, l: number): [number, number, numb
 
 /** Convert hex color to HSL [h, s, l]. */
 export function hexToHsl(hex: string): [number, number, number] {
-  let n = hex.replace('#', '');
-  if (n.length === 3) {
-    n = n.split('').map(c => c + c).join('');
-  }
-  const r = parseInt(n.slice(0, 2), 16);
-  const g = parseInt(n.slice(2, 4), 16);
-  const b = parseInt(n.slice(4, 6), 16);
+  const [r, g, b] = hexToRgbValues(hex);
   return rgbToHsl(r, g, b);
 }
 

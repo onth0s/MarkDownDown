@@ -3,32 +3,10 @@
  * Reads shell.html, injects {{placeholders}}, and handles --single vs --split.
  */
 import { loadTemplate } from '../util/template-loader.js';
-import { darkenHex, getContrastFg, hexToHsl, hslToHex } from '../util/color.js';
-import { escAttr } from '../util/escape.js';
-import { DEFAULT_LOGO_PATHS, DEFAULT_FAVICON_TEMPLATE } from './logo.js';
+import { hexToHsl, hslToHex } from '../util/color.js';
+import { escHtml } from '../util/escape.js';
+import { processLogo } from './logo-processor.js';
 import { minifyCss, minifyJs, minifyHtml } from '../util/minify.js';
-
-/** Builds the favicon data URI with the given accent. */
-function buildFaviconHref(accent: string): string {
-  const dark = darkenHex(accent);
-  const fg = getContrastFg(accent);
-  const svg = DEFAULT_FAVICON_TEMPLATE
-    .replace(/\{accent\}/g, accent)
-    .replace(/\{accentDark\}/g, dark)
-    .replace(/\{accentFg\}/g, fg);
-  return 'data:image/svg+xml,' + encodeURIComponent(svg);
-}
-
-/** Builds the inline brand-logo SVG element. */
-function buildLogoSvg(): string {
-  return (
-    `<svg class="brand-logo" aria-hidden="true" focusable="false" ` +
-    `width="34.5" height="34.5" viewBox="0 0 1024 1024" ` +
-    `fill="none" xmlns="http://www.w3.org/2000/svg">` +
-    DEFAULT_LOGO_PATHS +
-    `</svg>`
-  );
-}
 
 export interface AssembleOptions {
   title: string;
@@ -57,15 +35,16 @@ export function assembleHtml(opts: AssembleOptions): string {
   template = template.replace('data-theme="dark"', `data-theme="${initialTheme}"`);
 
   // Basic replacements
-  template = template.replace(/\{\{title\}\}/g, escAttr(opts.title));
-  template = template.replace(/\{\{meta_description\}\}/g, escAttr(opts.metaDescription));
+  template = template.replace(/\{\{title\}\}/g, escHtml(opts.title));
+  template = template.replace(/\{\{meta_description\}\}/g, escHtml(opts.metaDescription));
   template = template.replace('{{body}}', () => opts.body);
   template = template.replace('{{hero}}', () => opts.hero ?? '');
 
   // Logo and favicon injection
   const effectiveAccent = opts.accent ?? '#3b82f6';
-  const faviconHref = opts.faviconHref ?? buildFaviconHref(effectiveAccent);
-  let logoMarkup = opts.logoSvg ?? buildLogoSvg();
+  const defaultProcessed = opts.faviconHref && opts.logoSvg ? null : processLogo(undefined, effectiveAccent);
+  const faviconHref = opts.faviconHref ?? defaultProcessed!.faviconHref;
+  let logoMarkup = opts.logoSvg ?? defaultProcessed!.navbarLogo;
 
   // If logoMarkup contains static {L_xx} placeholders, populate them with the initial accent
   if (logoMarkup.includes('{L_')) {

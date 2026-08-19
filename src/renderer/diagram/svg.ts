@@ -1,5 +1,5 @@
+import crypto from 'node:crypto';
 import { DIAGRAM as C } from '../../constants.js';
-import { CompileError } from '../../util/error.js';
 import { escHtml } from '../../util/escape.js';
 import {
   buildArrowMarker,
@@ -9,13 +9,12 @@ import {
   xyAttrs,
 } from '../svg-helpers.js';
 import type { DiagramModel, DiagramNode } from './types.js';
+import { checkBoxesOverlap } from './layout.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
-let arrowSeq = 0;
-
 function nextArrowId(): string {
-  return `arrow-${Date.now().toString(36)}-${++arrowSeq}`;
+  return `arrow-${crypto.randomUUID().slice(0, 8)}`;
 }
 
 export function diagramBuildSvg(model: DiagramModel, title: string, forceHorizontal?: boolean): string {
@@ -144,25 +143,10 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
   }
 
   // Validate no node overlap in LR layout
-  for (let i = 0; i < nodeData.length; i++) {
-    const a = nodeData[i];
-    const aLeft = a.lrX - a.w / 2;
-    const aRight = a.lrX + a.w / 2;
-    const aTop = a.lrY - a.h / 2;
-    const aBottom = a.lrY + a.h / 2;
-    for (let j = i + 1; j < nodeData.length; j++) {
-      const b = nodeData[j];
-      const bLeft = b.lrX - b.w / 2;
-      const bRight = b.lrX + b.w / 2;
-      const bTop = b.lrY - b.h / 2;
-      const bBottom = b.lrY + b.h / 2;
-      const overlaps = (aLeft < bRight - C.OVERLAP_TOLERANCE) && (aRight > bLeft + C.OVERLAP_TOLERANCE) &&
-                       (aTop < bBottom - C.OVERLAP_TOLERANCE) && (aBottom > bTop + C.OVERLAP_TOLERANCE);
-      if (overlaps) {
-        throw new CompileError(`Diagram compilation error: nodes "${a.id}" and "${b.id}" overlap in horizontal layout.`);
-      }
-    }
-  }
+  checkBoxesOverlap(
+    nodeData.map(nd => ({ id: nd.id, cx: nd.lrX, cy: nd.lrY, w: nd.w, h: nd.h })),
+    'horizontal layout',
+  );
 
   const nodeById = new Map<string, typeof nodeData[0]>();
   for (const nd of nodeData) {

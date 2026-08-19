@@ -3,26 +3,9 @@
  * Returns the complete stylesheet as a string, with the accent color
  * and luminosity parameters substituted in.
  */
-import { loadTemplate } from '../util/template-loader.js';
+import { loadTemplate, substituteTokens } from '../util/template-loader.js';
 import type { BgLum } from '../types.js';
-
-function lerpColor(hexA: string, hexB: string, t: number): string {
-  const parse = (h: string) => {
-    const clean = h.replace('#', '');
-    return [
-      parseInt(clean.slice(0, 2), 16),
-      parseInt(clean.slice(2, 4), 16),
-      parseInt(clean.slice(4, 6), 16),
-    ];
-  };
-  const [r1, g1, b1] = parse(hexA);
-  const [r2, g2, b2] = parse(hexB);
-  const r = Math.round(r1 + (r2 - r1) * t);
-  const g = Math.round(g1 + (g2 - g1) * t);
-  const b = Math.round(b1 + (b2 - b1) * t);
-  const toHex = (n: number) => n.toString(16).padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
+import { lerpColor } from '../util/color.js';
 
 export interface LuminosityParams {
   darkBg: string;
@@ -92,25 +75,26 @@ export function computeLuminosityParams(bgLum?: BgLum): LuminosityParams {
 export function buildCss(accent: string, accentRgb: string, bgLum?: BgLum): string {
   const p = computeLuminosityParams(bgLum);
 
-  return loadTemplate('style.css')
-    .replace(/__ACCENT__/g, accent)
-    .replace(/__ACCENT_RGB__/g, accentRgb)
-    .replace(/__BASE_DARK_BG__/g, p.darkBg)
-    .replace(/__BASE_DARK_SURFACE__/g, p.darkSurface)
-    .replace(/__BASE_DARK_SURFACE2__/g, p.darkSurface2)
-    .replace(/__BASE_DARK_SURFACE3__/g, p.darkSurface3)
-    .replace(/__BASE_DARK_CODE__/g, p.darkCode)
-    .replace(/__BASE_LIGHT_BG__/g, p.lightBg)
-    .replace(/__BASE_LIGHT_SURFACE__/g, p.lightSurface)
-    .replace(/__BASE_LIGHT_SURFACE2__/g, p.lightSurface2)
-    .replace(/__BASE_LIGHT_SURFACE3__/g, p.lightSurface3)
-    .replace(/__BASE_LIGHT_CODE__/g, p.lightCode)
-    .replace(/__DARK_BG_MIX__/g, `${p.darkBgMixPct}%`)
-    .replace(/__DARK_BG_TINT__/g, `${p.darkTintPct}%`)
-    .replace(/__DARK_SURF_MIX__/g, `${p.darkSurfaceMixPct}%`)
-    .replace(/__DARK_SURF_TINT__/g, `${p.darkSurfaceTintPct}%`)
-    .replace(/__LIGHT_BG_MIX__/g, `${p.lightBgMixPct}%`)
-    .replace(/__LIGHT_BG_TINT__/g, `${p.lightTintPct}%`)
-    .replace(/__LIGHT_SURF_MIX__/g, `${p.lightSurfaceMixPct}%`)
-    .replace(/__LIGHT_SURF_TINT__/g, `${p.lightSurfaceTintPct}%`);
+  return substituteTokens(loadTemplate('style.css'), {
+    __ACCENT__: accent,
+    __ACCENT_RGB__: accentRgb,
+    __BASE_DARK_BG__: p.darkBg,
+    __BASE_DARK_SURFACE__: p.darkSurface,
+    __BASE_DARK_SURFACE2__: p.darkSurface2,
+    __BASE_DARK_SURFACE3__: p.darkSurface3,
+    __BASE_DARK_CODE__: p.darkCode,
+    __BASE_LIGHT_BG__: p.lightBg,
+    __BASE_LIGHT_SURFACE__: p.lightSurface,
+    __BASE_LIGHT_SURFACE2__: p.lightSurface2,
+    __BASE_LIGHT_SURFACE3__: p.lightSurface3,
+    __BASE_LIGHT_CODE__: p.lightCode,
+    __DARK_BG_MIX__: `${p.darkBgMixPct}%`,
+    __DARK_BG_TINT__: `${p.darkTintPct}%`,
+    __DARK_SURF_MIX__: `${p.darkSurfaceMixPct}%`,
+    __DARK_SURF_TINT__: `${p.darkSurfaceTintPct}%`,
+    __LIGHT_BG_MIX__: `${p.lightBgMixPct}%`,
+    __LIGHT_BG_TINT__: `${p.lightTintPct}%`,
+    __LIGHT_SURF_MIX__: `${p.lightSurfaceMixPct}%`,
+    __LIGHT_SURF_TINT__: `${p.lightSurfaceTintPct}%`,
+  });
 }
