@@ -109,16 +109,8 @@
     }
 
     tocScrollActive = true;
-    let targetY = prev.y;
+    const targetY = prev.y;
     if (prev.id) {
-      const el = prev.id === '__doc-title__' ? article.querySelector('.hero') : document.getElementById(prev.id);
-      if (el) {
-        // If document layout changed dynamically, verify position
-        const actualTop = headingOffsetTop(el);
-        if (Math.abs(actualTop - (prev.y + 88)) > 100) {
-          targetY = Math.max(0, actualTop - 88);
-        }
-      }
       setActive(prev.id);
     }
 
@@ -158,15 +150,8 @@
     }
 
     tocScrollActive = true;
-    let targetY = next.y;
+    const targetY = next.y;
     if (next.id) {
-      const el = next.id === '__doc-title__' ? article.querySelector('.hero') : document.getElementById(next.id);
-      if (el) {
-        const actualTop = headingOffsetTop(el);
-        if (Math.abs(actualTop - (next.y + 88)) > 100) {
-          targetY = Math.max(0, actualTop - 88);
-        }
-      }
       setActive(next.id);
     }
 
@@ -991,12 +976,8 @@
   });
 
   // ── iOS touch compat ───────────────────────────────────────────────────────
-  let lastTouchEnd = 0;
-  document.addEventListener('touchend', event => {
-    const now = Date.now();
-    if (now - lastTouchEnd <= 300) event.preventDefault();
-    lastTouchEnd = now;
-  }, { passive: false });
+  // Note: touch-action: manipulation in CSS handles double-tap zoom suppression natively
+  // without intercepting touchend events and breaking tap/click responsiveness.
 
   // ── Hash navigation ────────────────────────────────────────────────────────
   window.addEventListener('hashchange', () => {
