@@ -3,98 +3,33 @@
  * Minifies CSS, JS, SVG, and HTML for monolithic self-contained exports.
  */
 
+import { transformSync } from 'esbuild';
+
 /**
- * Minify CSS by removing comments and collapsing redundant whitespace.
+ * Minify CSS using esbuild transform.
  */
 export function minifyCss(css: string): string {
-  return css
-    .replace(/\/\*[\s\S]*?\*\//g, '') // remove comments
-    .replace(/\s+/g, ' ') // collapse multi-whitespace
-    .replace(/\s*([{};,>+~])\s*/g, '$1') // trim whitespace around structural delimiters
-    .replace(/:\s+/g, ': ') // normalize property colon spacing
-    .replace(/;}/g, '}') // remove trailing semicolons before close brace
-    .trim();
+  try {
+    const result = transformSync(css, { loader: 'css', minify: true });
+    return result.code.trim();
+  } catch {
+    return css
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
 }
 
 /**
- * Minify JavaScript by removing comments, blank lines, and unnecessary spaces
- * around delimiters while safely preserving strings and regex literals.
+ * Minify JavaScript safely using esbuild transform.
  */
 export function minifyJs(js: string): string {
-  const tokens: Array<{ type: 'string' | 'code'; content: string }> = [];
-  let i = 0;
-  const len = js.length;
-  let codeBuf = '';
-
-  while (i < len) {
-    const ch = js[i];
-    const next = js[i + 1];
-
-    // String literals ('...', "...", `...`)
-    if (ch === "'" || ch === '"' || ch === '`') {
-      if (codeBuf) {
-        tokens.push({ type: 'code', content: codeBuf });
-        codeBuf = '';
-      }
-      const quote = ch;
-      let str = quote;
-      i++;
-      while (i < len) {
-        const c = js[i];
-        str += c;
-        if (c === '\\') {
-          i++;
-          if (i < len) str += js[i];
-        } else if (c === quote) {
-          break;
-        }
-        i++;
-      }
-      tokens.push({ type: 'string', content: str });
-      i++;
-      continue;
-    }
-
-    // Line comments (// ...)
-    if (ch === '/' && next === '/') {
-      i += 2;
-      while (i < len && js[i] !== '\n' && js[i] !== '\r') {
-        i++;
-      }
-      continue;
-    }
-
-    // Block comments (/* ... */)
-    if (ch === '/' && next === '*') {
-      i += 2;
-      while (i < len && !(js[i] === '*' && js[i + 1] === '/')) {
-        i++;
-      }
-      i += 2;
-      continue;
-    }
-
-    codeBuf += ch;
-    i++;
+  try {
+    const result = transformSync(js, { loader: 'js', minify: true, target: 'es2020' });
+    return result.code.trim();
+  } catch {
+    return js;
   }
-
-  if (codeBuf) {
-    tokens.push({ type: 'code', content: codeBuf });
-  }
-
-  return tokens
-    .map((tok) => {
-      if (tok.type === 'string') return tok.content;
-      return tok.content
-        .replace(/\r?\n\s*/g, '\n')
-        .replace(/\n+/g, '\n')
-        .replace(/[ \t]+/g, ' ')
-        .replace(/\s*([=+\-*/%&|!<>?:;,{}()[\]])\s*/g, (m, op) => op)
-        .replace(/\b(return|typeof|const|let|var|function|case|delete|void|in|instanceof|throw|new|yield|await|else)\b([^\s=+\-*/%&|!<>?:;,{}()[\]])/g, '$1 $2')
-        .replace(/([^\s=+\-*/%&|!<>?:;,{}()[\]])\b(in|instanceof)\b/g, '$1 $2');
-    })
-    .join('')
-    .trim();
 }
 
 /**

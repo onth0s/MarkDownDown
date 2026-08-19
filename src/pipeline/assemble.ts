@@ -113,10 +113,13 @@ export function assembleAndWrite(
   });
 
   // Write output
+  const outFile = options.outputPath.endsWith('.html')
+    ? options.outputPath
+    : options.outputPath + '.html';
+  const finalOutputFile = options.outputMode === 'single' ? outFile : options.outputPath;
+  let finalSize = Buffer.byteLength(html, 'utf8');
+
   if (options.outputMode === 'single') {
-    const outFile = options.outputPath.endsWith('.html')
-      ? options.outputPath
-      : options.outputPath + '.html';
     fs.mkdirSync(path.dirname(outFile), { recursive: true });
     fs.writeFileSync(outFile, html, 'utf8');
     if (options.verbose) process.stderr.write(`Written: ${outFile}\n`);
@@ -124,9 +127,13 @@ export function assembleAndWrite(
     const outDir = options.outputPath;
     fs.mkdirSync(outDir, { recursive: true });
     const stem = path.basename(options.inputFile, path.extname(options.inputFile));
-    fs.writeFileSync(path.join(outDir, `${stem}.html`), html, 'utf8');
-    fs.writeFileSync(path.join(outDir, 'style.css'), css + (customCssContent ?? ''), 'utf8');
-    fs.writeFileSync(path.join(outDir, 'app.js'), js + (customJsContent ?? ''), 'utf8');
+    const htmlPath = path.join(outDir, `${stem}.html`);
+    const cssPath = path.join(outDir, 'style.css');
+    const jsPath = path.join(outDir, 'app.js');
+    fs.writeFileSync(htmlPath, html, 'utf8');
+    fs.writeFileSync(cssPath, css + (customCssContent ?? ''), 'utf8');
+    fs.writeFileSync(jsPath, js + (customJsContent ?? ''), 'utf8');
+    finalSize = Buffer.byteLength(html, 'utf8') + Buffer.byteLength(css, 'utf8') + Buffer.byteLength(js, 'utf8');
 
     if (fs.existsSync(assetsDir)) {
       const destAssets = path.join(outDir, 'assets');
@@ -139,5 +146,17 @@ export function assembleAndWrite(
     if (options.verbose) process.stderr.write(`Written: ${outDir}\n`);
   }
 
-  return { html, warnings };
+  return {
+    html,
+    warnings,
+    stats: {
+      sections: headings.length,
+      wikilinks: 0, // populated by compile
+      frontmatterKeys: Object.keys(meta).length + (hero.kicker ? 1 : 0) + (hero.subtitle ? 1 : 0) + (hero.pills?.length ? 1 : 0),
+      title,
+      accent,
+      outputFile: finalOutputFile,
+      sizeBytes: finalSize,
+    },
+  };
 }

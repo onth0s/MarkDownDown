@@ -23,6 +23,7 @@ const MDD_ROUTES = __ROUTES__;
 // ── Bidirectional Navigation Stack ──────────────────────────────────────────
 const backStack = [];
 const forwardStack = [];
+let initialScrollDone = false;
 
 function getSectionLabel(id) {
   if (!id) return '';

@@ -77,6 +77,16 @@ export interface CompileResult {
   html: string;
   /** Any warnings accumulated during compilation */
   warnings: string[];
+  /** Document statistics */
+  stats?: {
+    sections: number;
+    wikilinks: number;
+    frontmatterKeys: number;
+    title: string;
+    accent: string;
+    outputFile: string;
+    sizeBytes: number;
+  };
 }
 
 export { CompileError } from './util/error.js';

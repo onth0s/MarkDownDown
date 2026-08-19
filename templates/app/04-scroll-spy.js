@@ -22,10 +22,8 @@ function animateSidebarTo(targetScrollTop, duration) {
 }
 
 let lastActiveId = null;
-let initialScrollDone = false;
 let tocScrollActive = false;
 const scrollStateKey = `mdd_scroll_${location.pathname}`;
-const sidebarScrollKey = `mdd_sidebar_${location.pathname}`;
 function setActive(id) {
   if (!id || id === lastActiveId) return;
   lastActiveId = id;
@@ -39,7 +37,8 @@ function setActive(id) {
   }
   const activeLink = tocLinks.find(a => a.dataset.target === id);
   tocLinks.forEach(a => a.classList.toggle('active', a === activeLink));
-  if (!activeLink) return;
+  if (!activeLink || !sidebar) return;
+
   const sidebarRect = sidebar.getBoundingClientRect();
   const linkRect = activeLink.getBoundingClientRect();
   const sidebarCenter = sidebarRect.top + sidebarRect.height / 2;

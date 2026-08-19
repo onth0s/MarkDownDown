@@ -51,7 +51,11 @@ export function compile(options: Options): CompileResult {
   );
 
   // 7. Assemble and write
-  return assembleAndWrite(
+  const result = assembleAndWrite(
     options, meta, hero, title, accent, bodyHtml, assetsDir, headings, warnings, md,
   );
+  if (result.stats) {
+    result.stats.wikilinks = pendingLinks.length;
+  }
+  return result;
 }

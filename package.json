@@ -10,12 +10,14 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "node build.mjs",
+    "postbuild": "npm link --force",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=\"tests/\""
   },
   "dependencies": {
     "commander": "^12.1.0",
+    "esbuild": "^0.23.1",
     "js-yaml": "^4.1.0",
     "markdown-it": "^14.1.0"
   },

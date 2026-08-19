@@ -505,8 +505,8 @@ document.addEventListener('keydown', event => {
 // Land on hash target or restore exact saved state after browser restores scroll.
 let savedState = null;
 try { savedState = JSON.parse(sessionStorage.getItem(scrollStateKey) || 'null'); } catch (_) {}
-let savedSidebarScroll = null;
-try { savedSidebarScroll = JSON.parse(sessionStorage.getItem(sidebarScrollKey) || 'null'); } catch (_) {}
+
+initialScrollDone = false;
 
 const initialHash = location.hash ? decodeURIComponent(location.hash.slice(1)) : null;
 if (initialHash) {
@@ -527,23 +527,4 @@ if (initialHash) {
 }
 
 doScrollUpdate();
-
-if (typeof savedSidebarScroll === 'number' && sidebar) {
-  sidebar.scrollTop = savedSidebarScroll;
-}
-
-// Keep initialScrollDone = false across initial frames/scroll restorations to suppress unwanted animation transitions
-requestAnimationFrame(() => {
-  if (typeof savedSidebarScroll === 'number' && sidebar) {
-    sidebar.scrollTop = savedSidebarScroll;
-  }
-  setTimeout(() => {
-    initialScrollDone = true;
-  }, 120);
-});
-
-if (sidebar) {
-  sidebar.addEventListener('scroll', () => {
-    try { sessionStorage.setItem(sidebarScrollKey, JSON.stringify(sidebar.scrollTop)); } catch (_) {}
-  }, { passive: true });
-}
+initialScrollDone = true;

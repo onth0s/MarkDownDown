@@ -113,10 +113,33 @@ program
     };
 
     try {
+      const startTime = performance.now();
       const result = compile(options);
+      const elapsedMs = Math.round(performance.now() - startTime);
+
       for (const w of result.warnings) {
         process.stderr.write(`WARN: ${w}\n`);
       }
+
+      if (result.stats) {
+        const { sections, wikilinks, frontmatterKeys, title, accent, outputFile, sizeBytes } = result.stats;
+        const relOutput = path.relative(process.cwd(), outputFile) || outputFile;
+        const sizeFormatted = sizeBytes >= 1024 * 1024
+          ? `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`
+          : `${(sizeBytes / 1024).toFixed(1)} KB`;
+
+        process.stdout.write(`\n Markdown++ Compile Summary\n`);
+        process.stdout.write(` ---------------------------\n`);
+        process.stdout.write(` Title:       ${title}\n`);
+        process.stdout.write(` Accent:      ${accent}\n`);
+        process.stdout.write(` Sections:    ${sections}\n`);
+        process.stdout.write(` Wikilinks:   ${wikilinks}\n`);
+        process.stdout.write(` Frontmatter: ${frontmatterKeys} entries\n`);
+        process.stdout.write(` Mode:        ${outputMode} (${options.minify ? 'minified' : 'unminified'})\n`);
+        process.stdout.write(` Output:      ${relOutput} (${sizeFormatted})\n`);
+        process.stdout.write(` Time:        ${elapsedMs}ms\n\n`);
+      }
+
       process.exit(0);
     } catch (err) {
       process.stderr.write(`ERROR: ${toErrorMessage(err)}\n`);
