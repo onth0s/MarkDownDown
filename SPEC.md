@@ -167,19 +167,37 @@ Systematic dissolution of national sovereignty and civilizational capacity.
 
 ---
 
-## 7. CLI Interface
+## 7. File Link Resolution (`file:///...`)
+
+Markdown++ natively validates and resolves standard Markdown links pointing to file URIs (`[text](file:///path/to/file.ts#L10)`):
+
+- **URI Protocol Allowance**: Protocols including `file:`, `vscode:`, `http:`, `https:`, and `mailto:` are permitted.
+- **Disk Verification & Path Normalization**: Automatically verifies file existence on disk with fallback path normalization.
+- **Graceful Warning**: If a linked file cannot be found on disk, a non-fatal compiler warning is emitted (`File link target not found: "file:///..."`), and the link renders normally as `<a href="file:///...">text</a>`.
+
+---
+
+## 8. CLI Interface
 
 ```
-markdown++ <input.mdd> [options]
+mdd <input.mdd> [options]
+```
 
 Options:
+```
   -o, --output <path>       Output file (--single) or directory (--split)
-  --single                  Single self-contained HTML (all inlined)
-  --split                   Separate CSS/JS/assets (default)
+  --single                  Single self-contained HTML with inlined assets (default: true)
+  --split                   Separate CSS/JS/assets (default: false)
   --assets-dir <path>       Assets directory (default: ./assets/ relative to input)
   --no-diagrams             Skip diagram SVG rendering
   --no-tables               Skip table SVG rendering
-  -v, --verbose             Verbose output
+  --minify                  Minify CSS/JS/HTML in monolithic export (default: true)
+  --no-minify               Disable minification in monolithic export
+  -L, --logo [path]         Custom SVG or image brand logo and favicon
+  -F, --force               Force overwrite without confirmation prompt (default: false)
+  -v, --verbose             Verbose compiler logging (default: false)
+  --spec                    Print the full MD++ language specification and exit
+  -V, --version             Output the version number
   -h, --help                Show help
 ```
 
@@ -189,9 +207,18 @@ Exit codes:
 
 ---
 
-## 8. Output Modes
+## 9. Output Modes
 
-### 8.1 `--split` (default)
+### 9.1 `--single` (default)
+
+```
+output/
+└── document.html      # Everything inline: <style>, <script>, base64 images
+```
+
+CSS injected as `<style>`, JS as `<script>`, images base64-encoded inline. Linked `.mdd`/`.md` files remain as `href` references (not inlined).
+
+### 9.2 `--split`
 
 ```
 output/
@@ -201,18 +228,9 @@ output/
 └── assets/            # Copied from input assets dir (if present)
 ```
 
-### 8.2 `--single`
-
-```
-output/
-└── document.html      # Everything inline: <style>, <script>, base64 images
-```
-
-CSS injected as `<style>`, JS as `<script>`, images base64-encoded inline. Linked `.mdd`/`.md` files remain as `href` references (not inlined).
-
 ---
 
-## 9. Processing Pipeline
+## 10. Processing Pipeline
 
 ```
   input.mdd
@@ -260,7 +278,7 @@ CSS injected as `<style>`, JS as `<script>`, images base64-encoded inline. Linke
 
 ---
 
-## 10. Callout Alerts (`[!]` & `[!STRING]`)
+## 11. Callout Alerts (`[!]` & `[!STRING]`)
 
 Blockquotes starting with `[!]` or `[!<tag>]` are rendered as accent-styled callout boxes:
 
@@ -281,7 +299,7 @@ Blockquotes starting with `[!]` or `[!<tag>]` are rendered as accent-styled call
 
 ---
 
-## 11. In-Page Navigation History Stack
+## 12. In-Page Navigation History Stack
 
 Markdown++ documents feature an in-page navigation manager for internal wikilink traversal:
 
@@ -292,7 +310,7 @@ Markdown++ documents feature an in-page navigation manager for internal wikilink
 
 ---
 
-## 12. Design Decisions
+## 13. Design Decisions
 
 | # | Decision | Rationale |
 |---|----------|-----------|
