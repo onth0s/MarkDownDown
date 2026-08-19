@@ -42,7 +42,7 @@ program
   .option('--no-diagrams', 'Skip diagram SVG rendering')
   .option('--minify', 'Minify CSS/JS/HTML in monolithic export (default)', true)
   .option('--no-minify', 'Disable minification in monolithic export')
-  .option('-L, --logo <path>', 'Custom SVG or image brand logo and favicon')
+  .option('-L, --logo [path]', 'Custom SVG or image brand logo and favicon (auto-detects if single .svg exists in working dir)')
   .option('-F, --force', 'Force overwrite without confirmation prompt', false)
   .option('-v, --verbose', 'Verbose output', false)
   .action(async (input: string | undefined, opts: CliOptions) => {
@@ -62,31 +62,23 @@ program
       process.exit(1);
     }
 
-    const ext = path.extname(inputFile).toLowerCase();
-    if (ext !== '.mdd' && ext !== '.md' && ext !== '.markdown') {
-      process.stderr.write(`ERROR: Input file is not a supported Markdown file (.mdd, .md, .markdown): ${inputFile}\n`);
-      process.exit(1);
-    }
-
     const inputDir = path.dirname(inputFile);
-    const stem = path.basename(inputFile, path.extname(inputFile));
+    const parsedPath = path.parse(inputFile);
+    const stem = parsedPath.name;
 
-    const outputMode: 'single' | 'split' = opts.split ? 'split' : 'single';
+    const isSplit = opts.split === true;
+    const outputMode = isSplit ? 'split' : 'single';
 
     let outputPath: string;
     if (opts.output) {
       outputPath = path.resolve(process.cwd(), opts.output);
-    } else if (outputMode === 'single') {
-      outputPath = path.join(inputDir, `${stem}.html`);
-    } else {
+    } else if (isSplit) {
       outputPath = path.join(inputDir, stem);
+    } else {
+      outputPath = path.join(inputDir, `${stem}.html`);
     }
 
-    // Overwrite confirmation
-    const targetToCheck = outputMode === 'single'
-      ? (outputPath.endsWith('.html') ? outputPath : outputPath + '.html')
-      : outputPath;
-
+    const targetToCheck = isSplit ? outputPath : outputPath;
     if (fs.existsSync(targetToCheck) && !opts.force) {
       const allowed = await confirmOverwrite(targetToCheck);
       if (!allowed) {
@@ -99,7 +91,39 @@ program
       ? path.resolve(process.cwd(), opts.assetsDir)
       : path.join(inputDir, 'assets');
 
-    const logoPath = opts.logo ? path.resolve(process.cwd(), opts.logo) : undefined;
+    let logoPath: string | undefined;
+    if (typeof opts.logo === 'string') {
+      logoPath = path.resolve(process.cwd(), opts.logo);
+    } else if (opts.logo === true) {
+      // Auto-detect single .svg in current working directory first, then input directory
+      const findSingleSvg = (dir: string): string | null => {
+        try {
+          const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.svg'));
+          if (files.length === 1) return path.join(dir, files[0]);
+        } catch {
+          // ignore
+        }
+        return null;
+      };
+
+      const cwdSvg = findSingleSvg(process.cwd());
+      const inputDirSvg = findSingleSvg(inputDir);
+
+      if (cwdSvg) {
+        logoPath = cwdSvg;
+      } else if (inputDirSvg) {
+        logoPath = inputDirSvg;
+      } else {
+        const cwdSvgs = fs.readdirSync(process.cwd()).filter(f => f.toLowerCase().endsWith('.svg'));
+        if (cwdSvgs.length > 1) {
+          process.stderr.write(`ERROR: Multiple .svg files found in working directory. Please specify path: -L <path>\n`);
+          process.exit(1);
+        } else {
+          process.stderr.write(`ERROR: -L flag passed with no argument, but no .svg file was found in working directory or input directory.\n`);
+          process.exit(1);
+        }
+      }
+    }
 
     const options: Options = {
       title: stem,

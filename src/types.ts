@@ -48,7 +48,7 @@ export interface CliOptions {
   single: boolean;
   split: boolean;
   assetsDir?: string;
-  logo?: string;
+  logo?: string | boolean;
   noDiagrams: boolean;
   noTables: boolean;
   verbose: boolean;

@@ -114,7 +114,7 @@ TITLE: Markdown++ CLI Options
 | --no-tables | flag | Skip rendering table fences to SVG |
 | --minify | flag | Minify CSS/JS/HTML in monolithic export (default: true) |
 | --no-minify | flag | Disable minification in monolithic export |
-| -L, --logo <path> | string | Custom SVG or image brand logo and dynamic favicon |
+| -L, --logo [path] | string/flag | Custom brand logo and dynamic favicon (auto-detects if single .svg exists) |
 | -F, --force | flag | Force overwrite without confirmation prompt |
 | -v, --verbose | flag | Enable verbose compiler logging |
 | --spec | flag | Print the full MD++ language specification and exit |
