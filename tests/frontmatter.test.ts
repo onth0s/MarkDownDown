@@ -55,19 +55,14 @@ describe('parseFrontmatter', () => {
     expect(result.hero.pills).toEqual(['tag1', 'tag2']);
   });
 
-  test('ignores unknown keys', () => {
-    const source = '---\ntitle: "Test"\nunknown_key: "value"\n---\nBody';
-    const result = parseFrontmatter(source, '/tmp');
-    expect(result.meta.title).toBe('Test');
-    expect(result.body).toBe('Body');
+  test('invalid YAML throws CompileError', () => {
+    const source = '---\n: invalid: yaml: {{{\n---\n\nBody';
+    expect(() => parseFrontmatter(source, '/tmp')).toThrow(/Invalid YAML frontmatter/);
   });
 
-  test('invalid YAML returns body unchanged with warning', () => {
-    const source = '---\n: invalid: yaml: {{{\n---\n\nBody';
-    const result = parseFrontmatter(source, '/tmp');
-    expect(result.body).toBe(source);
-    expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toMatch(/^Invalid YAML frontmatter:/);
+  test('unknown frontmatter key throws CompileError', () => {
+    const source = '---\ntitle: "Test"\nunknown_key: "value"\n---\nBody';
+    expect(() => parseFrontmatter(source, '/tmp')).toThrow(/Invalid frontmatter key "unknown_key"/);
   });
 
   test('handles CRLF line endings', () => {
@@ -81,6 +76,16 @@ describe('parseFrontmatter', () => {
     const source = '---\nauthor: "Jane Doe"\n---\n\nBody';
     const result = parseFrontmatter(source, '/tmp');
     expect(result.meta.author).toBe('Jane Doe');
+  });
+
+  test('non-string title throws CompileError', () => {
+    const source = '---\ntitle: 123\n---\n\nBody';
+    expect(() => parseFrontmatter(source, '/tmp')).toThrow(/"title" must be a string/);
+  });
+
+  test('non-array pills throws CompileError', () => {
+    const source = '---\npills: "not-an-array"\n---\n\nBody';
+    expect(() => parseFrontmatter(source, '/tmp')).toThrow(/"pills" must be an array of strings/);
   });
 
   test('parses bg_lum with Option A slice string syntax', () => {

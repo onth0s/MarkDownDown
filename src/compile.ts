@@ -14,6 +14,7 @@ import { resolveLinks } from './pipeline/resolve-links.js';
 import { renderBody } from './pipeline/render-body.js';
 import { assembleAndWrite } from './pipeline/assemble.js';
 import { isValidHex } from './util/color.js';
+import { CompileError } from './util/error.js';
 
 export function compile(options: Options): CompileResult {
   const warnings: string[] = [];
@@ -27,7 +28,7 @@ export function compile(options: Options): CompileResult {
   warnings.push(...fmWarnings);
   const accent = meta.accent ?? options.accent;
   if (!isValidHex(accent)) {
-    warnings.push(`Invalid accent color "${accent}", falling back to #3b82f6`);
+    throw new CompileError(`Invalid accent color "${accent}". Must be a valid 3- or 6-digit hex color (e.g. #3b82f6)`);
   }
   const assetsDir = meta.assetsDir ?? options.assetsDir;
 

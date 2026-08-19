@@ -7,7 +7,7 @@
 import yaml from 'js-yaml';
 import path from 'node:path';
 import type { Options, HeroMeta, BgLum } from '../types.js';
-import { toErrorMessage } from '../util/error.js';
+import { CompileError, toErrorMessage } from '../util/error.js';
 
 export interface FrontmatterResult {
   /** Parsed option overrides from frontmatter */
@@ -88,45 +88,109 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
   const rawYaml = match[1];
   const body = match[2];
 
-  let parsed: Record<string, unknown> = {};
+  let parsed: Record<string, unknown>;
   try {
     const result = yaml.load(rawYaml);
-    if (result && typeof result === 'object') {
-      parsed = result as Record<string, unknown>;
+    if (!result || typeof result !== 'object' || Array.isArray(result)) {
+      throw new CompileError(`Invalid frontmatter: expected a YAML key-value mapping`);
     }
+    parsed = result as Record<string, unknown>;
   } catch (err) {
-    return { meta: {}, hero: {}, body: source, warnings: [`Invalid YAML frontmatter: ${toErrorMessage(err)}`] };
+    if (err instanceof CompileError) throw err;
+    throw new CompileError(`Invalid YAML frontmatter: ${toErrorMessage(err)}`);
+  }
+
+  const VALID_KEYS = new Set([
+    'title', 'author', 'accent', 'bg_lum', 'bg-lum', 'bglum',
+    'kicker', 'subtitle', 'pills',
+    'assets_dir', 'custom_css', 'custom_js', 'logo'
+  ]);
+
+  for (const key of Object.keys(parsed)) {
+    if (!VALID_KEYS.has(key)) {
+      throw new CompileError(`Invalid frontmatter key "${key}". Valid keys: ${[...VALID_KEYS].join(', ')}`);
+    }
   }
 
   const meta: FrontmatterResult['meta'] = {};
   const hero: HeroMeta = {};
 
-  if (typeof parsed['title'] === 'string') meta.title = parsed['title'];
-  if (typeof parsed['author'] === 'string') meta.author = parsed['author'];
-  if (typeof parsed['accent'] === 'string') meta.accent = parsed['accent'];
+  if (parsed['title'] !== undefined) {
+    if (typeof parsed['title'] !== 'string') {
+      throw new CompileError(`Invalid frontmatter: "title" must be a string`);
+    }
+    meta.title = parsed['title'];
+  }
+
+  if (parsed['author'] !== undefined) {
+    if (typeof parsed['author'] !== 'string') {
+      throw new CompileError(`Invalid frontmatter: "author" must be a string`);
+    }
+    meta.author = parsed['author'];
+  }
+
+  if (parsed['accent'] !== undefined) {
+    if (typeof parsed['accent'] !== 'string') {
+      throw new CompileError(`Invalid frontmatter: "accent" must be a string hex color (e.g. "#3b82f6")`);
+    }
+    meta.accent = parsed['accent'];
+  }
 
   const rawBgLum = parsed['bg_lum'] ?? parsed['bg-lum'] ?? parsed['bglum'];
   if (rawBgLum !== undefined) {
     const parsedLum = parseBgLum(rawBgLum);
-    if (parsedLum) meta.bgLum = parsedLum;
+    if (!parsedLum) {
+      throw new CompileError(`Invalid frontmatter: "bg_lum" must be a valid slice string (e.g. "0.0 : 0.95"), array (e.g. [0.0, 0.95]), or mapping (e.g. { dark: 0.0, light: 0.95 }) with values between 0.0 and 1.0`);
+    }
+    meta.bgLum = parsedLum;
   }
 
-  if (typeof parsed['kicker'] === 'string') hero.kicker = parsed['kicker'];
-  if (typeof parsed['subtitle'] === 'string') hero.subtitle = parsed['subtitle'];
-  if (Array.isArray(parsed['pills']) && parsed['pills'].every((p: unknown) => typeof p === 'string')) {
+  if (parsed['kicker'] !== undefined) {
+    if (typeof parsed['kicker'] !== 'string') {
+      throw new CompileError(`Invalid frontmatter: "kicker" must be a string`);
+    }
+    hero.kicker = parsed['kicker'];
+  }
+
+  if (parsed['subtitle'] !== undefined) {
+    if (typeof parsed['subtitle'] !== 'string') {
+      throw new CompileError(`Invalid frontmatter: "subtitle" must be a string`);
+    }
+    hero.subtitle = parsed['subtitle'];
+  }
+
+  if (parsed['pills'] !== undefined) {
+    if (!Array.isArray(parsed['pills']) || !parsed['pills'].every((p: unknown) => typeof p === 'string')) {
+      throw new CompileError(`Invalid frontmatter: "pills" must be an array of strings`);
+    }
     hero.pills = parsed['pills'] as string[];
   }
 
-  if (typeof parsed['assets_dir'] === 'string') {
+  if (parsed['assets_dir'] !== undefined) {
+    if (typeof parsed['assets_dir'] !== 'string') {
+      throw new CompileError(`Invalid frontmatter: "assets_dir" must be a file path string`);
+    }
     meta.assetsDir = path.resolve(inputDir, parsed['assets_dir']);
   }
-  if (typeof parsed['custom_css'] === 'string') {
+
+  if (parsed['custom_css'] !== undefined) {
+    if (typeof parsed['custom_css'] !== 'string') {
+      throw new CompileError(`Invalid frontmatter: "custom_css" must be a file path string`);
+    }
     meta.customCss = path.resolve(inputDir, parsed['custom_css']);
   }
-  if (typeof parsed['custom_js'] === 'string') {
+
+  if (parsed['custom_js'] !== undefined) {
+    if (typeof parsed['custom_js'] !== 'string') {
+      throw new CompileError(`Invalid frontmatter: "custom_js" must be a file path string`);
+    }
     meta.customJs = path.resolve(inputDir, parsed['custom_js']);
   }
-  if (typeof parsed['logo'] === 'string') {
+
+  if (parsed['logo'] !== undefined) {
+    if (typeof parsed['logo'] !== 'string') {
+      throw new CompileError(`Invalid frontmatter: "logo" must be a file path string`);
+    }
     meta.logo = path.resolve(inputDir, parsed['logo']);
   }
 
