@@ -270,9 +270,11 @@ function hslToHex(h, s, l) {
   return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
 }
 
+const docAccent = '__ACCENT__';
+const docTheme = '__THEME__';
 const faviconTmpl = '__FAVICON__';
 
-function setAccent(hex) {
+function setAccent(hex, isInitial = false) {
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
   root.style.setProperty('--accent', hex);
   root.style.setProperty('--accent-rgb', hexToRgb(hex));
@@ -288,37 +290,51 @@ function setAccent(hex) {
   const fg = y > 170 ? '#172033' : '#ffffff';
   const [targetH, targetS, targetL] = hexToHsl(hex);
   
-  // Render dynamic favicon replacing {accent}, {accentDark}, {accentFg}, and lightness placeholders {L_xx}
-  const svg = faviconTmpl
-    .replace(/\{accent\}/g, hex)
-    .replace(/\{accentDark\}/g, dark)
-    .replace(/\{accentFg\}/g, fg)
-    .replace(/\{L_(\d+)\}/g, (_, lStr) => {
-      const l = parseInt(lStr, 10);
-      const effectiveL = (l > 15 && l < 85) ? l : targetL;
-      return hslToHex(targetH, targetS, effectiveL);
-    });
-  
   const favicon = document.getElementById('dynamicFavicon');
-  if (favicon) favicon.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
-
-  // Dynamically recolor navbar SVG elements to match active accent color
-  const navBrandLogo = document.querySelector('.brand svg.brand-logo');
-  if (navBrandLogo) {
-    navBrandLogo.querySelectorAll('[data-l]').forEach(el => {
-      const l = parseInt(el.getAttribute('data-l'), 10);
-      const effectiveL = (!isNaN(l) && l > 15 && l < 85) ? l : targetL;
-      const mappedHex = hslToHex(targetH, targetS, effectiveL);
-      if (el.hasAttribute('fill') && el.getAttribute('fill') !== 'none') {
-        el.setAttribute('fill', mappedHex);
+  // Update dynamic favicon only if not initial matching static HTML, or when actively changed
+  if (favicon) {
+    if (faviconTmpl.startsWith('data:')) {
+      if (favicon.getAttribute('href') !== faviconTmpl) {
+        favicon.href = faviconTmpl;
       }
-      if (el.hasAttribute('stroke') && el.getAttribute('stroke') !== 'none') {
-        el.setAttribute('stroke', mappedHex);
+    } else if (!isInitial || hex.toLowerCase() !== docAccent.toLowerCase()) {
+      const svg = faviconTmpl
+        .replace(/\{accent\}/g, hex)
+        .replace(/\{accentDark\}/g, dark)
+        .replace(/\{accentFg\}/g, fg)
+        .replace(/\{L_(\d+)\}/g, (_, lStr) => {
+          const l = parseInt(lStr, 10);
+          const effectiveL = (l > 15 && l < 85) ? l : targetL;
+          return hslToHex(targetH, targetS, effectiveL);
+        });
+      const newHref = 'data:image/svg+xml,' + encodeURIComponent(svg);
+      if (favicon.getAttribute('href') !== newHref) {
+        favicon.href = newHref;
       }
-    });
+    }
   }
 
-  store.set('mdd-accent', hex);
+  // Dynamically recolor navbar SVG elements only if accent diverges from pre-compiled static HTML
+  if (!isInitial || hex.toLowerCase() !== docAccent.toLowerCase()) {
+    const navBrandLogo = document.querySelector('.brand svg.brand-logo');
+    if (navBrandLogo) {
+      navBrandLogo.querySelectorAll('[data-l]').forEach(el => {
+        const l = parseInt(el.getAttribute('data-l'), 10);
+        const effectiveL = (!isNaN(l) && l > 15 && l < 85) ? l : targetL;
+        const mappedHex = hslToHex(targetH, targetS, effectiveL);
+        if (el.hasAttribute('fill') && el.getAttribute('fill') !== 'none') {
+          el.setAttribute('fill', mappedHex);
+        }
+        if (el.hasAttribute('stroke') && el.getAttribute('stroke') !== 'none') {
+          el.setAttribute('stroke', mappedHex);
+        }
+      });
+    }
+  }
+
+  if (!isInitial) {
+    store.set('mdd-accent', hex);
+  }
   const picker = document.getElementById('colorPicker');
   if (picker) picker.value = hex;
   document.querySelectorAll('.swatch').forEach(s =>
@@ -326,10 +342,15 @@ function setAccent(hex) {
   );
 }
 
-function setTheme(theme) {
+function setTheme(theme, isInitial = false) {
   root.dataset.theme = theme === 'light' ? 'light' : 'dark';
-  store.set('mdd-theme', root.dataset.theme);
+  if (!isInitial) {
+    store.set('mdd-theme', root.dataset.theme);
+  }
 }
 
-setAccent(store.get('mdd-accent', '__ACCENT__'));
-setTheme(store.get('mdd-theme', '__THEME__'));
+// Initialize on page load without causing flash
+const initialAccent = store.get('mdd-accent', docAccent);
+const initialTheme = store.get('mdd-theme', docTheme);
+setAccent(initialAccent, true);
+setTheme(initialTheme, true);

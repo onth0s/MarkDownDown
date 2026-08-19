@@ -78,6 +78,7 @@ export function assembleDocument(
   bodyHtml: string,
   headings: import('../types.js').Heading[],
   md?: import('markdown-it').default,
+  warnings: string[] = [],
 ): AssembledDocument {
   const heroHtml = buildHeroHtml(hero, title, md);
   const accentRgb = hexToRgb(accent);
@@ -93,7 +94,7 @@ export function assembleDocument(
   }
 
   const effectiveLogoPath = meta.logo ?? options.logo;
-  const processedLogo = processLogo(effectiveLogoPath, accent);
+  const processedLogo = processLogo(effectiveLogoPath, accent, warnings);
 
   const effectiveBgLum = meta.bgLum ?? options.bgLum;
   const lumParams = computeLuminosityParams(effectiveBgLum);
@@ -213,7 +214,7 @@ export function assembleAndWrite(
   warnings: string[],
   md?: import('markdown-it').default,
 ): CompileResult {
-  const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md);
+  const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md, warnings);
   const finalSize = writeOutput(options, assembled, assetsDir, warnings);
 
   return {

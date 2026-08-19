@@ -16,10 +16,13 @@ export interface ProcessedLogo {
 /**
  * Process custom logo file (SVG or image) or fall back to default logo.
  */
-export function processLogo(logoPath?: string, accent = '#3b82f6'): ProcessedLogo {
+export function processLogo(logoPath?: string, accent = '#3b82f6', warnings?: string[]): ProcessedLogo {
   const darkAccent = darkenHex(accent);
 
   if (!logoPath || !fs.existsSync(logoPath)) {
+    if (logoPath && !fs.existsSync(logoPath) && warnings) {
+      warnings.push(`Logo file not found: "${logoPath}" (falling back to default logo)`);
+    }
     const fgAccent = getContrastFg(accent);
     const defaultNavLogo =
       `<svg class="brand-logo" aria-hidden="true" focusable="false" ` +

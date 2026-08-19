@@ -6,10 +6,17 @@ describe('Logo Processor Unit Tests', () => {
   const scratchDir = path.resolve(process.cwd(), 'scratch');
 
   test('returns default logo when no path or non-existent path is provided', () => {
-    const res = processLogo(undefined, '#3b82f6');
+    const warnings: string[] = [];
+    const res = processLogo(undefined, '#3b82f6', warnings);
     expect(res.navbarLogo).toContain('class="brand-logo"');
     expect(res.navbarLogo).toContain('viewBox="0 0 1024 1024"');
     expect(res.faviconHref).toContain('data:image/svg+xml');
+    expect(warnings.length).toBe(0);
+
+    const resMissing = processLogo('non_existent_logo.svg', '#3b82f6', warnings);
+    expect(resMissing.navbarLogo).toContain('class="brand-logo"');
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]).toContain('Logo file not found');
   });
 
   test('processes custom SVG logo extracting viewBox, harmonizing hue and preserving lightness', () => {
