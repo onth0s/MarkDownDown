@@ -26,6 +26,8 @@ export interface Options {
   logo?: string;
   /** Absolute path to the source .mdd file */
   inputFile: string;
+  /** In-memory raw source string (optional, bypasses disk read) */
+  rawSource?: string;
   /** Absolute path to the output file (--single) or directory (--split) */
   outputPath: string;
   /** Output mode: single self-contained HTML or split CSS/JS/assets */

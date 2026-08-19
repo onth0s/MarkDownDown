@@ -21,7 +21,7 @@ export function compile(options: Options): CompileResult {
   const inputDir = path.dirname(options.inputFile);
 
   // 1. Read source
-  const rawSource = fs.readFileSync(options.inputFile, 'utf8');
+  const rawSource = options.rawSource ?? fs.readFileSync(options.inputFile, 'utf8');
 
   // 2. Frontmatter
   const { meta, hero, body: markdownBody, warnings: fmWarnings } = parseFrontmatter(rawSource, inputDir);
