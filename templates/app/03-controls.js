@@ -69,13 +69,13 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
     let code = parent.querySelector('code')?.textContent ?? '';
     if (parent.classList.contains('diagram')) {
       const title = parent.getAttribute('data-title');
-      const titleLine = title ? `TITLE: ${title}\n` : '';
+      const titleLine = title ? `TITLE: ${title}\n\n` : '';
       const dir = parent.getAttribute('data-direction');
       const fenceHeader = dir ? `diagram ${dir}` : 'diagram';
       code = '```' + fenceHeader + '\n' + titleLine + code.trim() + '\n```';
     } else if (parent.classList.contains('table')) {
       const title = parent.getAttribute('data-title');
-      const titleLine = title ? `TITLE: ${title}\n` : '';
+      const titleLine = title ? `TITLE: ${title}\n\n` : '';
       code = '```table\n' + titleLine + code.trim() + '\n```';
     }
     const old = btn.textContent;
