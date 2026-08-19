@@ -122,12 +122,10 @@
       setActive(prev.id);
     }
 
-    window.scrollTo({ top: targetY, behavior: 'smooth' });
+    window.scrollTo(0, targetY);
     highlightJumpTarget(prev.id);
-    onScrollEnd(() => {
-      tocScrollActive = false;
-      if (prev.id) setActive(prev.id);
-    });
+    tocScrollActive = false;
+    if (prev.id) setActive(prev.id);
   }
 
   function navigateHistoryForward() {
@@ -163,12 +161,10 @@
       setActive(next.id);
     }
 
-    window.scrollTo({ top: targetY, behavior: 'smooth' });
+    window.scrollTo(0, targetY);
     highlightJumpTarget(next.id);
-    onScrollEnd(() => {
-      tocScrollActive = false;
-      if (next.id) setActive(next.id);
-    });
+    tocScrollActive = false;
+    if (next.id) setActive(next.id);
   }
 
   const store = {
@@ -1022,6 +1018,18 @@
       rebuildSearch('');
       updateClearButton();
     }
+
+    event.preventDefault();
+    tocScrollActive = true;
+    if (targetId === '__doc-title__') {
+      window.scrollTo(0, 0);
+    } else if (targetEl) {
+      targetEl.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+    setActive(targetId);
+    highlightJumpTarget(targetId);
+    history.replaceState(null, '', `#${targetId}`);
+    tocScrollActive = false;
   });
 
   if (navClearBtn) {
