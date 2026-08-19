@@ -21,10 +21,13 @@ function renderWikilinkToken(
   resolved: ResolvedLink,
   outputMode: 'single' | 'split',
   assetBase64Map?: Map<string, string>,
+  md?: MarkdownIt,
 ): string {
+  const renderDisplay = (text: string) => (md ? md.renderInline(text) : escHtml(text));
+
   switch (resolved.kind) {
     case 'heading':
-      return `<a href="#${resolved.heading.id}">${escHtml(display)}</a>`;
+      return `<a href="#${resolved.heading.id}">${renderDisplay(display)}</a>`;
 
     case 'image': {
       if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
@@ -43,7 +46,7 @@ function renderWikilinkToken(
     }
 
     case 'doc':
-      return `<a href="${resolved.asset.relativePath}">${escHtml(display)}</a>`;
+      return `<a href="${resolved.asset.relativePath}">${renderDisplay(display)}</a>`;
   }
 }
 
@@ -69,7 +72,7 @@ export function renderBody(
     const display = tok.info || target;
     const pw = linkMap.get(`${target}|${display}`);
     if (!pw?.resolution) return `[[${target}]]`;
-    return renderWikilinkToken(target, display, pw.resolution, options.outputMode, assetBase64Map);
+    return renderWikilinkToken(target, display, pw.resolution, options.outputMode, assetBase64Map, md);
   };
 
   // Render markdown to HTML, then inject SVGs and copy buttons
