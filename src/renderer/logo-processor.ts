@@ -83,13 +83,13 @@ export function processLogo(logoPath?: string, accent = '#3b82f6'): ProcessedLog
       // map it to the target accent's lightness.
       let effectiveL = l <= 15 ? targetL : l;
 
-      // If the target accent is pure black (L <= 5) or pure white (L >= 95),
-      // ensure elements stay clearly visible by assigning high-contrast luminance
-      if (targetL <= 5) {
-        // Black accent -> use light/white tone for logo paths
+      // If the target accent is pure white (L >= 95) or pure black (L <= 5),
+      // ensure elements reflect the intended white/black accent luminosity:
+      if (targetL >= 95) {
+        // White accent -> use bright white tone (L = 90%)
         effectiveL = 90;
-      } else if (targetL >= 95) {
-        // White accent -> use high-contrast dark tone for logo paths
+      } else if (targetL <= 5) {
+        // Black accent -> use deep dark tone (L = 15%)
         effectiveL = 15;
       }
 

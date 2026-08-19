@@ -61,9 +61,9 @@ describe('Logo Processor Unit Tests', () => {
 
     try {
       const res = processLogo(svgPath, '#000000');
-      // Should not collapse to pitch black; mapped to lightness 90%
-      expect(res.navbarLogo).toContain('stroke="#e6e6e6"');
-      expect(res.navbarLogo).toContain('data-l="90"');
+      // Black accent maps to deep dark tone lightness 15%
+      expect(res.navbarLogo).toContain('stroke="#262626"');
+      expect(res.navbarLogo).toContain('data-l="15"');
     } finally {
       if (fs.existsSync(svgPath)) fs.unlinkSync(svgPath);
     }
@@ -78,9 +78,9 @@ describe('Logo Processor Unit Tests', () => {
 
     try {
       const res = processLogo(svgPath, '#ffffff');
-      // Should not collapse to pure white; mapped to high-contrast dark tone lightness 15%
-      expect(res.navbarLogo).toContain('fill="#262626"');
-      expect(res.navbarLogo).toContain('data-l="15"');
+      // White accent maps to bright white tone lightness 90%
+      expect(res.navbarLogo).toContain('fill="#e6e6e6"');
+      expect(res.navbarLogo).toContain('data-l="90"');
     } finally {
       if (fs.existsSync(svgPath)) fs.unlinkSync(svgPath);
     }
