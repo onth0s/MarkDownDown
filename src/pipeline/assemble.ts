@@ -88,7 +88,8 @@ export function assembleAndWrite(
   const effectiveLogoPath = meta.logo ?? options.logo;
   const processedLogo = processLogo(effectiveLogoPath, accent);
 
-  const css = buildCss(accent, accentRgb);
+  const effectiveBgLum = meta.bgLum ?? options.bgLum;
+  const css = buildCss(accent, accentRgb, effectiveBgLum);
   const js = buildJs(accent, routes, processedLogo.faviconTemplate);
 
   let customCssContent: string | undefined;

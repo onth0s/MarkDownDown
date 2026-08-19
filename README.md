@@ -46,15 +46,23 @@ Unlike traditional static site generators, Markdown++ produces self-contained or
 
 ## Compilation Architecture
 
-```diagram
-TITLE: Markdown++ Compilation Pipeline
+```diagram 
+TITLE: Markdown++ Compilation Pipeline 
+
 INPUT["Input .mdd Document — Source file with frontmatter, wikilinks, diagrams & tables"]
+
 FRONT["Frontmatter Parser — Extracts title, accent, assets_dir & styling options"]
+
 LEX["Lexer & Tokenizer — markdown-it core tokens, wikilink & fence rules"]
+
 RESOLVE["Fuzzy Link & Asset Resolver — 4-pass heading matching + assets directory scan"]
+
 RENDER["Renderer — GFM to HTML, diagram & table ASTs to SVG"]
+
 ASSEMBLE["Output Assembler — Inlines/links scripts, styles, base64 images into shell"]
+
 OUTPUT["HTML Output — Standalone single-file or split distribution"]
+
 INPUT --> FRONT
 FRONT --> LEX
 LEX --> RESOLVE
@@ -138,6 +146,7 @@ Documents can start with an optional YAML block delimited by `---`:
 ---
 title: "System Architecture Specification"
 accent: "#2563eb"
+bg_lum: "0.0 : 0.95" # or bg_lum: { dark: 0.0, light: 0.95 }
 assets_dir: "./assets"
 custom_css: "./theme.css"
 custom_js: "./analytics.js"

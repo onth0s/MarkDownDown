@@ -1,10 +1,10 @@
   :root {
   --accent: __ACCENT__;
   --accent-rgb: __ACCENT_RGB__;
-  --accent-tint-dark: color-mix(in srgb, #0b0f16 92%, __ACCENT__ 8%);
-  --accent-surface-dark: color-mix(in srgb, #111827 90%, __ACCENT__ 10%);
-  --accent-tint-light: color-mix(in srgb, #f4f7fb 94%, __ACCENT__ 6%);
-  --accent-surface-light: color-mix(in srgb, #ffffff 95%, __ACCENT__ 5%);
+  --accent-tint-dark: color-mix(in srgb, __BASE_DARK_BG__ 92%, __ACCENT__ 8%);
+  --accent-surface-dark: color-mix(in srgb, __BASE_DARK_SURFACE__ 90%, __ACCENT__ 10%);
+  --accent-tint-light: color-mix(in srgb, __BASE_LIGHT_BG__ 94%, __ACCENT__ 6%);
+  --accent-surface-light: color-mix(in srgb, __BASE_LIGHT_SURFACE__ 95%, __ACCENT__ 5%);
   --bg: var(--accent-tint-dark);
   --surface: var(--accent-surface-dark);
   --surface-2: color-mix(in srgb, #172033 90%, var(--accent) 10%);

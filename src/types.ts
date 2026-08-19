@@ -1,3 +1,11 @@
+/** Background luminosity configuration for dark/light themes */
+export interface BgLum {
+  /** Dark mode base luminosity (0.0 = pitch OLED black, 1.0 = light grey). Default: 0.12 */
+  dark?: number;
+  /** Light mode base luminosity (0.0 = dark grey, 1.0 = pure white). Default: 0.98 */
+  light?: number;
+}
+
 /** CLI options derived from YAML frontmatter + command-line flags */
 export interface Options {
   /** Document title. Fallback: .mdd filename stem. */
@@ -8,6 +16,8 @@ export interface Options {
   assetsDir: string;
   /** Accent color hex (default: #3b82f6) */
   accent: string;
+  /** Background luminosity overrides for dark and light modes (0.0 to 1.0) */
+  bgLum?: BgLum;
   /** Path to optional extra CSS file (content will be inlined) */
   customCss?: string;
   /** Path to optional extra JS file (content will be inlined) */

@@ -81,13 +81,12 @@ pills:
 ---
 \`\`\`
 
-### Keys
-
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | \`title\` | string | \`.mdd\` filename stem | Document title. Injected into \`<title>\`, topbar brand, and hero. |
 | \`author\` | string | (none) | Author name. Informational only. |
 | \`accent\` | string | \`#3b82f6\` | Hex accent color. Drives CSS custom properties and SVG fills. |
+| \`bg_lum\` | string / array / object | \`[0.08 : 0.96]\` | Background luminosity overrides for dark/light modes (\`0.0\` to \`1.0\`). |
 | \`logo\` | string | (none) | Path to custom brand logo SVG or image. Used for navbar and dynamic favicon. |
 | \`assets_dir\` | string | \`./assets/\` relative to \`.mdd\` | Directory to scan for wikilink file resolution. |
 | \`custom_css\` | string | (none) | Path to extra CSS file. Inlined in output. |
@@ -95,6 +94,22 @@ pills:
 | \`kicker\` | string | (none) | Hero section kicker text (small label above title). |
 | \`subtitle\` | string | (none) | Hero section subtitle. |
 | \`pills\` | string[] | (none) | Hero section badge/tag array. |
+
+### 3.1 Background Luminosity (\`bg_lum\`)
+
+Accepts slice syntax (Option A) and key-value mapping (Option B):
+
+- **Slice / Array syntax (Option A)**:
+  - \`bg_lum: "0.0 : 0.9"\` — dark mode pitch black (\`0.0\`), light mode \`0.9\`
+  - \`bg_lum: "[:0.85]"\` or \`bg_lum: ": 0.85"\` — dark default, light \`0.85\`
+  - \`bg_lum: "[0.0:]"\` or \`bg_lum: "0.0 :"\` — dark \`0.0\`, light default
+  - \`bg_lum: [0.0, 0.9]\` or \`bg_lum: [null, 0.9]\`
+- **Mapping syntax (Option B)**:
+  \`\`\`yaml
+  bg_lum:
+    dark: 0.05
+    light: 0.95
+  \`\`\`
 
 All keys are optional. Unknown keys are ignored. Frontmatter values override CLI defaults.
 

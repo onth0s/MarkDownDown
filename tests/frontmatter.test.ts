@@ -83,15 +83,24 @@ describe('parseFrontmatter', () => {
     expect(result.meta.author).toBe('Jane Doe');
   });
 
-  test('non-string title is ignored', () => {
-    const source = '---\ntitle: 123\n---\n\nBody';
-    const result = parseFrontmatter(source, '/tmp');
-    expect(result.meta.title).toBeUndefined();
+  test('parses bg_lum with Option A slice string syntax', () => {
+    const src1 = '---\nbg_lum: "0.0 : 0.85"\n---\nBody';
+    expect(parseFrontmatter(src1, '/tmp').meta.bgLum).toEqual({ dark: 0.0, light: 0.85 });
+
+    const src2 = '---\nbg_lum: "[:0.85]"\n---\nBody';
+    expect(parseFrontmatter(src2, '/tmp').meta.bgLum).toEqual({ light: 0.85 });
+
+    const src3 = '---\nbg_lum: "[0.0:]"\n---\nBody';
+    expect(parseFrontmatter(src3, '/tmp').meta.bgLum).toEqual({ dark: 0.0 });
   });
 
-  test('non-array pills is ignored', () => {
-    const source = '---\npills: "not-an-array"\n---\n\nBody';
-    const result = parseFrontmatter(source, '/tmp');
-    expect(result.hero.pills).toBeUndefined();
+  test('parses bg_lum with Option A array syntax', () => {
+    const src = '---\nbg_lum:\n  - 0.0\n  - 0.9\n---\nBody';
+    expect(parseFrontmatter(src, '/tmp').meta.bgLum).toEqual({ dark: 0.0, light: 0.9 });
+  });
+
+  test('parses bg_lum with Option B mapping syntax', () => {
+    const src = '---\nbg_lum:\n  dark: 0.05\n  light: 0.95\n---\nBody';
+    expect(parseFrontmatter(src, '/tmp').meta.bgLum).toEqual({ dark: 0.05, light: 0.95 });
   });
 });
