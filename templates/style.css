@@ -85,7 +85,9 @@ button, input { font:inherit; }
   display:block; flex:none; pointer-events:none;
 }
 .icon-accent {
+  stroke: var(--accent);
   transform: translateY(0.5px);
+  transition: stroke .2s ease;
 }
 
 /* Theme icon dynamic luminosity & highlights based on active theme */
