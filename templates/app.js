@@ -68,6 +68,14 @@
     } else {
       navForwardBtn.hidden = true;
     }
+
+    // Position strictly to the right outside of the sidebar
+    if (sidebar && window.innerWidth > 900) {
+      const rect = sidebar.getBoundingClientRect();
+      navHistoryBar.style.left = `${Math.round(rect.right + 20)}px`;
+    } else {
+      navHistoryBar.style.left = 'max(16px, env(safe-area-inset-left))';
+    }
   }
 
   function highlightJumpTarget(id) {
@@ -431,6 +439,7 @@
     if (window.innerWidth > 900 && body.classList.contains('nav-open')) {
       body.classList.remove('nav-open');
     }
+    updateNavHistoryUI();
   });
 
   // ── Copy buttons ───────────────────────────────────────────────────────────
