@@ -34,17 +34,23 @@ function safeCopyDir(src: string, dest: string): void {
 function buildHeroHtml(
   hero: HeroMeta,
   title: string,
+  md?: import('markdown-it').default,
 ): string {
   if (!hero.kicker && !hero.subtitle && !hero.pills?.length) return '';
 
+  const renderInline = (str: string) => {
+    if (!str) return '';
+    return md ? md.renderInline(str) : escHtml(str);
+  };
+
   let html = '<section class="hero">';
-  if (hero.kicker) html += `<div class="kicker">${escHtml(hero.kicker)}</div>`;
-  if (title) html += `<h1>${escHtml(title)}</h1>`;
-  if (hero.subtitle) html += `<p>${escHtml(hero.subtitle)}</p>`;
+  if (hero.kicker) html += `<div class="kicker">${renderInline(hero.kicker)}</div>`;
+  if (title) html += `<h1>${renderInline(title)}</h1>`;
+  if (hero.subtitle) html += `<p>${renderInline(hero.subtitle)}</p>`;
   if (hero.pills?.length) {
     html += '<div class="meta">';
     for (const pill of hero.pills) {
-      html += `<span class="pill">${escHtml(pill)}</span>`;
+      html += `<span class="pill">${renderInline(pill)}</span>`;
     }
     html += '</div>';
   }
@@ -62,8 +68,9 @@ export function assembleAndWrite(
   assetsDir: string,
   headings: import('../types.js').Heading[],
   warnings: string[],
+  md?: import('markdown-it').default,
 ): CompileResult {
-  const heroHtml = buildHeroHtml(hero, title);
+  const heroHtml = buildHeroHtml(hero, title, md);
 
   const accentRgb = hexToRgb(accent);
 

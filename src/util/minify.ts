@@ -132,10 +132,16 @@ export function minifyHtml(html: string): string {
     return placeholder(preBlocks.length - 1);
   });
 
+  // Block elements where whitespace between tags can be safely eliminated
+  const blockTags = 'html|head|body|title|meta|link|style|script|div|section|article|aside|header|footer|nav|main|ul|ol|li|table|thead|tbody|tr|th|td|blockquote|h[1-6]|p|hr';
+
   let minified = protectedHtml
     .replace(/<!--(?!__PRE_BLOCK_)[\s\S]*?-->/g, '')
-    .replace(/>\s+</g, '><')
-    .replace(/\s+/g, ' ')
+    // Collapse multi-whitespace into a single space
+    .replace(/[ \t\r\n]+/g, ' ')
+    // Eliminate spaces between closing and opening block-level elements
+    .replace(new RegExp(`>(?:\\s+)<(?=/?(?:${blockTags})\\b)`, 'gi'), '><')
+    .replace(new RegExp(`(</?(?:${blockTags})[^>]*>)(?:\\s+)<`, 'gi'), '$1<')
     .trim();
 
   for (let idx = 0; idx < preBlocks.length; idx++) {

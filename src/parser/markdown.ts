@@ -32,15 +32,8 @@ export function createMarkdownParser(): MarkdownIt {
     }
   });
 
-  // Support GitHub-style alerts: [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]
-  const ALERT_TITLES: Record<string, string> = {
-    NOTE: 'Note',
-    TIP: 'Tip',
-    IMPORTANT: 'Important',
-    WARNING: 'Warning',
-    CAUTION: 'Caution',
-  };
-  const ALERT_RE = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\r?\n|$)/i;
+  // Support callout alerts with optional string identifier: [!] or [!STRING]
+  const ALERT_RE = /^\[!(?:([a-zA-Z0-9_\u00C0-\u024F\s-]+))?\](?:\r?\n|\s+|$)/i;
 
   md.core.ruler.after('block', 'github_alerts', (state) => {
     const tokens = state.tokens;
@@ -61,14 +54,14 @@ export function createMarkdownParser(): MarkdownIt {
       const match = inlineTok.content.match(ALERT_RE);
       if (!match) continue;
 
-      const type = match[1].toUpperCase();
-      const title = ALERT_TITLES[type] ?? type;
+      const rawType = (match[1] || '').trim();
+      const title = rawType ? (rawType.charAt(0).toUpperCase() + rawType.slice(1)) : '';
 
       inlineTok.content = inlineTok.content.slice(match[0].length).trim();
       if (inlineTok.children && inlineTok.children.length > 0) {
         const firstChild = inlineTok.children[0];
         if (firstChild.type === 'text') {
-          firstChild.content = firstChild.content.replace(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\](?:\r?\n)?/i, '').trim();
+          firstChild.content = firstChild.content.replace(/^\[!(?:[a-zA-Z0-9_\u00C0-\u024F\s-]+)?\](?:\r?\n|\s+)?/i, '').trim();
         }
       }
 
@@ -79,11 +72,16 @@ export function createMarkdownParser(): MarkdownIt {
 
       const bqOpen = tokens[i];
       bqOpen.tag = 'div';
-      bqOpen.attrSet('class', `alert alert-${type.toLowerCase()}`);
+      bqOpen.attrSet('class', 'alert');
+      if (title) {
+        bqOpen.attrSet('id', slugify(title));
+      }
 
-      const titleTok = new state.Token('html_inline', '', 0);
-      titleTok.content = `<div class="alert-title"><span class="alert-icon"></span><span class="alert-label">${title}</span></div>\n`;
-      tokens.splice(i + 1, 0, titleTok);
+      if (title) {
+        const titleTok = new state.Token('html_inline', '', 0);
+        titleTok.content = `<div class="alert-title"><span class="alert-label">${title}</span></div>\n`;
+        tokens.splice(i + 1, 0, titleTok);
+      }
 
       let depth = 1;
       for (let k = i + 2; k < tokens.length; k++) {

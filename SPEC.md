@@ -225,7 +225,39 @@ CSS injected as `<style>`, JS as `<script>`, images base64-encoded inline. Linke
 
 ---
 
-## 10. Design Decisions
+## 10. Callout Alerts (`[!]` & `[!STRING]`)
+
+Blockquotes starting with `[!]` or `[!<tag>]` are rendered as accent-styled callout boxes:
+
+```markdown
+> [!]
+> Highlighted callout without a header title
+
+> [!NOTE]
+> Information callout with a header title
+
+> [!SYNTHESIS]
+> Custom arbitrary callout title
+```
+
+- **Bare Highlight `[!]`**: Renders the styled callout container without emitting a top title banner.
+- **String-Agnostic `[!STRING]`**: Accepts any identifier (`[!NOTE]`, `[!WARNING]`, `[!KEY TAKEAWAY]`, etc.), capitalized into the title header.
+- **Color & Accent Unified**: Rendered with the document's accent color theme (`class="alert"`).
+
+---
+
+## 11. In-Page Navigation History Stack
+
+Markdown++ documents feature an in-page navigation manager for internal wikilink traversal:
+
+- **Bidirectional History Stack**: Preserves exact scroll position and origin wikilink tokens on forward and backward navigation (`Alt+Left` / `Alt+Right` / `Escape`).
+- **Floating Pill UI**: Fixed outside the sidebar to the right in the content column, displaying previous/next destination labels, a clear button (`×`), and bidirectional navigation controls.
+- **Search Query Preservation**: Restores previous search query state and exact scroll coordinates when navigating back from a jump performed during an active search.
+- **High-Contrast Arrival Pulse**: Pulses destination headings on forward jumps and origin wikilinks on history undo with text luminosity inversion.
+
+---
+
+## 12. Design Decisions
 
 | # | Decision | Rationale |
 |---|----------|-----------|

@@ -18,6 +18,14 @@ export function extractHeadings(tokens: import('markdown-it/lib/token.mjs').defa
         .map((t) => t.content)
         .join('') ?? '';
       headings.push({ text, id, level });
+    } else if (tok.type === 'blockquote_open' && tok.tag === 'div' && tok.attrGet('class')?.includes('alert')) {
+      const id = tok.attrGet('id');
+      if (id && tokens[i + 1]?.type === 'html_inline') {
+        const match = tokens[i + 1].content.match(/<span class="alert-label">([^<]+)<\/span>/);
+        if (match) {
+          headings.push({ text: match[1], id, level: 3 });
+        }
+      }
     }
   }
   return headings;

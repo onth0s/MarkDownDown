@@ -44,7 +44,7 @@ describe('TOC click handler', () => {
 
 describe('TOC generation', () => {
   test('collects headings with ids from #article', () => {
-    expect(js).toMatch(/article\.querySelectorAll\('h1\[id\], h2\[id\], h3\[id\], h4\[id\], h5\[id\], h6\[id\]'\)/);
+    expect(js).toMatch(/article\.querySelectorAll\('h1\[id\], h2\[id\], h3\[id\], h4\[id\], h5\[id\], h6\[id\], \.alert\[id\]'\)/);
   });
 
   test('excludes headings inside .hero', () => {

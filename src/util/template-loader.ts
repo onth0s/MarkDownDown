@@ -18,19 +18,34 @@ export function loadTemplate(filename: string): string {
     dir = '';
   }
 
-  const candidates = [
-    path.resolve(dir, '..', 'templates', filename),
-    path.resolve(dir, '..', '..', 'templates', filename),
-    path.resolve(process.cwd(), 'templates', filename),
-    path.resolve(process.cwd(), 'src', 'templates', filename),
-    path.resolve(process.cwd(), '..', 'templates', filename),
+  const baseName = filename.replace(/\.[^.]+$/, '');
+  const candidateDirs = [
+    path.resolve(dir, '..', 'templates'),
+    path.resolve(dir, '..', '..', 'templates'),
+    path.resolve(process.cwd(), 'templates'),
+    path.resolve(process.cwd(), 'src', 'templates'),
+    path.resolve(process.cwd(), '..', 'templates'),
   ];
 
-  for (const p of candidates) {
-    try {
-      if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8');
-    } catch { /* try next candidate */ }
+  // 1. Check for modular subdirectory (e.g. templates/app/*.js -> merged app.js)
+  for (const tDir of candidateDirs) {
+    const modDir = path.join(tDir, baseName);
+    if (fs.existsSync(modDir) && fs.statSync(modDir).isDirectory()) {
+      const files = fs.readdirSync(modDir).filter(f => !f.startsWith('.')).sort();
+      if (files.length > 0) {
+        const parts = files.map(f => fs.readFileSync(path.join(modDir, f), 'utf8'));
+        return `(() => {\n  'use strict';\n\n${parts.join('\n\n')}\n})();\n`;
+      }
+    }
   }
 
-  throw new Error(`${filename} template not found (searched: ${candidates.join(', ')})`);
+  // 2. Check for monolithic template file fallback
+  for (const tDir of candidateDirs) {
+    const filePath = path.join(tDir, filename);
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      return fs.readFileSync(filePath, 'utf8');
+    }
+  }
+
+  throw new Error(`${filename} template not found (searched: ${candidateDirs.join(', ')})`);
 }

@@ -442,17 +442,24 @@ CSS injected as \`<style>\`, JS as \`<script>\`, images base64-encoded inline. L
 
 ---
 
-## 12. GitHub Alerts
+## 12. Callout Alerts (\`[!]\` & \`[!STRING]\`)
 
-Standard GFM blockquote alerts are supported inside blockquotes:
+Blockquotes starting with \`[!]\` or \`[!<identifier>]\` render as unified callout boxes using the document's accent theme:
 
-- \`> [!NOTE]\` — Blue info callout
-- \`> [!TIP]\` — Green tip callout
-- \`> [!IMPORTANT]\` — Purple important callout
-- \`> [!WARNING]\` — Yellow warning callout
-- \`> [!CAUTION]\` — Red caution callout
+\`\`\`markdown
+> [!]
+> Highlighted callout without a header title
 
-These render as styled \`<div class="alert alert-{type}">\` with a title bar.
+> [!NOTE]
+> Information callout with a header title
+
+> [!SYNTHESIS]
+> Custom arbitrary callout header
+\`\`\`
+
+- **Bare Highlight \`[!]\`**: Renders the styled callout container without emitting a top title banner.
+- **String-Agnostic \`[!STRING]\`**: Any identifier is accepted (\`[!NOTE]\`, \`[!TIP]\`, \`[!WARNING]\`, \`[!TAKEAWAY]\`, etc.) and rendered as the title.
+- **Unified Accent Palette**: Color-agnostic design matching the document's \`--accent\` theme without hardcoded rainbow overrides.
 
 ---
 

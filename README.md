@@ -108,6 +108,7 @@ TITLE: Markdown++ CLI Options
 | --no-minify | flag | Disable minification in monolithic export |
 | -f, --force | flag | Force overwrite without confirmation prompt |
 | -v, --verbose | flag | Enable verbose compiler logging |
+| --spec | flag | Print the full MD++ language specification and exit |
 | -V, --version | flag | Output the version number |
 | -h, --help | flag | Display CLI help and options |
 ```
@@ -191,6 +192,25 @@ TITLE: Benchmark Results
 | Standard AST | 45ms | 86MB |
 ```
 ````
+
+### Callout Alerts (`[!]` & `[!STRING]`)
+
+Blockquotes starting with `[!]` or `[!<identifier>]` render as unified callout boxes using the document's accent theme:
+
+```markdown
+> [!]
+> Highlighted callout without a header title
+
+> [!NOTE]
+> Information callout with a header title
+
+> [!SYNTHESIS]
+> Custom arbitrary callout header
+```
+
+- **Bare Highlight `[!]`**: Highlighted callout box without a header.
+- **String-Agnostic `[!STRING]`**: Any identifier is accepted (`[!NOTE]`, `[!TIP]`, `[!WARNING]`, `[!INSIGHT]`, etc.) and rendered as the title.
+- **Unified Accent Styling**: Color-agnostic design matching the document's `--accent` palette.
 
 ---
 
