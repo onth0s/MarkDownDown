@@ -67,8 +67,9 @@ button, input { font:inherit; }
   overflow:visible;
   filter: drop-shadow(0 0 0 rgba(var(--accent-rgb),.13));
 }
-.brand-logo path {
+.brand-logo path, .brand-logo circle, .brand-logo ellipse, .brand-logo rect, .brand-logo polygon {
   vector-effect: non-scaling-stroke;
+  transition: fill .2s ease, stroke .2s ease;
 }
 .brand span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .toolbar { display:flex; gap:8px; align-items:center; min-width:0; }

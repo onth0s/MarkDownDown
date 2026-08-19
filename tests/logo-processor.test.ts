@@ -61,9 +61,8 @@ describe('Logo Processor Unit Tests', () => {
 
     try {
       const res = processLogo(svgPath, '#000000');
-      // Black accent maps to bright tone for dark background contrast (L = 90%)
-      expect(res.navbarLogo).toContain('stroke="#e6e6e6"');
-      expect(res.navbarLogo).toContain('data-l="90"');
+      expect(res.navbarLogo).toContain('stroke="#000000"');
+      expect(res.navbarLogo).toContain('data-l="0"');
     } finally {
       if (fs.existsSync(svgPath)) fs.unlinkSync(svgPath);
     }
@@ -78,9 +77,8 @@ describe('Logo Processor Unit Tests', () => {
 
     try {
       const res = processLogo(svgPath, '#ffffff');
-      // White accent maps to dark tone for light background contrast (L = 15%)
-      expect(res.navbarLogo).toContain('fill="#262626"');
-      expect(res.navbarLogo).toContain('data-l="15"');
+      expect(res.navbarLogo).toContain('fill="#ffffff"');
+      expect(res.navbarLogo).toContain('data-l="100"');
     } finally {
       if (fs.existsSync(svgPath)) fs.unlinkSync(svgPath);
     }

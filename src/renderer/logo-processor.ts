@@ -78,20 +78,9 @@ export function processLogo(logoPath?: string, accent = '#3b82f6'): ProcessedLog
       if (!hsl) return null;
       const [, , l] = hsl;
       
-      // Determine effective lightness:
-      // If the source element is monochromatic black / very dark (L <= 15),
-      // map it to the target accent's lightness.
-      let effectiveL = l <= 15 ? targetL : l;
-
-      // If the target accent is pure white (L >= 95) or pure black (L <= 5),
-      // ensure elements reflect the intended white/black accent luminosity:
-      if (targetL >= 95) {
-        // Light mode / white accent -> use dark tone for contrast (L = 15%)
-        effectiveL = 15;
-      } else if (targetL <= 5) {
-        // Dark mode / black accent -> use bright tone for contrast (L = 90%)
-        effectiveL = 90;
-      }
+      // If the element has distinct tonal differences (multi-tone logo), preserve relative lightness;
+      // otherwise, map directly to target accent color (matching accent-logo and theme-logo).
+      const effectiveL = (l > 15 && l < 85) ? l : targetL;
 
       return {
         recoloredHex: hslToHex(targetH, targetS, effectiveL),
