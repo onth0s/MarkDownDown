@@ -47,25 +47,25 @@ export interface LuminosityParams {
 
 export function computeLuminosityParams(bgLum?: BgLum): LuminosityParams {
   const darkVal = bgLum?.dark ?? 0.08;
-  const darkBg = lerpColor('#000000', '#2d333b', darkVal);
-  const darkSurface = lerpColor('#030303', '#373e47', darkVal);
-  const darkSurface2 = lerpColor('#080808', '#424b57', darkVal);
-  const darkSurface3 = lerpColor('#0e0e0e', '#4c5664', darkVal);
-  const darkCode = lerpColor('#020202', '#2d333b', darkVal);
-  const darkTintPct = Math.round(darkVal * 8);
+  const darkBg = lerpColor('#000000', '#0b0f16', darkVal === 0 ? 0 : Math.min(1, darkVal / 0.08));
+  const darkSurface = lerpColor('#030303', '#111827', darkVal === 0 ? 0 : Math.min(1, darkVal / 0.08));
+  const darkSurface2 = lerpColor('#080808', '#172033', darkVal === 0 ? 0 : Math.min(1, darkVal / 0.08));
+  const darkSurface3 = lerpColor('#0e0e0e', '#1d293d', darkVal === 0 ? 0 : Math.min(1, darkVal / 0.08));
+  const darkCode = lerpColor('#020202', '#0a0e15', darkVal === 0 ? 0 : Math.min(1, darkVal / 0.08));
+  const darkTintPct = bgLum ? Math.round(darkVal * 100) : 8;
 
   const lightVal = bgLum?.light ?? 0.96;
-  const lightBg = lerpColor('#dce4ec', '#ffffff', lightVal);
+  const lightBg = lerpColor('#dce4ec', '#f4f7fb', lightVal);
   const lightSurface = lerpColor('#e9eff6', '#ffffff', lightVal);
-  const lightSurface2 = lerpColor('#e2e8f0', '#f4f6f9', lightVal);
-  const lightSurface3 = lerpColor('#d7dfe8', '#e9eef5', lightVal);
-  const lightCode = lerpColor('#e2e8f0', '#f8fafc', lightVal);
-  const lightTintPct = Math.round((1 - lightVal) * 15);
+  const lightSurface2 = lerpColor('#e2e8f0', '#f0f4f9', lightVal);
+  const lightSurface3 = lerpColor('#d7dfe8', '#e6edf6', lightVal);
+  const lightCode = lerpColor('#e2e8f0', '#eef2f8', lightVal);
+  const lightTintPct = bgLum ? Math.round((1 - lightVal) * 100) : 6;
 
   const darkBgMixPct = 100 - darkTintPct;
-  const darkSurfaceMixPct = 100 - Math.min(20, Math.round(darkVal * 10));
+  const darkSurfaceMixPct = bgLum ? (100 - Math.min(20, Math.round(darkVal * 100))) : 90;
   const lightBgMixPct = 100 - lightTintPct;
-  const lightSurfaceMixPct = 100 - Math.min(15, Math.round((1 - lightVal) * 12));
+  const lightSurfaceMixPct = bgLum ? (100 - Math.min(15, Math.round((1 - lightVal) * 100))) : 95;
 
   return {
     darkBg,
