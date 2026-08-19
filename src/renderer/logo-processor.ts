@@ -86,11 +86,11 @@ export function processLogo(logoPath?: string, accent = '#3b82f6'): ProcessedLog
       // If the target accent is pure white (L >= 95) or pure black (L <= 5),
       // ensure elements reflect the intended white/black accent luminosity:
       if (targetL >= 95) {
-        // White accent -> use bright white tone (L = 90%)
-        effectiveL = 90;
-      } else if (targetL <= 5) {
-        // Black accent -> use deep dark tone (L = 15%)
+        // Light mode / white accent -> use dark tone for contrast (L = 15%)
         effectiveL = 15;
+      } else if (targetL <= 5) {
+        // Dark mode / black accent -> use bright tone for contrast (L = 90%)
+        effectiveL = 90;
       }
 
       return {

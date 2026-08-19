@@ -295,8 +295,8 @@ function setAccent(hex) {
     .replace(/\{accentFg\}/g, fg)
     .replace(/\{L_(\d+)\}/g, (_, lStr) => {
       let l = parseInt(lStr, 10);
-      if (targetL >= 95) l = 90;
-      else if (targetL <= 5) l = 15;
+      if (targetL >= 95) l = 15;
+      else if (targetL <= 5) l = 90;
       return hslToHex(targetH, targetS, l);
     });
   
@@ -309,8 +309,8 @@ function setAccent(hex) {
     navBrandLogo.querySelectorAll('[data-l]').forEach(el => {
       let l = parseInt(el.getAttribute('data-l'), 10);
       if (!isNaN(l)) {
-        if (targetL >= 95) l = 90;
-        else if (targetL <= 5) l = 15;
+        if (targetL >= 95) l = 15;
+        else if (targetL <= 5) l = 90;
         const mappedHex = hslToHex(targetH, targetS, l);
         if (el.hasAttribute('fill') && el.getAttribute('fill') !== 'none') {
           el.setAttribute('fill', mappedHex);
