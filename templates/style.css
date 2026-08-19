@@ -400,12 +400,11 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
   position: relative;
 }
 .nav-history-bar {
-  position: sticky;
+  position: fixed;
   bottom: max(20px, env(safe-area-inset-bottom));
-  margin-left: 24px;
-  margin-bottom: 20px;
+  left: max(16px, env(safe-area-inset-left));
   width: fit-content;
-  max-width: calc(100% - 48px);
+  max-width: calc(100vw - 32px);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -418,6 +417,12 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
   padding: 4px 6px;
   box-shadow: var(--shadow);
   transition: opacity .2s ease, transform .2s ease;
+}
+@media (min-width: 901px) {
+  .nav-history-bar {
+    left: max(24px, calc((100vw - 1500px) / 2 + 280px + 24px));
+    max-width: min(calc(100vw - 340px), 700px);
+  }
 }
 .nav-history-bar[hidden] { display: none; }
 .nav-clear-btn {

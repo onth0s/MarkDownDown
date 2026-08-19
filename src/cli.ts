@@ -9,6 +9,7 @@ import readline from 'node:readline';
 import { compile } from './compile.js';
 import type { Options, CliOptions } from './types.js';
 import { toErrorMessage } from './util/error.js';
+import { SPEC } from './spec.js';
 
 async function confirmOverwrite(targetPath: string): Promise<boolean> {
   if (!process.stdin.isTTY) return true;
@@ -32,7 +33,8 @@ program
   .name('mdd')
   .description('Compile .mdd / .md files to interactive HTML documents')
   .version('0.1.0')
-  .argument('<input>', 'Input .mdd or .md file')
+  .argument('[input]', 'Input .mdd or .md file')
+  .option('--spec', 'Print the full MD++ language specification and exit')
   .option('-o, --output <path>', 'Output file (single) or directory (split)')
   .option('--single', 'Single self-contained HTML (default)', true)
   .option('--split', 'Separate CSS/JS/assets', false)
@@ -43,7 +45,17 @@ program
   .option('--no-minify', 'Disable minification in monolithic export')
   .option('-f, --force', 'Force overwrite without confirmation prompt', false)
   .option('-v, --verbose', 'Verbose output', false)
-  .action(async (input: string, opts: CliOptions) => {
+  .action(async (input: string | undefined, opts: CliOptions) => {
+    if (opts.spec) {
+      process.stdout.write(SPEC);
+      process.exit(0);
+    }
+
+    if (!input) {
+      process.stderr.write('ERROR: No input file specified. Use mdd <input.mdd> or mdd --spec.\n');
+      process.exit(1);
+    }
+
     const inputFile = path.resolve(process.cwd(), input);
     if (!fs.existsSync(inputFile)) {
       process.stderr.write(`ERROR: Input file not found: ${inputFile}\n`);

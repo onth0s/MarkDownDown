@@ -39,6 +39,7 @@ export interface CliOptions {
   verbose: boolean;
   minify?: boolean;
   force?: boolean;
+  spec?: boolean;
 }
 
 /** A heading extracted from the document */
