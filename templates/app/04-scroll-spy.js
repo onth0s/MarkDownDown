@@ -25,16 +25,20 @@ let lastActiveId = null;
 let tocScrollActive = false;
 const scrollStateKey = `mdd_scroll_${location.pathname}`;
 function setActive(id) {
-  if (!id || id === lastActiveId) return;
-  lastActiveId = id;
+  if (!id) return;
   const isBareTarget = id === '__doc-title__' || (!hasHero && (id === headings[0]?.id && window.scrollY === 0));
-  if (isBareTarget && history.replaceState && location.hash) {
-    history.replaceState(null, '', location.pathname + location.search);
-    try { sessionStorage.setItem(scrollStateKey, JSON.stringify({ id: '', y: window.scrollY })); } catch (_) {}
-  } else if (!isBareTarget && id !== '__doc-title__' && history.replaceState && location.hash !== `#${id}`) {
+  if (isBareTarget) {
+    if (history.replaceState && location.hash) {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
+    try { sessionStorage.setItem(scrollStateKey, JSON.stringify({ id: hasHero ? '' : (headings[0]?.id ?? ''), y: window.scrollY })); } catch (_) {}
+  } else if (id !== '__doc-title__' && history.replaceState && location.hash !== `#${id}`) {
     history.replaceState(null, '', `#${id}`);
     try { sessionStorage.setItem(scrollStateKey, JSON.stringify({ id, y: window.scrollY })); } catch (_) {}
   }
+
+  if (id === lastActiveId) return;
+  lastActiveId = id;
   const activeLink = tocLinks.find(a => a.dataset.target === id);
   tocLinks.forEach(a => a.classList.toggle('active', a === activeLink));
   if (!activeLink || !sidebar) return;
@@ -68,12 +72,16 @@ function detectActiveHeading() {
   }
 
   const THRESHOLD = 92;
-  let activeIdx = 0;
+  let activeIdx = -1;
   for (let i = 0; i < headings.length; i++) {
     const top = headingOffsetTop(headings[i]);
     if (top <= window.scrollY + THRESHOLD) {
       activeIdx = i;
     }
+  }
+
+  if (activeIdx === -1) {
+    return hasHero ? '__doc-title__' : (headings[0]?.id ?? null);
   }
 
   return headings[activeIdx]?.id ?? null;
@@ -119,7 +127,15 @@ adjustArticleBottomPadding();
 backtop.addEventListener('click', () => {
   tocScrollActive = true;
   const topId = hasHero ? '__doc-title__' : (headings[0]?.id ?? null);
-  if (topId) setActive(topId);
+  if (history.replaceState && location.hash) {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  try { sessionStorage.setItem(scrollStateKey, JSON.stringify({ id: hasHero ? '' : (headings[0]?.id ?? ''), y: 0 })); } catch (_) {}
+  if (topId) {
+    lastActiveId = topId;
+    const activeLink = tocLinks.find(a => a.dataset.target === topId);
+    tocLinks.forEach(a => a.classList.toggle('active', a === activeLink));
+  }
   animateSidebarTo(0, 300);
   window.scrollTo({ top: 0, behavior: 'smooth' });
   onScrollEnd(() => {

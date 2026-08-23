@@ -100,11 +100,17 @@ describe('Scroll spy', () => {
   });
 
   test('setActive guards against duplicate calls', () => {
-    expect(js).toMatch(/if \(!id \|\| id === lastActiveId\) return/);
+    expect(js).toMatch(/if \(!id\) return;/);
+    expect(js).toMatch(/if \(id === lastActiveId\) return;/);
   });
 
   test('setActive updates lastActiveId', () => {
-    expect(js).toMatch(/lastActiveId = id/);
+    expect(js).toMatch(/lastActiveId = id;/);
+  });
+
+  test('setActive strips hash on bare target or scrollY 0', () => {
+    expect(js).toMatch(/isBareTarget = id === '__doc-title__' \|\| \(!hasHero && \(id === headings\[0\]\?\.id && window\.scrollY === 0\)\)/);
+    expect(js).toMatch(/history\.replaceState\(null, '', location\.pathname \+ location\.search\)/);
   });
 
   test('setActive updates URL hash via history.replaceState', () => {
@@ -336,6 +342,11 @@ describe('Scroll guard', () => {
 
   test('backtop click clears tocScrollActive via onScrollEnd', () => {
     expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?onScrollEnd\(\(\)\s*=>\s*\{[\s\S]*?tocScrollActive\s*=\s*false/);
+  });
+
+  test('backtop click immediately strips URL hash and scrolls to top', () => {
+    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?history\.replaceState\(null, '', location\.pathname \+ location\.search\)/);
+    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?window\.scrollTo\(\{ top: 0, behavior: 'smooth' \}\)/);
   });
 });
 
