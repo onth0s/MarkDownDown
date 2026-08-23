@@ -23,6 +23,14 @@ describe('parseFrontmatter', () => {
     expect(result.body).toBe('# Body');
   });
 
+  test('parses accent with FFF and 000 normalizing to 6-digit hex with hash', () => {
+    const srcFFF = '---\naccent: FFF\n---\nBody';
+    expect(parseFrontmatter(srcFFF, '/tmp').meta.accent).toBe('#ffffff');
+
+    const src000 = '---\naccent: 000\n---\nBody';
+    expect(parseFrontmatter(src000, '/tmp').meta.accent).toBe('#000000');
+  });
+
   test('resolves assets_dir relative to inputDir', () => {
     const dir = makeTmpDir();
     const source = '---\nassets_dir: ./my-assets\n---\n\nBody';

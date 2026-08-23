@@ -13,7 +13,7 @@ import { scanAssets } from './resolver/asset.js';
 import { resolveLinks } from './pipeline/resolve-links.js';
 import { renderBody } from './pipeline/render-body.js';
 import { assembleAndWrite } from './pipeline/assemble.js';
-import { isValidHex } from './util/color.js';
+import { isValidHex, formatHexWithHash } from './util/color.js';
 import { CompileError } from './util/error.js';
 
 export function compile(options: Options): CompileResult {
@@ -26,10 +26,11 @@ export function compile(options: Options): CompileResult {
   // 2. Frontmatter
   const { meta, hero, body: markdownBody, warnings: fmWarnings } = parseFrontmatter(rawSource, inputDir);
   warnings.push(...fmWarnings);
-  const accent = meta.accent ?? options.accent;
-  if (!isValidHex(accent)) {
-    throw new CompileError(`Invalid accent color "${accent}". Must be a valid 3- or 6-digit hex color (e.g. #3b82f6)`);
+  const rawAccent = meta.accent ?? options.accent;
+  if (!isValidHex(rawAccent)) {
+    throw new CompileError(`Invalid accent color "${rawAccent}". Must be a valid 3- or 6-digit hex color (e.g. #3b82f6)`);
   }
+  const accent = formatHexWithHash(rawAccent);
   const assetsDir = meta.assetsDir ?? options.assetsDir;
 
   // 3. Lex

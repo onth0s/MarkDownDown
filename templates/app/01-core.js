@@ -205,13 +205,15 @@ function onScrollEnd(callback) {
 }
 
 function hexToRgb(hex) {
-  const n = hex.replace('#', '');
+  let n = hex.replace('#', '');
+  if (n.length === 3) n = n.split('').map(c => c + c).join('');
   const v = parseInt(n, 16);
   return `${(v >> 16) & 255},${(v >> 8) & 255},${v & 255}`;
 }
 
 function darkenAccent(hex) {
-  const n = hex.replace('#', '');
+  let n = hex.replace('#', '');
+  if (n.length === 3) n = n.split('').map(c => c + c).join('');
   const v = parseInt(n, 16);
   const r = Math.round(((v >> 16) & 255) * 0.5);
   const g = Math.round(((v >> 8) & 255) * 0.5);
@@ -275,7 +277,13 @@ const docTheme = '__THEME__';
 const faviconTmpl = '__FAVICON__';
 
 function setAccent(hex, isInitial = false) {
-  if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
+  if (typeof hex !== 'string') return;
+  let cleanHex = hex.trim();
+  if (!cleanHex.startsWith('#')) cleanHex = '#' + cleanHex;
+  let n = cleanHex.slice(1);
+  if (n.length === 3) cleanHex = '#' + n.split('').map(c => c + c).join('');
+  if (!/^#[0-9a-f]{6}$/i.test(cleanHex)) return;
+  hex = cleanHex.toLowerCase();
   root.style.setProperty('--accent', hex);
   root.style.setProperty('--accent-rgb', hexToRgb(hex));
   const rgb = hexToRgb(hex).split(',').map(Number);

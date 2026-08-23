@@ -8,6 +8,7 @@ import yaml from 'js-yaml';
 import path from 'node:path';
 import type { Options, HeroMeta, BgLum } from '../types.js';
 import { CompileError, toErrorMessage } from '../util/error.js';
+import { isValidHex, formatHexWithHash } from '../util/color.js';
 
 export interface FrontmatterResult {
   /** Parsed option overrides from frontmatter */
@@ -131,7 +132,11 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
   if (parsed['title'] !== undefined) meta.title = validateString('title');
   if (parsed['author'] !== undefined) meta.author = validateString('author');
   if (parsed['accent'] !== undefined) {
-    meta.accent = validateString('accent', 'Invalid frontmatter: "accent" must be a string hex color (e.g. "#3b82f6")');
+    const rawAccent = parsed['accent'];
+    if (!isValidHex(rawAccent)) {
+      throw new CompileError(`Invalid frontmatter: "accent" must be a valid 3- or 6-digit hex color (e.g. "#3b82f6", "FFF", or "000"), got "${String(rawAccent)}"`);
+    }
+    meta.accent = formatHexWithHash(rawAccent as string | number);
   }
 
   if (parsed['theme'] !== undefined) {

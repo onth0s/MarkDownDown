@@ -1,5 +1,6 @@
 import {
   normalizeHex,
+  formatHexWithHash,
   hexToRgbValues,
   hexToRgb,
   darkenHex,
@@ -18,17 +19,29 @@ describe('color utilities', () => {
   test('normalizeHex expands 3-digit and strips #', () => {
     expect(normalizeHex('#fff')).toBe('ffffff');
     expect(normalizeHex('fff')).toBe('ffffff');
+    expect(normalizeHex('FFF')).toBe('ffffff');
+    expect(normalizeHex('000')).toBe('000000');
     expect(normalizeHex('#3b82f6')).toBe('3b82f6');
+  });
+
+  test('formatHexWithHash normalizes to #rrggbb', () => {
+    expect(formatHexWithHash('fff')).toBe('#ffffff');
+    expect(formatHexWithHash('FFF')).toBe('#ffffff');
+    expect(formatHexWithHash('000')).toBe('#000000');
+    expect(formatHexWithHash('#000')).toBe('#000000');
+    expect(formatHexWithHash('#3b82f6')).toBe('#3b82f6');
   });
 
   test('hexToRgbValues parses 3- and 6-digit hex to numbers', () => {
     expect(hexToRgbValues('#ff0000')).toEqual([255, 0, 0]);
     expect(hexToRgbValues('#00f')).toEqual([0, 0, 255]);
+    expect(hexToRgbValues('fff')).toEqual([255, 255, 255]);
   });
 
   test('hexToRgb returns R,G,B string', () => {
     expect(hexToRgb('#3b82f6')).toBe('59,130,246');
     expect(hexToRgb('#000')).toBe('0,0,0');
+    expect(hexToRgb('FFF')).toBe('255,255,255');
   });
 
   test('darkenHex darkens color by 50%', () => {
@@ -38,7 +51,9 @@ describe('color utilities', () => {
 
   test('getContrastFg chooses white for dark bg and dark for light bg', () => {
     expect(getContrastFg('#000000')).toBe('#ffffff');
+    expect(getContrastFg('000')).toBe('#ffffff');
     expect(getContrastFg('#ffffff')).toBe('#172033');
+    expect(getContrastFg('FFF')).toBe('#172033');
     expect(getContrastFg('#ffff00')).toBe('#172033');
   });
 
@@ -48,10 +63,13 @@ describe('color utilities', () => {
     expect(lerpColor('#000000', '#ffffff', 0.5)).toBe('#808080');
   });
 
-  test('isValidHex validates 3- and 6-digit hex format', () => {
+  test('isValidHex validates 3- and 6-digit hex format with or without #', () => {
     expect(isValidHex('#fff')).toBe(true);
+    expect(isValidHex('fff')).toBe(true);
+    expect(isValidHex('FFF')).toBe(true);
+    expect(isValidHex('000')).toBe(true);
     expect(isValidHex('#3b82f6')).toBe(true);
-    expect(isValidHex('3b82f6')).toBe(false);
+    expect(isValidHex('3b82f6')).toBe(true);
     expect(isValidHex('#gggggg')).toBe(false);
     expect(isValidHex('#12')).toBe(false);
   });

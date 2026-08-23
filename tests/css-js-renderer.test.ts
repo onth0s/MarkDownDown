@@ -16,8 +16,16 @@ describe('renderer / CSS & JS builders', () => {
     expect(css).toContain('#3b82f6');
     expect(css).not.toContain('__ACCENT__');
     expect(css).not.toContain('__ACCENT_RGB__');
+    expect(css).not.toContain('__ACCENT_FG__');
     expect(css).not.toContain('__BASE_DARK_BG__');
     expect(css).not.toContain('__BASE_LIGHT_BG__');
+  });
+
+  test('buildCss computes inverted --accent-fg for FFF and 000', () => {
+    const cssWhite = buildCss('#ffffff', '255,255,255');
+    expect(cssWhite).toContain('--accent-fg: #172033;');
+    const cssBlack = buildCss('#000000', '0,0,0');
+    expect(cssBlack).toContain('--accent-fg: #ffffff;');
   });
 
   test('buildJs accepts string accent and options object', () => {

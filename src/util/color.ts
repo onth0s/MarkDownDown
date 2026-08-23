@@ -2,13 +2,21 @@
  * Color utility functions for hex manipulation.
  */
 
-/** Normalize 3- or 6-digit hex (with optional #) to clean 6-character hex without #. */
-export function normalizeHex(hex: string): string {
-  let n = hex.replace('#', '');
+/** Normalize 3- or 6-digit hex (with optional #) or number to clean 6-character hex without #. */
+export function normalizeHex(hex: string | number): string {
+  if (typeof hex === 'number') {
+    return hex.toString(16).padStart(6, '0').toLowerCase();
+  }
+  let n = String(hex).trim().replace(/^#/, '');
   if (n.length === 3) {
     n = n.split('').map(c => c + c).join('');
   }
-  return n;
+  return n.toLowerCase();
+}
+
+/** Format 3- or 6-digit hex (with or without #) or number to normalized #rrggbb format. */
+export function formatHexWithHash(hex: string | number): string {
+  return `#${normalizeHex(hex)}`;
 }
 
 /** Parse hex color to numeric RGB tuple [r, g, b]. */
@@ -115,9 +123,14 @@ export function parseAnyColor(colorStr: string): [number, number, number] | null
   return null;
 }
 
-/** Validate that a string is a valid 3- or 6-digit hex color. */
-export function isValidHex(color: string): boolean {
-  return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(color);
+/** Validate that a string or value is a valid 3- or 6-digit hex color (with or without #). */
+export function isValidHex(color: unknown): boolean {
+  if (typeof color !== 'string' && typeof color !== 'number') return false;
+  if (typeof color === 'number') {
+    return Number.isInteger(color) && color >= 0 && color <= 0xffffff;
+  }
+  const s = String(color).trim().replace(/^#/, '');
+  return /^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(s);
 }
 
 /** Convert RGB [0..255] to HSL [h: 0..360, s: 0..100, l: 0..100]. */

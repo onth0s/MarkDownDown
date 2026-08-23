@@ -19,6 +19,16 @@ describe('Logo Processor Unit Tests', () => {
     expect(warnings[0]).toContain('Logo file not found');
   });
 
+  test('default logo favicon computes proper fg contrast for #ffffff and #000000', () => {
+    const resWhite = processLogo(undefined, '#ffffff');
+    const whiteDecoded = decodeURIComponent(resWhite.faviconHref);
+    expect(whiteDecoded).toContain('fill="#172033"');
+
+    const resBlack = processLogo(undefined, '#000000');
+    const blackDecoded = decodeURIComponent(resBlack.faviconHref);
+    expect(blackDecoded).toContain('fill="#ffffff"');
+  });
+
   test('processes custom SVG logo extracting viewBox, harmonizing hue and preserving lightness', () => {
     const svgPath = path.join(scratchDir, 'test-logo.svg');
     const svgContent = `<svg width="500" height="500" viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">

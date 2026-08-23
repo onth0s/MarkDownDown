@@ -5,7 +5,7 @@
  */
 import { loadTemplate, substituteTokens } from '../util/template-loader.js';
 import type { BgLum } from '../types.js';
-import { lerpColor } from '../util/color.js';
+import { lerpColor, getContrastFg } from '../util/color.js';
 
 export interface LuminosityParams {
   darkBg: string;
@@ -74,10 +74,12 @@ export function computeLuminosityParams(bgLum?: BgLum): LuminosityParams {
 
 export function buildCss(accent: string, accentRgb: string, bgLum?: BgLum): string {
   const p = computeLuminosityParams(bgLum);
+  const accentFg = getContrastFg(accent);
 
   return substituteTokens(loadTemplate('style.css'), {
     __ACCENT__: accent,
     __ACCENT_RGB__: accentRgb,
+    __ACCENT_FG__: accentFg,
     __BASE_DARK_BG__: p.darkBg,
     __BASE_DARK_SURFACE__: p.darkSurface,
     __BASE_DARK_SURFACE2__: p.darkSurface2,
