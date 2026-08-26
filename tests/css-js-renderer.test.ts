@@ -44,6 +44,13 @@ describe('renderer / CSS & JS builders', () => {
     expect(jsFromOpts).not.toContain('__ROUTES__');
   });
 
+  test('buildJs includes search reset and history push on heading anchor click', () => {
+    const js = buildJs('#3b82f6');
+    expect(js).toContain('const currentSearch = search ? search.value.trim() : \'\'');
+    expect(js).toContain('backStack.push({');
+    expect(js).toContain('searchQuery: currentSearch');
+  });
+
   test('substituteTokens handles string and function replacers', () => {
     const tpl = 'Hello __NAME__, your code is __CODE__!';
     const result = substituteTokens(tpl, {

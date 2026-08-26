@@ -81,6 +81,27 @@ article.addEventListener('click', async (event) => {
   if (window.innerWidth <= 900) body.classList.remove('nav-open');
   tocScrollActive = true;
 
+  const currentSearch = search ? search.value.trim() : '';
+  if (currentSearch) {
+    const currentActive = detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
+    backStack.push({
+      y: window.scrollY,
+      id: currentActive,
+      linkEl: anchor,
+      label: getSectionLabel(currentActive) || 'Previous section',
+      searchQuery: currentSearch
+    });
+    forwardStack.length = 0;
+    updateNavHistoryUI();
+
+    search.value = '';
+    rebuildSearch('');
+    updateClearButton();
+    if (typeof setSearchMode === 'function' && window.innerWidth <= 640 && body.classList.contains('search-mode')) {
+      setSearchMode(false);
+    }
+  }
+
   const isFirstHeadingNoHero = !hasHero && targetId && headings[0]?.id === targetId;
   let url = location.href.split('#')[0];
   if (targetId === '__doc-title__' || !targetId || isFirstHeadingNoHero) {
