@@ -45,4 +45,62 @@ describe('cyclic diagram support (Gotcha #2)', () => {
     );
     expect(() => diagramLayout(m)).not.toThrow();
   });
+
+  test('unlabeled edge form `A -- label --> B` is parsed', () => {
+    const m = diagramParse('flowchart TB\n A[One]\n B[Two]\n A -- back loop --> B');
+    const edge = m.edges[0];
+    expect(edge.from).toBe('A');
+    expect(edge.to).toBe('B');
+    expect(edge.label).toBe('back loop');
+  });
+});
+
+function extractNums(dStr: string): number[] {
+  return [...dStr.matchAll(/-?\d+(?:\.\d+)?/g)].map(match => Number(match[0]));
+}
+
+describe('cyclic diagram return-arc rendering', () => {
+  test('TB back-edge is drawn as a return arc dipping below the graph', () => {
+    const m = diagramParse('flowchart TB\n A[One]\n B[Two]\n A --> B\n B --> A');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Loop');
+    const backD = /class="edge-path is-back-edge" d="([^"]+)"/.exec(svg);
+    expect(backD).not.toBeNull();
+    const nums = extractNums(backD![1]);
+    const ys = nums.filter((_, i) => i % 2 === 1);
+    expect(Math.max(...ys)).toBeGreaterThan(m.maxY);
+    expect((svg.match(/is-back-edge/g) || []).length).toBe(1);
+  });
+
+  test('LR back-edge is drawn as a return arc to the right of the graph', () => {
+    const m = diagramParse('flowchart LR\n A[One]\n B[Two]\n A --> B\n B --> A');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Loop');
+    const backD = /class="edge-path is-back-edge" d="([^"]+)"/.exec(svg);
+    expect(backD).not.toBeNull();
+    const nums = extractNums(backD![1]);
+    const xs = nums.filter((_, i) => i % 2 === 0);
+    const maxNodeRight = Math.max(...[...m.nodes.values()].map(n => m.cx.get(n.id)! + n.w / 2));
+    expect(Math.max(...xs)).toBeGreaterThan(maxNodeRight);
+    expect((svg.match(/is-back-edge/g) || []).length).toBe(1);
+  });
+
+  test('self-loop is drawn as a side arc clearing the node width', () => {
+    const m = diagramParse('flowchart TB\n A[Self] --> A');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Loop');
+    const backD = /class="edge-path is-back-edge" d="([^"]+)"/.exec(svg);
+    expect(backD).not.toBeNull();
+    const nums = extractNums(backD![1]);
+    const xs = nums.filter((_, i) => i % 2 === 0);
+    const nodeRight = m.cx.get('A')! + m.nodes.get('A')!.w / 2;
+    expect(Math.max(...xs)).toBeGreaterThan(nodeRight);
+  });
+
+  test('normal edges do not carry the back-edge class', () => {
+    const m = diagramParse('flowchart TB\n A[One]\n B[Two]\n A --> B');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'DAG');
+    expect(svg).not.toContain('is-back-edge');
+  });
 });

@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "build": "node build.mjs",
+    "showcase": "node dist/cli.cjs showcase/showcase.mdd --single -o showcase/showcase.html",
     "postbuild": "npm link --force",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

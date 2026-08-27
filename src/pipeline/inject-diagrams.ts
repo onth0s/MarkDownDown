@@ -20,6 +20,7 @@ export function injectDiagramSvgs(html: string, docTitle: string, warnings: stri
         return match;
       }
       diagramLayout(model);
+      if (model.warnings) warnings.push(...model.warnings);
       let svg: string;
       if (model.direction === 'auto') {
         const svgTB = diagramBuildSvg(model, diagTitle, false);

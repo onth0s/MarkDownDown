@@ -39,7 +39,7 @@ direction    := "TB" | "TD" | "BT" | "LR" | "RL" | "auto"
 title_dir    := "TITLE:" text
 dir_spec     := ("DIRECTION:"? direction) | (("flowchart"|"graph") direction?)
 node_def     := NODE_ID ["[" label "]" | "(" label ")" | "{" label "}"]
-edge_def     := node_ref arrow node_ref [ "|" label "|" ]
+edge_def     := node_ref arrow node_ref [ "|" label "|" ] | node_ref "--" label "-->" node_ref
 arrow        := "-->" | "---"
 node_ref     := NODE_ID | node_def
 NODE_ID      := [A-Za-z0-9_.\-]+
@@ -67,6 +67,7 @@ TITLE: Diagram Edge Types
 | --> | Directed arrow (with arrowhead marker) |
 | --- | Undirected line (no arrowhead) |
 | -->\|label\| | Directed arrow with inline edge label |
+| -- label --> | Directed arrow with inline label (label placed between the arrow stems) |
 ```
 
 ### 1.6 Directions

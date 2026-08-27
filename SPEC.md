@@ -55,7 +55,12 @@ TITLE: Frontmatter Configuration Keys
 | logo | string | (none) | Custom brand logo SVG / image path and dynamic favicon |
 | custom_css | string | (none) | Extra stylesheet inlined into document |
 | custom_js | string | (none) | Extra JavaScript script inlined into document |
+| kicker | string | (none) | Small overline label above the hero title |
+| subtitle | string | (none) | Subheading rendered under the hero title |
+| pills | string[] | (none) | Comma-separated tag pills rendered in the hero |
 ```
+
+`bg_lum` also accepts the aliases `bg-lum` and `bglum`.
 
 ### 2.1 Background Luminosity (`bg_lum`)
 
@@ -72,6 +77,23 @@ Accepts slice syntax, arrays, or key-value mappings:
     dark: 0.05
     light: 0.95
   ```
+
+### 2.2 Hero Metadata
+
+When any of `kicker`, `subtitle`, or `pills` is present, an optional hero header is rendered above the document body:
+
+```yaml
+---
+title: "Document Title"
+kicker: "Prologue"
+subtitle: "A short supporting line"
+pills: ["guide", "example"]
+---
+```
+
+- `kicker` — overline label, rendered above the title.
+- `subtitle` — supporting paragraph, rendered below the title.
+- `pills` — comma-separated tag list, rendered as inline pills.
 
 ---
 
@@ -195,6 +217,7 @@ TITLE: Markdown++ CLI Options
 | -L, --logo [path] | string/flag | (auto) | Custom brand logo SVG/image and dynamic favicon |
 | -F, --force | flag | false | Force overwrite without confirmation prompt |
 | -v, --verbose | flag | false | Verbose compiler logging |
+| --debug | flag | false | Dump full error stack traces on failure |
 | --spec | flag | false | Print the full MD++ language specification and exit |
 | -V, --version | flag | false | Output the compiler version number |
 | -h, --help | flag | false | Show CLI help and options |

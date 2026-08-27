@@ -1,0 +1,301 @@
+---
+title: "Markdown++ Capability Showcase"
+accent: "#8b5cf6"
+theme: "dark"
+bg_lum: "0.0 : 0.93"
+assets_dir: "./assets"
+custom_css: "./custom.css"
+logo: "./assets/mdpp-logo.svg"
+kicker: "Full-spectrum demonstration"
+subtitle: "Every Markdown++ authoring feature, DSL form, edge case, and runtime behaviour on a single self-compiled page."
+pills: ["dogfooding", "reference", "specimen"]
+---
+
+> [!NOTE]
+> This document **is** the showcase. It is compiled with `mdd showcase/showcase.mdd --single -o showcase/showcase.html`. Every heading, wikilink, diagram, table, and callout below is live: search, theme, accent, navigation history, and SVG highlighting all work on this very page.
+
+---
+
+## Frontmatter & Hero
+
+> [!TIP]
+> This page's hero — the kicker, subtitle, and pills above — is produced entirely by the `kicker` / `subtitle` / `pills` frontmatter keys. `accent: "#8b5cf6"` overrides the default blue, `bg_lum: "0.0 : 0.93"` re-tunes dark and light backgrounds, and `custom_css: "./custom.css"` inlines extra styling (note the <kbd> keys across the page).
+
+The exact frontmatter used by this document:
+
+```yaml
+---
+title: "Markdown++ Capability Showcase"
+accent: "#8b5cf6"
+theme: "dark"
+bg_lum: "0.0 : 0.93"        # or array [0.0, 0.93] or map { dark: ..., light: ... }
+assets_dir: "./assets"
+custom_css: "./custom.css"  # or custom_js: "./extra.js"
+logo: "./assets/mdpp-logo.svg"
+kicker: "Full-spectrum demonstration"
+subtitle: "Every Markdown++ feature, edge case, and runtime behaviour on one page."
+pills: ["dogfooding", "reference", "specimen"]
+---
+```
+
+- `bg_lum` also accepts the aliases `bg-lum` and `bglum`.
+- `logo` drives the navbar brand and the dynamic favicon (recolored to `--accent`).
+- `custom_css` / `custom_js` are inlined into the compiled document.
+
+---
+
+## Item Headings
+
+Standard headings receive auto-generated slugs for deep links, wikilinks, and the table of contents. Preceding a heading with a bullet marker (`*`, `-`, `•`) turns it into an **item heading** — a glossary-style term:
+
+### * Collision detection
+
+Median-heuristic crossing reduction + bounding-box overlap validation keep diagram
+edges from overlapping nodes (`checkBoxesOverlap`).
+
+### * Search & replace
+
+Document search maps every `<mark>` hit back onto matching SVG elements using
+`data-label-ord`, adding `.is-hit` / `.is-current` classes to nodes and cells.
+
+### * Item headings are resolvable
+
+Item headings participate in the same 4-pass resolver, so [[Collision detection]] and [[Search & replace]] are real links.
+
+---
+
+## Wikilink Resolution
+
+Wikilinks resolve through an extension fast-path and a 4-pass fuzzy heading match, then fall back to the assets directory:
+
+- **Direct** — [[Item Headings]] links to its exact heading.
+- **Aliased** — [[Callout Alerts|the callout section]] links with custom display text.
+- **Fuzzy (typo-tolerant)** — [[Wikilink Reslution]] still resolves here thanks to the Levenshtein pass (`wikilink reslution` → `wikilink resolution`).
+- **Asset image** — [[mdpp-logo.svg]] embeds the demo logo as a base64 data URI in `--single` mode:
+- **Literal in code** — `` `[[not-a-link]]` `` inside backticks is never treated as a link.
+
+---
+
+## File Links & Missing Targets
+
+Markdown links keep standard GFM behaviour, with two extensions:
+
+- Unsafe `javascript:` / `vbscript:` schemes are rejected; http(s), mailto, ftp?, and relative URLs pass through.
+- `file:///` links are verified against the filesystem and **warn instead of failing**: [make-believe spec](file:///SHOWCASE_NONEXISTENT_QUIET.txt) points at a file that does not exist, so compiling this page emits the non-fatal warning `File link target not found: "file:///SHOWCASE_NONEXISTENT_QUIET.txt"` yet still renders the anchor.
+
+```powershell
+mdd showcase/showcase.mdd --single -o showcase/showcase.html
+# File link target not found: "file:///SHOWCASE_NONEXISTENT_QUIET.txt"
+```
+
+Fuzzy path repair is also built in: `00_DEV` / `00__DEV` segment mismatches in a link are corrected automatically when the corrected path exists on disk.
+
+---
+
+## Escapes & Literals
+
+- **Escaped wikilink** — `\[[literal]]` renders as `[[literal]]` with no resolution attempt.
+- **Literal em-dash** — in labels, `\—` renders a real `—` without splitting title/subtitle (see the diagram in the next section).
+- **HTML not allowed** — raw HTML is disabled (`html: false`); a literal `<sup>raw html</sup>` shows up as escaped text on this page.
+
+Backslashes before markdown punctuation behave per GFM.
+
+---
+
+## Callout Alerts
+
+> [!]
+> A bare highlight callout — no title banner, `[!]`.
+
+> [!NOTE]
+> Information callout. Blockquotes starting with `[!]` or `[!IDENTIFIER]` become `.alert` boxes.
+
+> [!WARNING]
+> Any identifier is accepted and kept — case-preserved — as the title banner. `[!WARNING]` is just one example.
+
+> [!KEY TAKEAWAY]
+> Multi-line callouts keep nested markdown:
+> - lists
+> - **bold**, `code`, and [[Wikilink Resolution|wikilinks]] inside callouts
+> - and so on.
+
+---
+
+## Diagram DSL
+
+The `diagram` fence compiles to a responsive, searchable SVG. This section exercises every syntax form.
+
+### Node Shapes & Edge Forms
+
+```diagram TB
+TITLE: Node Shapes & Edge Forms
+%% comments are stripped and ignored
+BARE
+ROUND(Rounded — processes)
+DECIDE{Decision — diamond}
+DECIDE -- labelled prose --> RECT[Rectangle — sharp corners]
+RECT -->|directed + label| ROUND
+ROUND --- BARE
+```
+
+- **Shapes**: `[rect]`, `(rounded)`, `{diamond}`, and a bare token that defaults to a rectangle.
+- **Edge forms**: `-->`, `---`, `-->|label|`, and `A -- label --> B`.
+- **Title–subtitle split**: ` — ` splits bold title from muted subtitle on every node above.
+- **Fence argument**: ` ```diagram TB ` sets the direction inline.
+
+### Directions
+
+All five directions are valid — as a fence argument, a bare in-body token, or a `DIRECTION:` directive:
+
+```diagram LR
+A[Left] --> B[Right] 
+```
+
+```diagram RL
+A[Right-to-left] --> B[Reversed ranks]
+```
+
+```diagram BT
+A[Bottom] --> B[Top first]
+```
+
+```diagram
+DIRECTION: auto
+A[Abstract] --> B[Concrete]
+```
+
+`auto` renders **top-to-bottom on narrow viewports** and **left-to-right on wide ones** — resize the window to see it flip.
+
+### Text Wrapping
+
+Long labels are word-wrapped at constant char width to fit the widest line:
+
+```diagram
+TITLE: Text Wrapping
+ROLE[“Pipeline Orchestrator — responsible for coordinating ingestion, transformation, enrichment, and final distribution across downstream tenants”]
+```
+
+### Cyclic Flow
+
+```diagram
+TITLE: Cyclic Flow — Return Arcs
+QUEUE[QUEUE — pending work items]
+WORKER[WORKER — consumes and retries]
+QUEUE --> WORKER
+WORKER -->|requeues failures| QUEUE
+WORKER --> DONE[COMPLETED]
+```
+
+The back-edge `WORKER → QUEUE` is detected by DFS colouring, excluded from rank assignment, and **drawn as a return arc** below the graph. Compiling warns `Diagram contains 1 cyclic edge(s); normalized to a DAG for layout (drawn as return arcs).`
+
+### Self-Loop
+
+```diagram
+TITLE: Self Loop
+PROCESSOR[Processor] --> PROCESSOR
+```
+
+Self-loops are handled the same way — excluded from ranking, drawn as a side arc that clears the node width.
+
+### Crossing Reduction
+
+```diagram
+TITLE: Crossing Reduction
+ROOT[Root] --> LEFT[Left branch]
+ROOT --> MID[Mid branch]
+ROOT --> RIGHT[Right branch]
+LEFT --> OUT[Outcome]
+MID --> OUT
+RIGHT --> OUT
+```
+
+Three in, one out — longest-path ranking plus median order within each rank keeps the SVG legible.
+
+---
+
+## Table DSL
+
+GTFM-style pipe tables in a `table` fence render as interactive SVGs with a `TITLE:` header, custom scrollbars, and search-match highlighting:
+
+```table
+TITLE: Table DSL — SVG Pipe Tables
+| Feature | Syntax | Rendering |
+|---------|--------|-----------|
+| Default column | plain | left-aligned |
+| Left marker | :--- | alignment markers ignored → left-aligned |
+| Centre marker | :---: | alignment markers ignored → left-aligned |
+| Right marker | ---: | alignment markers ignored → left-aligned |
+| Empty cell | (blank cell below) | blank surface |
+|  |  |  |
+| Long cell | Markdown++ compiles pipe tables into interactive SVG output with search synchronised highlighting across nodes and cells | wraps within the cell |
+```
+
+---
+
+## Standard Markdown (GFM)
+
+Everything GFM provides still works inside a `.mdd` document:
+
+- **Unordered lists**, *ordered lists*, `inline code`, **bold**, *italic*, and ~~strikethrough~~.
+- **Task lists**:
+  - [x] compiled to HTML
+  - [ ] open task
+- **Blockquotes**, horizontal rules, and nested content:
+
+> A blockquote with a nested list:
+> 1. first
+> 2. second
+
+---
+
+**Raw HTML is escaped**, e.g. `<sup>raw html</sup>` → `&lt;sup&gt;`.
+
+---
+
+## Runtime: Search, Theme & Navigation
+
+Everything above is not just static markup — the compiled page ships a runtime:
+
+- **Search inside an SVG** — type `Prose` or `Collision` into the search box above: the matching diagram node/cell lights up with `.is-hit`, and `Prev` / `Next` cycle through results (`N / M` counter). Case-sensitivity toggle available.
+- **Live theme** — toggle dark/light with the moon button; every fill inherits `var(--accent)` and friends.
+- **Live accent** — open the appearance panel and drag the rainbow picker (or tap a swatch): node borders, edges, headers, favicon, and brand logo recolour instantly.
+- **Navigation history** — click a wikilink (e.g. to [[Item Headings]]) then press <kbd>Alt</kbd>+<kbd>←</kbd> / <kbd>Alt</kbd>+<kbd>→</kbd>: the pill restores scroll position and search state; <kbd>Esc</kbd> steps back.
+- **Deep links** — each heading and alert carries an anchor (`#wikilink-resolution`); the copy-link button on hover writes the URL.
+- **Back to top** — the floating button + scroll progress bar in the header track your place.
+- **Mobile** — ≤900px collapses the sidebar to a drawer; diagrams/tables overflow with 2px smooth scrollbars.
+
+---
+
+## Compile Modes
+
+**Single file (default)** — everything inline, zero external dependencies:
+
+```powershell
+mdd showcase/showcase.mdd --single -o showcase/showcase.html
+```
+
+```text
+showcase/showcase.html   # <style>, <script>, base64 asset all in one file
+```
+
+**Split directory** — modular output:
+
+```powershell
+mdd showcase/showcase.mdd --split -o dist/showcase-site/
+```
+
+```text
+dist/showcase-site/
+├── document.html
+├── style.css
+├── app.js
+└── assets/mdpp-logo.svg
+```
+
+Pass `--no-diagrams` / `--no-tables` to keep raw DSL, `--minify`/`--no-minify` to control compression, and `--debug` for full stack traces on failure. `mdd --spec` prints this language specification directly.
+
+---
+
+## Credits & License
+
+Showcase compiled from `showcase/showcase.mdd`. MIT © 2026.

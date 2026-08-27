@@ -39,21 +39,31 @@ function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string
 
     let d: string;
     let mx: number, my: number;
-    if (!e.directed) {
+    if (e.isBackEdge) {
+      if (e.from === e.to) {
+        const loopR = to.w / 2 + C.ARC_LOOP;
+        const c1x = sx + loopR, c1y = sy, c2x = sx + loopR, c2y = ey;
+        mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
+        my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
+        d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
+        maxX = Math.max(maxX, sx + loopR);
+      } else {
+        const loopY = model.maxY + C.ARC_LOOP;
+        const c1x = sx, c1y = loopY, c2x = ex, c2y = loopY;
+        mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
+        my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
+        d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
+        maxY = Math.max(maxY, loopY);
+      }
+    } else if (!e.directed) {
       mx = (sx + ex) / 2;
       my = (sy + ey) / 2;
+      d = `M ${coordPair(sx, sy)} L ${coordPair(ex, ey)}`;
     } else {
       const dy = ey - sy;
       const c1x = sx, c1y = sy + dy * 0.5, c2x = ex, c2y = ey - dy * 0.5;
       mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
       my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
-    }
-
-    if (!e.directed) {
-      d = `M ${coordPair(sx, sy)} L ${coordPair(ex, ey)}`;
-    } else {
-      const dy = ey - sy;
-      const c1x = sx, c1y = sy + dy * 0.5, c2x = ex, c2y = ey - dy * 0.5;
       d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
     }
 
@@ -69,9 +79,10 @@ function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string
     }
     const ord = e.labelOrd;
     const ordAttr = ord !== undefined ? ` data-label-ord="${ord}"` : '';
+    const pathCls = e.isBackEdge ? 'edge-path is-back-edge' : 'edge-path';
     edgeG.push(
       `<g class="edge"${ordAttr}>` +
-      `<path class="edge-path" d="${d}" marker-end="url(#${arrowId})"/>` +
+      `<path class="${pathCls}" d="${d}" marker-end="url(#${arrowId})"/>` +
       labelSvg +
       `</g>`
     );
@@ -134,9 +145,9 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     lrX += node.w + C.LR_H_GAP;
   }
 
-  const totalW = Math.round(lrX - C.LR_H_GAP + C.PAD);
-  const totalH = Math.round(Math.max(...nodeData.map(n => n.h)) + C.PAD * 2);
-  const midY = totalH / 2;
+  const baseTotalW = Math.round(lrX - C.LR_H_GAP + C.PAD);
+  const baseTotalH = Math.round(Math.max(...nodeData.map(n => n.h)) + C.PAD * 2);
+  const midY = baseTotalH / 2;
 
   for (const nd of nodeData) {
     nd.lrY = midY;
@@ -153,7 +164,9 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     nodeById.set(nd.id, nd);
   }
 
-  const edgeInfo: Array<{ d: string; omx: number; omy: number; label: string; labelOrd: number }> = [];
+  const edgeInfo: Array<{ d: string; omx: number; omy: number; label: string; labelOrd: number; backEdge: boolean }> = [];
+  let maxRight = baseTotalW;
+  let maxBottom = baseTotalH;
   model.edges.forEach(e => {
     const fromNd = nodeById.get(e.from)!;
     const toNd = nodeById.get(e.to)!;
@@ -165,17 +178,37 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     const ey = toNd.lrY;
 
     let d: string;
-    if (!e.directed) {
+    let omx: number, omy: number;
+    if (e.isBackEdge && e.from === e.to) {
+      const loopR = toNd.h / 2 + C.ARC_LOOP;
+      const c1x = sx, c1y = sy + loopR, c2x = sx, c2y = sy + loopR;
+      omx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
+      omy = (sy + 3 * c1y + 3 * c2y + ey) / 8;
+      d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
+      maxBottom = Math.max(maxBottom, sy + 1.5 * loopR);
+    } else if (e.isBackEdge) {
+      const loopX = baseTotalW + C.ARC_LOOP;
+      const c1x = loopX, c1y = sy, c2x = loopX, c2y = ey;
+      omx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
+      omy = (sy + 3 * c1y + 3 * c2y + ey) / 8;
+      d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
+      maxRight = Math.max(maxRight, loopX);
+    } else if (!e.directed) {
+      omx = (sx + ex) / 2;
+      omy = (sy + ey) / 2;
       d = `M ${coordPair(sx, sy)} L ${coordPair(ex, ey)}`;
     } else {
       const dx = ex - sx;
       d = `M ${coordPair(sx, sy)} C ${coordPair(sx + dx * 0.5, sy)} ${coordPair(ex - dx * 0.5, ey)} ${coordPair(ex, ey)}`;
+      omx = (sx + ex) / 2;
+      omy = (sy + ey) / 2;
     }
 
-    const omx = (sx + ex) / 2;
-    const omy = (sy + ey) / 2;
-    edgeInfo.push({ d, omx, omy, label: e.label, labelOrd: e.labelOrd });
+    edgeInfo.push({ d, omx, omy, label: e.label, labelOrd: e.labelOrd, backEdge: !!e.isBackEdge });
   });
+
+  const totalW = Math.max(baseTotalW, Math.round(maxRight));
+  const totalH = Math.max(baseTotalH, Math.round(maxBottom));
 
   const edgeG: string[] = edgeInfo.map(ed => {
     let labelSvg = '';
@@ -190,7 +223,8 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     }
     const pathD = ed.d;
     const ordAttr = ed.labelOrd !== undefined ? ` data-label-ord="${ed.labelOrd}"` : '';
-    return `<g class="edge"${ordAttr}><path class="edge-path" d="${pathD}" marker-end="url(#${arrowId})"/>${labelSvg}</g>`;
+    const pathCls = ed.backEdge ? 'edge-path is-back-edge' : 'edge-path';
+    return `<g class="edge"${ordAttr}><path class="${pathCls}" d="${pathD}" marker-end="url(#${arrowId})"/>${labelSvg}</g>`;
   });
 
   const nodeG: string[] = nodeData.map(nd => {

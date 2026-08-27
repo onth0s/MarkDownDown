@@ -3,6 +3,7 @@ node_modules/
 dist/
 coverage/
 *.html
+!showcase/showcase.html
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
