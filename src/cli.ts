@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import readline from 'node:readline';
 import { compile } from './compile.js';
 import type { Options, CliOptions } from './types.js';
-import { toErrorMessage } from './util/error.js';
+import { CompileError, toErrorMessage } from './util/error.js';
 import { SPEC } from './spec.js';
 
 async function confirmOverwrite(targetPath: string): Promise<boolean> {
@@ -46,6 +46,7 @@ program
   .option('-L, --logo [path]', 'Custom SVG or image brand logo and favicon (auto-detects if single .svg exists in working dir)')
   .option('-F, --force', 'Force overwrite without confirmation prompt', false)
   .option('-v, --verbose', 'Verbose output', false)
+  .option('--debug', 'Dump full error stack traces on failure', false)
   .action(async (input: string | undefined, opts: CliOptions) => {
     if (opts.spec) {
       process.stdout.write(SPEC);
@@ -173,7 +174,13 @@ program
 
       process.exit(0);
     } catch (err) {
-      process.stderr.write(`ERROR: ${toErrorMessage(err)}\n`);
+      if (err instanceof CompileError) {
+        process.stderr.write(`ERROR: ${err.message}\n`);
+        if (opts.debug) process.stderr.write(`${err.stack}\n`);
+      } else {
+        process.stderr.write(`ERROR: ${toErrorMessage(err)}\n`);
+        if (opts.debug && err instanceof Error) process.stderr.write(`${err.stack}\n`);
+      }
       process.exit(1);
     }
   });

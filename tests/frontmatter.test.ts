@@ -125,3 +125,26 @@ describe('parseFrontmatter', () => {
     expect(() => parseFrontmatter(src, '/tmp')).toThrow(/"theme" must be either "dark" or "light"/);
   });
 });
+
+describe('frontmatter vs body horizontal rules (Gotcha #1)', () => {
+  test('body --- is NOT consumed as a frontmatter fence', () => {
+    const src = '---\ntitle: T\n---\n\nBody text.\n\n---\n\nafter rule.\n';
+    const r = parseFrontmatter(src, process.cwd());
+    expect(r.meta.title).toBe('T');
+    expect(r.body).toContain('---');
+    expect(r.body).toContain('after rule.');
+  });
+
+  test('missing closing fence -> treated as no frontmatter (no crash)', () => {
+    const src = 'Just a doc with --- in the body and no yaml.\n';
+    const r = parseFrontmatter(src, process.cwd());
+    expect(r.meta).toEqual({});
+    expect(r.body).toContain('---');
+  });
+
+  test('body with several --- rules all preserved', () => {
+    const src = '---\ntitle: X\n---\n\nA\n\n---\n\nB\n\n---\n\nC\n';
+    const r = parseFrontmatter(src, process.cwd());
+    expect((r.body.match(/^---$/gm) || []).length).toBe(2);
+  });
+});

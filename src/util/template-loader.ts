@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CompileError } from './error.js';
 
 export function loadTemplate(filename: string): string {
   let dir = '';
@@ -47,7 +48,7 @@ export function loadTemplate(filename: string): string {
     }
   }
 
-  throw new Error(`${filename} template not found (searched: ${candidateDirs.join(', ')})`);
+  throw new CompileError(`${filename} template not found (searched: ${candidateDirs.join(', ')})`);
 }
 
 /**

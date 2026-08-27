@@ -23,6 +23,6 @@ export function toErrorMessage(err: unknown): string {
  */
 export function getOrThrow<K, V>(map: Map<K, V>, key: K, context: string): V {
   const val = map.get(key);
-  if (val === undefined) throw new Error(`${context}: missing key ${String(key)}`);
+  if (val === undefined) throw new CompileError(`${context}: missing key ${String(key)}`);
   return val;
 }

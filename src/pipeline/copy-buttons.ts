@@ -7,6 +7,8 @@
  *    wrap the entire <pre><code...</code></pre> block in a .code-wrap div with the copy button inside.
  * 3. Validate that no .code-wrap divs are nested within each other; throw an error if detected.
  */
+import { CompileError } from '../util/error.js';
+
 const CODE_BLOCK_OR_WRAPPER_RE = /(<div\s+class="[^"]*\bcode-wrap\b[^"]*"[^>]*>)([\s\S]*?<\/div>)|(<pre><code[\s\S]*?<\/code><\/pre>)|(<table\b[\s\S]*?<\/table>)/g;
 
 const DOWNLOAD_BTNS_HTML =
@@ -81,7 +83,7 @@ export function validateNoNestedCodeWraps(html: string): void {
     if (tag.type === 'open') {
       depth++;
       if (depth > 1) {
-        throw new Error('Compilation error: detected illegally nested .code-wrap elements.');
+        throw new CompileError('Compilation error: detected illegally nested .code-wrap elements.');
       }
     } else if (tag.type === 'close') {
       if (depth > 0) {

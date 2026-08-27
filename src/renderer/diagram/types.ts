@@ -24,6 +24,7 @@ export interface DiagramEdge {
   label: string;
   directed: boolean;
   labelOrd: number;
+  isBackEdge?: boolean;
 }
 
 export interface DiagramModel {
@@ -38,4 +39,5 @@ export interface DiagramModel {
   horizontal: boolean;
   rank: Map<string, number>;
   ranks: string[][];
+  warnings?: string[];
 }

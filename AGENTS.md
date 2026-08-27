@@ -10,3 +10,5 @@
 
 - CUSTOM SCROLLBARS: NEVER alter, widen, or add rounded borders/scrollbar-color overrides to the custom scrollbars in `templates/style.css`. Preserve the exact custom `2px` sharp, unrounded scrollbars (`width: 2px; height: 2px; border: none; border-radius: 0; background: var(--accent);`) across sidebar, code blocks, tables, and diagrams.
 
+- SPEC FILES ARE MUTABLE: `DSL.md`, `SPEC.md`, `src/spec.ts`, and the `mdd --spec` output are NOT immutable. It is valid — and sometimes necessary — to update them when the engine's behavior changes (e.g. supporting cyclic diagrams, new edge types). HOWEVER, you MUST obtain EXPLICIT USER APPROVAL before editing any spec file. Do not silently rewrite specs. When approved, update the spec to match the new behavior and add a test that the spec's own embedded examples still compile.
+

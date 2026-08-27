@@ -11,6 +11,10 @@ function parseNodeShape(raw: string): { id: string; label?: string; shape: NodeS
   return null;
 }
 
+/** Split on em-dash separator, respecting `\ — ` escape. */
+const SPLIT_RE = /(?<!\\) — /;
+const cleanEscaped = (s: string): string => s.replace(/\\—/g, '—').trim();
+
 export function diagramParse(source: string, initialDirection?: string): DiagramModel {
   const normalizedInitial = (initialDirection?.toUpperCase() ?? 'auto') as DiagramDirection;
   const model: DiagramModel = {
@@ -38,11 +42,11 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
     let node = model.nodes.get(id);
     if (!node) {
       const raw = label ?? id;
-      const parts = raw.split(' — ');
+      const parts = raw.split(SPLIT_RE);
       node = {
         id,
-        label: parts[0].trim(),
-        subtitle: parts[1]?.trim() ?? '',
+        label: cleanEscaped(parts[0]),
+        subtitle: cleanEscaped(parts[1] ?? ''),
         shape: shape ?? 'rect',
         rank: 0,
         order: model.nodes.size,
@@ -53,9 +57,9 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
       };
       model.nodes.set(id, node);
     } else if (label !== undefined) {
-      const parts = label.split(' — ');
-      node.label = parts[0].trim();
-      node.subtitle = parts[1]?.trim() ?? '';
+      const parts = label.split(SPLIT_RE);
+      node.label = cleanEscaped(parts[0]);
+      node.subtitle = cleanEscaped(parts[1] ?? '');
       if (shape) node.shape = shape;
     }
     return node;

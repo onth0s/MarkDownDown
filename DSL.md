@@ -89,6 +89,8 @@ Example: `["SPECIFICATION LAYER — DIEGETICS.md / README"]` renders "SPECIFICAT
 
 If no em-dash is present, the entire text is rendered as the title.
 
+To render a literal em-dash in the title without splitting, escape it with a leading backslash: `["Cost \— Benefit analysis"]` renders a single title "Cost — Benefit analysis" with no subtitle (the backslash is stripped and is not rendered).
+
 ### 1.8 Text Wrapping
 
 Long labels are word-wrapped to fit within the node width. Text width is estimated using a constant `CHAR_WIDTH_PX` (7.4px per character at font-size 12px). Node width is determined by the longest line after wrapping, plus padding.
@@ -125,6 +127,27 @@ TITLE: Diagram SVG Element Classes
 | is-hit | modifier | Matched during document search |
 | is-current | modifier | Current active search selection |
 ```
+
+### 1.11 Cyclic Diagrams
+
+Cyclic (looping) edges are **supported**. A cycle — e.g. `A --> B` followed by `B --> A` — is normalized at layout time without failing compilation:
+
+- Back-edges (edges closing a loop, detected via DFS colouring) are **skipped during rank assignment**, so the remaining graph is always a DAG and ranking is well defined.
+- The cyclic edge is still **drawn** in the final SVG as a return arc, so the loop remains visible.
+- Compilation emits a **non-fatal warning** instead of an error: `Diagram contains N cyclic edge(s); normalized to a DAG for layout (drawn as return arcs).`
+- **Self-loops** (`A --> A`) are handled the same way — detected as a back-edge, excluded from ranking, rendered as an arc.
+
+Example:
+
+```diagram
+TITLE: Cyclic Flow Example
+FEED["Feed — Ingestion"]
+PROC["Process — Transformation"]
+FEED --> PROC
+PROC -->|feeds back| FEED
+```
+
+The above compiles to a top-to-bottom layout with a return arc from PROC back to FEED and emits a "1 cyclic edge(s)" warning.
 
 ---
 
@@ -233,4 +256,15 @@ TITLE: Reading Cost Calibration
 | Phase behavioral testing | Variable | Behavioral contract verification |
 | Plan-implementation alignment audit | ~5 minutes | Coverage gap detection |
 | Final iron-out review | ~2 minutes | Implementation hygiene |
+```
+
+### 4.3 Cyclic Diagram Example
+
+```diagram
+TITLE: Supervisor Loop
+TASK["TASK QUEUE — pending work items"]
+WORKER["WORKER POOL — processes items"]
+TASK --> WORKER
+WORKER -->|re-enqueues failures| TASK
+WORKER --> DONE["COMPLETED"]
 ```

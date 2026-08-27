@@ -57,6 +57,7 @@ export interface CliOptions {
   minify?: boolean;
   force?: boolean;
   spec?: boolean;
+  debug?: boolean;
 }
 
 /** A heading extracted from the document */
