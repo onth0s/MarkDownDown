@@ -198,3 +198,37 @@ describe('diagramLayout + diagramBuildSvg', () => {
   });
 });
 
+describe('diagram render determinism', () => {
+  test('same source produces byte-identical SVG across builds', () => {
+    const src = `flowchart TB\n  A[One]\n  B[Two]\n  A --> B\n  B --> A`;
+    const first = diagramBuildSvg(diagramLayoutAndParse(src), 'Loop');
+    const second = diagramBuildSvg(diagramLayoutAndParse(src), 'Loop');
+    expect(second).toBe(first);
+  });
+
+  test('arrow marker id is derived deterministically from model content', () => {
+    const srcA = `flowchart TB\n  A[One]\n  B[Two]\n  A --> B`;
+    const srcB = `flowchart TB\n  A[One]\n  B[Two]\n  A --> B`;
+    const svgA = diagramBuildSvg(diagramLayoutAndParse(srcA), 'Loop');
+    const svgB = diagramBuildSvg(diagramLayoutAndParse(srcB), 'Loop');
+    expect(svgA).toBe(svgB);
+    expect(svgA).toMatch(/marker id="arrow-[0-9a-f]{8}"/);
+  });
+
+  test('auto mode gives distinct markers for TB and LR variants', () => {
+    const src = `flowchart TB\n  A[One]\n  B[Two]\n  A --> B`;
+    const model = diagramLayoutAndParse(src);
+    const svgTB = diagramBuildSvg(model, 'Loop', false);
+    const svgLR = diagramBuildSvg(model, 'Loop', true);
+    const idTB = /marker id="(arrow-[0-9a-f]{8})"/.exec(svgTB)![1];
+    const idLR = /marker id="(arrow-[0-9a-f]{8})"/.exec(svgLR)![1];
+    expect(idTB).not.toBe(idLR);
+  });
+});
+
+function diagramLayoutAndParse(src: string) {
+  const m = diagramParse(src);
+  diagramLayout(m);
+  return m;
+}
+

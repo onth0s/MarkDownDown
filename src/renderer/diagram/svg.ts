@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import { DIAGRAM as C } from '../../constants.js';
 import { escHtml } from '../../util/escape.js';
 import {
@@ -13,13 +12,32 @@ import { checkBoxesOverlap } from './layout.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
-function nextArrowId(): string {
-  return `arrow-${crypto.randomUUID().slice(0, 8)}`;
+function hashString(input: string): string {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash + input.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(16).padStart(8, '0');
+}
+
+/**
+ * Deterministic arrow-marker id derived from the model, title, and orientation.
+ * Keeps compiled output reproducible so rebuilds are byte-identical.
+ */
+function arrowIdFor(model: DiagramModel, title: string, isLR: boolean): string {
+  const parts = [title, isLR ? 'lr' : 'tb'];
+  for (const node of model.nodes.values()) {
+    parts.push(node.id, node.shape, node.label, node.subtitle);
+  }
+  for (const edge of model.edges) {
+    parts.push(edge.from, edge.to, String(edge.directed), edge.label);
+  }
+  return `arrow-${hashString(parts.join('|'))}`;
 }
 
 export function diagramBuildSvg(model: DiagramModel, title: string, forceHorizontal?: boolean): string {
-  const arrowId = nextArrowId();
   const isLR = forceHorizontal !== undefined ? forceHorizontal : model.horizontal;
+  const arrowId = arrowIdFor(model, title, isLR);
   return isLR ? buildLrSvg(model, title, arrowId) : buildTbSvg(model, title, arrowId);
 }
 
