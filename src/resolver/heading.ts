@@ -1,6 +1,25 @@
 import type { Heading } from '../types.js';
 
 /**
+ * Extracts clean plain text from a markdown-it inline token's children.
+ * Handles text, code spans, wikilinks, line breaks, etc.
+ */
+export function extractInlineText(children?: import('markdown-it/lib/token.mjs').default[] | null): string {
+  if (!children || !children.length) return '';
+  let out = '';
+  for (const t of children) {
+    if (t.type === 'text' || t.type === 'code_inline') {
+      out += t.content;
+    } else if (t.type === 'wikilink') {
+      out += t.info || t.content;
+    } else if (t.type === 'softbreak' || t.type === 'hardbreak') {
+      out += ' ';
+    }
+  }
+  return out;
+}
+
+/**
  * Extracts all headings (h1–h6) from a markdown-it token stream.
  * Returns an array of Heading objects in document order.
  */
@@ -13,10 +32,7 @@ export function extractHeadings(tokens: import('markdown-it/lib/token.mjs').defa
       const id = tok.attrGet('id') ?? '';
       // The inline token follows immediately
       const inline = tokens[i + 1];
-      const text = inline?.children
-        ?.filter((t) => t.type === 'text' || t.type === 'code_inline')
-        .map((t) => t.content)
-        .join('') ?? '';
+      const text = extractInlineText(inline?.children);
       headings.push({ text, id, level });
     } else if (tok.type === 'blockquote_open' && tok.tag === 'div' && tok.attrGet('class')?.includes('alert')) {
       const id = tok.attrGet('id');

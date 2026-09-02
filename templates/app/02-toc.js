@@ -14,6 +14,7 @@ if (hasHero) {
   toc.appendChild(titleLi);
 }
 headings.forEach((heading) => {
+  if (!heading.id || !heading.id.trim()) return;
   const isAlert = heading.classList.contains('alert');
   const isItem = heading.classList.contains('item-heading');
   const li = document.createElement('li');

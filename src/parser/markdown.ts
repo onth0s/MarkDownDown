@@ -8,6 +8,7 @@ import { diagramPlugin } from './diagram.js';
 import { tablePlugin } from './table.js';
 import { slugify } from '../util/slugify.js';
 import { resolveFileLink } from '../util/file-link.js';
+import { extractInlineText } from '../resolver/heading.js';
 
 export function createMarkdownParser(): MarkdownIt {
   const md = new MarkdownIt({
@@ -32,10 +33,7 @@ export function createMarkdownParser(): MarkdownIt {
     for (let i = 0; i < tokens.length; i++) {
       if (tokens[i].type === 'heading_open') {
         const inline = tokens[i + 1];
-        let text = inline?.children
-          ?.filter(t => t.type === 'text' || t.type === 'code_inline')
-          .map(t => t.content)
-          .join('') ?? '';
+        let text = extractInlineText(inline?.children);
 
         // Detect bullet marker: "* Term", "- Term", "• Term"
         const bulletMatch = text.match(/^([*\-•])\s+(.+)$/);
