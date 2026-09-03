@@ -21,7 +21,7 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
     nodes: new Map(),
     edges: [],
     labels: [],
-    direction: /^(TB|TD|BT|LR|RL|auto)$/i.test(normalizedInitial) ? normalizedInitial : 'auto',
+    direction: /^(TB|TD|BT|LR|RL)$/i.test(normalizedInitial) ? normalizedInitial : 'auto',
     cx: new Map(),
     cy: new Map(),
     maxX: 0,
@@ -72,7 +72,7 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
     const line = rawLine.trim();
     if (!line || line.startsWith('%%')) continue;
 
-    const dirDirectiveMatch = line.match(/^DIRECTION:\s*(TB|TD|BT|LR|RL|auto)\s*$/i);
+    const dirDirectiveMatch = line.match(/^DIRECTION:\s*(TB|TD|BT|LR|RL)\s*$/i);
     if (dirDirectiveMatch) {
       model.direction = dirDirectiveMatch[1].toUpperCase() as DiagramDirection;
       continue;
@@ -90,20 +90,29 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
       continue;
     }
 
-    const edgePatterns = [
-      /^(\S+.*?\]|\S+.*?\)\s*|\S+.*?\}\s*|\S+)\s+-->\|([^|]*)\|\s+(.+)$/,
-      /^(\S+.*?\]|\S+.*?\)\s*|\S+.*?\}\s*|\S+)\s+--\s+(.+?)\s+-->\s+(.+)$/,
-      /^(\S+.*?\]|\S+.*?\)\s*|\S+.*?\}\s*|\S+)\s+(-->|---)\s+(.+)$/,
-    ];
+    const cleanEdgeLabel = (raw: string): string => {
+      const trimmed = raw.trim();
+      const m = trimmed.match(/^["'](.*)["']$/);
+      return (m ? m[1] : trimmed).trim();
+    };
 
-    let edgeMatched = false;
-    for (const pat of edgePatterns) {
-      const m = line.match(pat);
-      if (!m) continue;
-      edgeMatched = true;
-      const fromRaw = m[1].trim(), toRaw = m[3].trim();
-      const edgeLabel = pat === edgePatterns[0] ? m[2] : pat === edgePatterns[1] ? m[2] : '';
-      const directed = !line.includes('---') || line.includes('-->');
+    // 1. Pipe label: e.g. A -->|label| B, A ---|"VS."| B, A --->|label| B, A ---|label|--> B
+    const mPipe = line.match(/^(\S+.*?\]|\S+.*?\)\s*|\S+.*?\}\s*|\S+)\s+(--+>|---+)\|([^|]*)\|(?:(--+>|---+)\s*)?\s*(.+)$/);
+    // 2. Inline text label: e.g. A -- label --> B, A --- label ---> B, A --- label --- B
+    const mInline = !mPipe ? line.match(/^(\S+.*?\]|\S+.*?\)\s*|\S+.*?\}\s*|\S+)\s+(--+)\s+(.+?)\s+(--+>|---+)\s+(.+)$/) : null;
+    // 3. Simple arrow / line: e.g. A --> B, A ---> B, A --- B, A ----- B
+    const mSimple = !mPipe && !mInline ? line.match(/^(\S+.*?\]|\S+.*?\)\s*|\S+.*?\}\s*|\S+)\s+(--+>|---+)\s+(.+)$/) : null;
+
+    if (mPipe || mInline || mSimple) {
+      const fromRaw = (mPipe ? mPipe[1] : mInline ? mInline[1] : mSimple![1]).trim();
+      const toRaw = (mPipe ? mPipe[5] : mInline ? mInline[5] : mSimple![3]).trim();
+      const rawLabel = mPipe ? mPipe[3] : mInline ? mInline[3] : '';
+      const edgeLabel = cleanEdgeLabel(rawLabel);
+      const directed = mPipe
+        ? (mPipe[2].endsWith('>') || Boolean(mPipe[4]?.endsWith('>')))
+        : mInline
+          ? mInline[4].endsWith('>')
+          : mSimple![2].endsWith('>');
 
       const parseInlineNode = (raw: string): string => {
         const parsed = parseNodeShape(raw);
@@ -119,11 +128,11 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
 
       const fromId = parseInlineNode(fromRaw);
       const toId = parseInlineNode(toRaw);
-      const elOrd = edgeLabel ? pushLabel(edgeLabel, lineStartPos + rawLine.indexOf(edgeLabel)) : -1;
+      const labelIdx = rawLabel ? rawLine.indexOf(rawLabel) : -1;
+      const elOrd = edgeLabel ? pushLabel(edgeLabel, labelIdx >= 0 ? lineStartPos + labelIdx : lineStartPos) : -1;
       model.edges.push({ from: fromId, to: toId, label: edgeLabel, directed, labelOrd: elOrd });
-      break;
+      continue;
     }
-    if (edgeMatched) continue;
 
     const parsedStandalone = parseNodeShape(line);
     if (parsedStandalone) {

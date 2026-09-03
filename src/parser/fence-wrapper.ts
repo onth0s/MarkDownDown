@@ -30,7 +30,7 @@ export function createFenceRenderer(md: MarkdownIt, block: FenceBlock): void {
     }
 
     const arg = infoWords[1]?.toUpperCase() ?? '';
-    const dirAttr = /^(TB|TD|BT|LR|RL|AUTO)$/i.test(arg) ? ` data-direction="${arg}"` : '';
+    const dirAttr = /^(TB|TD|BT|LR|RL)$/i.test(arg) ? ` data-direction="${arg}"` : '';
 
     const { title, body } = parseTitleDirective(token.content);
     const safeTitle = title.replace(/"/g, '&quot;');

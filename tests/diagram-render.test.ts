@@ -181,6 +181,18 @@ describe('diagramLayout + diagramBuildSvg', () => {
     expect(model.horizontal).toBe(false);
   });
 
+  test('preserves auto direction for 2-node comparison diagram with long labels', () => {
+    const model = diagramParse(`
+      TITLE: The Two Levels of Warfare
+      TACTICAL["TACTICAL LEVEL — The Soldier / Rambo: Absolute force, decisive victory, 'Win at all costs'"]
+      STRUCTURAL["STRUCTURAL LEVEL — The State / Politicians: Strategic alliances, domestic politics, long-term survival"]
+      TACTICAL -->|VS| STRUCTURAL
+    `);
+    expect(model.direction).toBe('auto');
+    diagramLayout(model);
+    expect(model.direction).toBe('auto');
+  });
+
   test('throws compilation error when nodes overlap in layout', () => {
     const model = diagramParse(`flowchart TB\n  A[Node A]\n  B[Node B]`);
     // Manually force overlapping coordinates to verify error
@@ -223,6 +235,81 @@ describe('diagram render determinism', () => {
     const idTB = /marker id="(arrow-[0-9a-f]{8})"/.exec(svgTB)![1];
     const idLR = /marker id="(arrow-[0-9a-f]{8})"/.exec(svgLR)![1];
     expect(idTB).not.toBe(idLR);
+  });
+});
+
+describe('free-form forgiving edge and direction syntax', () => {
+  test('parses undirected edge with quoted pipe label and strips quotes', () => {
+    const model = diagramParse(`
+      TITLE: The Two Levels of Warfare
+      TACTICAL["TACTICAL LEVEL — The Soldier / Rambo"]
+      STRUCTURAL["STRUCTURAL LEVEL — The State / Politicians"]
+      TACTICAL ---|"VS."| STRUCTURAL
+    `);
+    expect(model.edges.length).toBe(1);
+    const edge = model.edges[0];
+    expect(edge.from).toBe('TACTICAL');
+    expect(edge.to).toBe('STRUCTURAL');
+    expect(edge.label).toBe('VS.');
+    expect(edge.directed).toBe(false);
+  });
+
+  test('parses variable-length dashes for directed arrows and labels', () => {
+    const model = diagramParse(`
+      A ---> B
+      B ---->|long arrow| C
+      C ----->|"quoted label"| D
+    `);
+    expect(model.edges.length).toBe(3);
+    expect(model.edges[0].directed).toBe(true);
+    expect(model.edges[1].directed).toBe(true);
+    expect(model.edges[1].label).toBe('long arrow');
+    expect(model.edges[2].directed).toBe(true);
+    expect(model.edges[2].label).toBe('quoted label');
+  });
+
+  test('parses variable-length dashes for undirected edges', () => {
+    const model = diagramParse(`
+      A --- B
+      B ---- C
+      C ----- D
+    `);
+    expect(model.edges.length).toBe(3);
+    expect(model.edges[0].directed).toBe(false);
+    expect(model.edges[1].directed).toBe(false);
+    expect(model.edges[2].directed).toBe(false);
+  });
+
+  test('parses mid-pipe arrow syntax', () => {
+    const model = diagramParse(`
+      A ---|VS|--> B
+      C ---|"Process"|---> D
+    `);
+    expect(model.edges.length).toBe(2);
+    expect(model.edges[0].directed).toBe(true);
+    expect(model.edges[0].label).toBe('VS');
+    expect(model.edges[1].directed).toBe(true);
+    expect(model.edges[1].label).toBe('Process');
+  });
+
+  test('parses inline text label with quotes', () => {
+    const model = diagramParse(`
+      A -- "Action" --> B
+      C --- 'Link' --- D
+    `);
+    expect(model.edges.length).toBe(2);
+    expect(model.edges[0].directed).toBe(true);
+    expect(model.edges[0].label).toBe('Action');
+    expect(model.edges[1].directed).toBe(false);
+    expect(model.edges[1].label).toBe('Link');
+  });
+
+  test('invalid or hallucinated fence direction token falls back to auto', () => {
+    const model = diagramParse(`A --> B`, 'auto');
+    expect(model.direction).toBe('auto');
+
+    const modelFake = diagramParse(`A --> B`, 'RANDOM_WORD');
+    expect(modelFake.direction).toBe('auto');
   });
 });
 
