@@ -319,3 +319,83 @@ function diagramLayoutAndParse(src: string) {
   return m;
 }
 
+describe('diagram shape & routing improvements', () => {
+  test('renders diamond shape as polygon with 4 vertices', () => {
+    const m = diagramParse('TB\n D{Decision}');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Test');
+    expect(svg).toContain('<polygon class="node-rect node-diamond" points="');
+  });
+
+  test('renders rounded shape with rx=18', () => {
+    const m = diagramParse('TB\n R(Process)');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Test');
+    expect(svg).toContain('<rect class="node-rect node-rounded"');
+    expect(svg).toContain('rx="18"');
+  });
+
+  test('renders sharp rect shape with rx=3', () => {
+    const m = diagramParse('TB\n S[State]');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Test');
+    expect(svg).toContain('<rect class="node-rect"');
+    expect(svg).toContain('rx="3"');
+  });
+
+  test('multi-edge fan-out distributes starting X ports', () => {
+    const m = diagramParse('TB\n A[Root]\n B[Left]\n C[Center]\n D[Right]\n A --> B\n A --> C\n A --> D');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Test');
+    const matches = [...svg.matchAll(/<path class="edge-path" d="M ([\d.]+) ([\d.]+)/g)];
+    expect(matches.length).toBe(3);
+    const startXs = matches.map(m => Number(m[1]));
+    expect(startXs[0]).toBeLessThan(startXs[1]);
+    expect(startXs[1]).toBeLessThan(startXs[2]);
+  });
+
+  test('TB back-edge routes into side port via exterior clearance gutter', () => {
+    const m = diagramParse('flowchart TB\n A[One]\n B[Two]\n C[Three]\n A --> B\n B --> C\n C --> B');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Loop');
+    const backEdgeMatch = svg.match(/<path class="edge-path is-back-edge" d="([^"]+)"/);
+    expect(backEdgeMatch).not.toBeNull();
+    const d = backEdgeMatch![1];
+    // Must contain cubic curve C
+    expect(d).toContain('C');
+    // Destination X must match right edge of B
+    const bNode = m.nodes.get('B')!;
+    const bRight = m.cx.get('B')! + bNode.w / 2;
+    expect(d).toContain(String(Math.round(bRight + 6)));
+  });
+
+  test('back-edge exits directly from side port when unobstructed (no bottom dip)', () => {
+    // Diagram with branching where source node is offset from target node
+    const m = diagramParse('flowchart TB\n A[Root]\n B[Left]\n C[Right]\n A --> B\n A --> C\n C --> A');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'BranchLoop');
+    const backEdgeMatch = svg.match(/<path class="edge-path is-back-edge" d="([^"]+)"/);
+    expect(backEdgeMatch).not.toBeNull();
+    const d = backEdgeMatch![1];
+    const cNode = m.nodes.get('C')!;
+    const cCx = m.cx.get('C')!;
+    const cCy = m.cy.get('C')!;
+    const cRight = cCx + cNode.w / 2;
+    // Edge starts at right edge of C at its vertical center (cCy)
+    expect(d).toMatch(new RegExp(`^M ${cRight} ${cCy}`));
+  });
+
+  test('diamond text is vertically centered around node center Y', () => {
+    const m = diagramParse('TB\n D{Decision}');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Diamond');
+    const dCy = m.cy.get('D')!;
+    const titleMatch = svg.match(/<text class="node-title"[^>]*y="([^"]+)"/);
+    expect(titleMatch).not.toBeNull();
+    const titleY = Number(titleMatch![1]);
+    // Single line text: titleY = dCy - 22/2 + 22 - 4 = dCy + 7
+    expect(Math.abs(titleY - (dCy + 7))).toBeLessThanOrEqual(1);
+  });
+});
+
+

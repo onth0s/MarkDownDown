@@ -44,50 +44,167 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceHorizon
 function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
+  // Collect forward edge counts per source (outForward) and target (inForward) to distribute ports
+  const outForward = new Map<string, typeof model.edges>();
+  const inForward = new Map<string, typeof model.edges>();
+  for (const e of model.edges) {
+    if (!e.isBackEdge) {
+      if (!outForward.has(e.from)) outForward.set(e.from, []);
+      outForward.get(e.from)!.push(e);
+      if (!inForward.has(e.to)) inForward.set(e.to, []);
+      inForward.get(e.to)!.push(e);
+    }
+  }
+  for (const list of outForward.values()) {
+    list.sort((a, b) => (model.cx.get(a.to) ?? 0) - (model.cx.get(b.to) ?? 0));
+  }
+  for (const list of inForward.values()) {
+    list.sort((a, b) => (model.cx.get(a.from) ?? 0) - (model.cx.get(b.from) ?? 0));
+  }
+
+  let maxNodeRight = -Infinity;
+  let minNodeLeft = Infinity;
+  for (const n of model.nodes.values()) {
+    const ncx = model.cx.get(n.id) ?? 0;
+    maxNodeRight = Math.max(maxNodeRight, ncx + n.w / 2);
+    minNodeLeft = Math.min(minNodeLeft, ncx - n.w / 2);
+  }
+
   const edgeG: string[] = [];
   model.edges.forEach((e) => {
     const from = model.nodes.get(e.from);
     const to = model.nodes.get(e.to);
     if (!from || !to) return;
 
-    const sx = model.cx.get(e.from)!;
-    const sy = model.cy.get(e.from)! + from.h / 2;
-    const ex = model.cx.get(e.to)!;
-    const ey = model.cy.get(e.to)! - to.h / 2 - (e.directed ? C.ARROW_OFFSET : 0);
+    const fromCx = model.cx.get(e.from)!;
+    const fromCy = model.cy.get(e.from)!;
+    const toCx = model.cx.get(e.to)!;
+    const toCy = model.cy.get(e.to)!;
 
+    let sx: number, sy: number, ex: number, ey: number;
     let d: string;
     let mx: number, my: number;
+
     if (e.isBackEdge) {
       if (e.from === e.to) {
-        const loopR = to.w / 2 + C.ARC_LOOP;
-        const c1x = sx + loopR, c1y = sy, c2x = sx + loopR, c2y = ey;
-        mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
-        my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
+        // Self loop
+        sx = fromCx + from.w / 2;
+        sy = fromCy + from.h * 0.25;
+        ex = fromCx + from.w / 2 + (e.directed ? C.ARROW_OFFSET : 0);
+        ey = fromCy - from.h * 0.25;
+        const loopR = from.h * 0.4 + C.ARC_LOOP;
+        const c1x = sx + loopR, c1y = sy;
+        const c2x = sx + loopR, c2y = ey;
+        mx = sx + loopR;
+        my = (sy + ey) / 2;
         d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-        maxX = Math.max(maxX, sx + loopR);
+        maxX = Math.max(maxX, c1x);
       } else {
-        const loopY = model.maxY + C.ARC_LOOP;
-        const c1x = sx, c1y = loopY, c2x = ex, c2y = loopY;
+        // Return arc: check if the source node has a free side edge facing the gutter.
+        // If from node can exit sideways without dipping below the graph, route directly out of the side port.
+        const midX = (minNodeLeft + maxNodeRight) / 2;
+        const useRightGutter = fromCx >= midX || toCx >= midX;
+
+        // Determine if side edge is free on source:
+        // In vertical single-column (fromCx === toCx), loop around bottom as a return arc.
+        // If from node is at or facing the right/left boundary and fromCx !== toCx, exit directly from side edge.
+        const canExitSide = fromCx !== toCx;
+
+        if (useRightGutter) {
+          const gutterX = maxNodeRight + C.GUTTER;
+          ex = toCx + to.w / 2 + (e.directed ? C.ARROW_OFFSET : 0);
+          ey = toCy;
+          if (canExitSide) {
+            sx = fromCx + from.w / 2;
+            sy = fromCy;
+            const c1x = gutterX, c1y = sy;
+            const c2x = gutterX, c2y = ey;
+            mx = gutterX;
+            my = (sy + ey) / 2;
+            d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
+          } else {
+            const loopY = model.maxY + C.ARC_LOOP;
+            sx = fromCx;
+            sy = fromCy + from.h / 2;
+            const c1x = gutterX, c1y = loopY;
+            const c2x = gutterX, c2y = ey;
+            mx = gutterX;
+            my = (sy + ey) / 2;
+            d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
+            maxY = Math.max(maxY, loopY);
+          }
+          maxX = Math.max(maxX, gutterX);
+        } else {
+          const gutterX = minNodeLeft - C.GUTTER;
+          ex = toCx - to.w / 2 - (e.directed ? C.ARROW_OFFSET : 0);
+          ey = toCy;
+          if (canExitSide) {
+            sx = fromCx - from.w / 2;
+            sy = fromCy;
+            const c1x = gutterX, c1y = sy;
+            const c2x = gutterX, c2y = ey;
+            mx = gutterX;
+            my = (sy + ey) / 2;
+            d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
+          } else {
+            const loopY = model.maxY + C.ARC_LOOP;
+            sx = fromCx;
+            sy = fromCy + from.h / 2;
+            const c1x = gutterX, c1y = loopY;
+            const c2x = gutterX, c2y = ey;
+            mx = gutterX;
+            my = (sy + ey) / 2;
+            d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
+            maxY = Math.max(maxY, loopY);
+          }
+          minX = Math.min(minX, gutterX);
+        }
+      }
+    } else {
+      const outList = outForward.get(e.from) || [e];
+      const outIdx = outList.indexOf(e);
+      const outTotal = outList.length;
+
+      sx = fromCx;
+      if (outTotal > 1 && from.shape !== 'diamond') {
+        const spread = from.w * C.PORT_SPREAD_RATIO;
+        const ratio = (outIdx / (outTotal - 1)) - 0.5;
+        sx = fromCx + ratio * 2 * spread;
+      }
+      sy = fromCy + from.h / 2;
+
+      const inList = inForward.get(e.to) || [e];
+      const inIdx = inList.indexOf(e);
+      const inTotal = inList.length;
+
+      ex = toCx;
+      if (inTotal > 1 && to.shape !== 'diamond') {
+        const spread = to.w * C.PORT_SPREAD_RATIO;
+        const ratio = (inIdx / (inTotal - 1)) - 0.5;
+        ex = toCx + ratio * 2 * spread;
+      }
+      ey = toCy - to.h / 2 - (e.directed ? C.ARROW_OFFSET : 0);
+
+      const dx = ex - sx;
+      const dy = ey - sy;
+      const isOrthogonal = Math.abs(dx) < 2;
+
+      if (isOrthogonal || !e.directed) {
+        d = `M ${coordPair(sx, sy)} L ${coordPair(ex, ey)}`;
+        mx = (sx + ex) / 2;
+        my = (sy + ey) / 2;
+      } else {
+        const c1x = sx, c1y = sy + dy * 0.45;
+        const c2x = ex, c2y = ey - dy * 0.45;
+        d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
         mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
         my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
-        d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-        maxY = Math.max(maxY, loopY);
       }
-    } else if (!e.directed) {
-      mx = (sx + ex) / 2;
-      my = (sy + ey) / 2;
-      d = `M ${coordPair(sx, sy)} L ${coordPair(ex, ey)}`;
-    } else {
-      const dy = ey - sy;
-      const c1x = sx, c1y = sy + dy * 0.5, c2x = ex, c2y = ey - dy * 0.5;
-      mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
-      my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
-      d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
     }
 
-    const label = e.label;
     let labelSvg = '';
-    if (label) {
+    if (e.label) {
+      const label = e.label;
       const lw = textWidth(label, C.EDGE_LABEL_SIZE, false) + 14;
       labelSvg =
         `<g class="edge-label" transform="translate(${coordPair(mx, my)})">` +
@@ -112,26 +229,42 @@ function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string
 
   const nodeG: string[] = [];
   for (const node of model.nodes.values()) {
-    const x = model.cx.get(node.id)! - node.w / 2;
-    const y = model.cy.get(node.id)! - node.h / 2;
+    const nodeCx = model.cx.get(node.id)!;
+    const nodeCy = model.cy.get(node.id)!;
+    const x = nodeCx - node.w / 2;
+    const y = nodeCy - node.h / 2;
     minX = Math.min(minX, x);
     minY = Math.min(minY, y);
     maxX = Math.max(maxX, x + node.w);
     maxY = Math.max(maxY, y + node.h);
+
+    const totalTextH = node.titleLines.length * C.TITLE_H + node.subLines.length * C.SUB_H;
+    const textStartY = nodeCy - totalTextH / 2;
+
     const titleLines = node.titleLines.map((l, i) => {
-      const tx = model.cx.get(node.id)!;
-      const ty = y + C.PADY + C.TITLE_H * (i + 1) - 4;
+      const tx = nodeCx;
+      const ty = textStartY + C.TITLE_H * (i + 1) - 4;
       return `<text class="node-title" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${escHtml(l)}</text>`;
     }).join('');
     const subLines = node.subLines.map((l, i) => {
-      const tx = model.cx.get(node.id)!;
-      const ty = y + C.PADY + C.TITLE_H * node.titleLines.length + C.SUB_H * (i + 1) - 3;
+      const tx = nodeCx;
+      const ty = textStartY + C.TITLE_H * node.titleLines.length + C.SUB_H * (i + 1) - 3;
       return `<text class="node-sub" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.SUB_SIZE}">${escHtml(l)}</text>`;
     }).join('');
-    const rx = 8;
+
+    let shapeSvg: string;
+    if (node.shape === 'diamond') {
+      const pts = `${round1(nodeCx)},${round1(y)} ${round1(x + node.w)},${round1(nodeCy)} ${round1(nodeCx)},${round1(y + node.h)} ${round1(x)},${round1(nodeCy)}`;
+      shapeSvg = `<polygon class="node-rect node-diamond" points="${pts}"/>`;
+    } else if (node.shape === 'rounded') {
+      shapeSvg = `<rect class="node-rect node-rounded" x="${round1(x)}" y="${round1(y)}" width="${round1(node.w)}" height="${round1(node.h)}" rx="18"/>`;
+    } else {
+      shapeSvg = `<rect class="node-rect" x="${round1(x)}" y="${round1(y)}" width="${round1(node.w)}" height="${round1(node.h)}" rx="3"/>`;
+    }
+
     nodeG.push(
       `<g class="node" data-label-ord="${node.labelOrd}">` +
-      `<rect class="node-rect" x="${x}" y="${y}" width="${node.w}" height="${node.h}" rx="${rx}"/>` +
+      shapeSvg +
       titleLines + subLines +
       `</g>`
     );
@@ -157,9 +290,9 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
   }
 
   let lrX = C.PAD;
-  const nodeData: Array<{ id: string; lrX: number; lrY: number; w: number; h: number; rx: number; titleLines: string[]; subLines: string[]; labelOrd: number }> = [];
+  const nodeData: Array<{ id: string; shape: string; lrX: number; lrY: number; w: number; h: number; titleLines: string[]; subLines: string[]; labelOrd: number }> = [];
   for (const node of nodesInOrder) {
-    nodeData.push({ id: node.id, lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, rx: 8, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
+    nodeData.push({ id: node.id, shape: node.shape, lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
     lrX += node.w + C.LR_H_GAP;
   }
 
@@ -206,7 +339,8 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
       maxBottom = Math.max(maxBottom, sy + 1.5 * loopR);
     } else if (e.isBackEdge) {
       const loopX = baseTotalW + C.ARC_LOOP;
-      const c1x = loopX, c1y = sy, c2x = loopX, c2y = ey;
+      const c1x = loopX, c1y = sy;
+      const c2x = loopX, c2y = ey;
       omx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
       omy = (sy + 3 * c1y + 3 * c2y + ey) / 8;
       d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
@@ -248,19 +382,34 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
   const nodeG: string[] = nodeData.map(nd => {
     const cx = nd.lrX, cy = nd.lrY;
     const w = nd.w, h = nd.h;
+    const totalTextH = nd.titleLines.length * C.TITLE_H + nd.subLines.length * C.SUB_H;
+    const textStartY = cy - totalTextH / 2;
     const titleLines = nd.titleLines.map((l, i) => {
-      const ty = cy - h / 2 + C.PADY + C.TITLE_H * (i + 1) - 4;
+      const ty = textStartY + C.TITLE_H * (i + 1) - 4;
       return `<text class="node-title" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${escHtml(l)}</text>`;
     }).join('');
     const subLines = nd.subLines.map((l, i) => {
-      const ty = cy - h / 2 + C.PADY + C.TITLE_H * nd.titleLines.length + C.SUB_H * (i + 1) - 3;
+      const ty = textStartY + C.TITLE_H * nd.titleLines.length + C.SUB_H * (i + 1) - 3;
       return `<text class="node-sub" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.SUB_SIZE}">${escHtml(l)}</text>`;
     }).join('');
-    return `<g class="node" data-label-ord="${nd.labelOrd}"><rect class="node-rect" x="${round1(cx - w / 2)}" y="${round1(cy - h / 2)}" width="${round1(w)}" height="${round1(h)}" rx="${nd.rx}"/>${titleLines}${subLines}</g>`;
+
+    let shapeSvg: string;
+    if (nd.shape === 'diamond') {
+      const pts = `${round1(cx)},${round1(cy - h / 2)} ${round1(cx + w / 2)},${round1(cy)} ${round1(cx)},${round1(cy + h / 2)} ${round1(cx - w / 2)},${round1(cy)}`;
+      shapeSvg = `<polygon class="node-rect node-diamond" points="${pts}"/>`;
+    } else if (nd.shape === 'rounded') {
+      shapeSvg = `<rect class="node-rect node-rounded" x="${round1(cx - w / 2)}" y="${round1(cy - h / 2)}" width="${round1(w)}" height="${round1(h)}" rx="18"/>`;
+    } else {
+      shapeSvg = `<rect class="node-rect" x="${round1(cx - w / 2)}" y="${round1(cy - h / 2)}" width="${round1(w)}" height="${round1(h)}" rx="3"/>`;
+    }
+
+    return `<g class="node" data-label-ord="${nd.labelOrd}">${shapeSvg}${titleLines}${subLines}</g>`;
   });
 
+  const vb = `0 0 ${totalW} ${totalH}`;
+
   return (
-    `<svg class="diagram-svg" viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}" preserveAspectRatio="xMidYMid meet" ` +
+    `<svg class="diagram-svg" viewBox="${vb}" width="${totalW}" height="${totalH}" preserveAspectRatio="xMidYMid meet" ` +
     `role="img" aria-label="${escHtml(title)}" xmlns="${NS}">` +
     buildArrowMarker(arrowId) +
     nodeG.join('') + edgeG.join('') +

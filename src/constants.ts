@@ -22,6 +22,9 @@ export const DIAGRAM = {
   AUTO_DIRECTION_RANK_THRESHOLD: 3,
   AUTO_DIRECTION_NODE_THRESHOLD: 3,
   WIDTH_MULTIPLIER: 1.1,
+  GUTTER: 44,
+  DIAMOND_SCALE: 1.35,
+  PORT_SPREAD_RATIO: 0.28,
 } as const;
 
 /** Table DSL rendering constants. */

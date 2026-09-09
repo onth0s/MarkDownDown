@@ -157,19 +157,27 @@ export function diagramLayout(model: DiagramModel): void {
   const nodes = [...model.nodes.values()];
 
   for (const node of nodes) {
-    const titleLines = wrapText(node.label, C.TITLE_SIZE, true, C.MAX_W - C.PADX * 2);
-    const subLines = node.subtitle ? wrapText(node.subtitle, C.SUB_SIZE, false, C.MAX_W - C.PADX * 2) : [];
+    const isDiamond = node.shape === 'diamond';
+    const textMaxW = isDiamond ? (C.MAX_W - C.PADX * 2) * 0.72 : C.MAX_W - C.PADX * 2;
+    const titleLines = wrapText(node.label, C.TITLE_SIZE, true, textMaxW);
+    const subLines = node.subtitle ? wrapText(node.subtitle, C.SUB_SIZE, false, textMaxW) : [];
     node.titleLines = titleLines;
     node.subLines = subLines;
-    const w = Math.min(C.MAX_W, Math.max(C.MIN_W,
-      Math.max(0, ...titleLines.map(l => textWidth(l, C.TITLE_SIZE, true)),
-               ...subLines.map(l => textWidth(l, C.SUB_SIZE, false))) * C.WIDTH_MULTIPLIER + C.PADX * 2));
-    node.w = w;
-    node.h = titleLines.length * C.TITLE_H + subLines.length * C.SUB_H + C.PADY * 2;
-  }
+    const rawW = Math.max(0, ...titleLines.map(l => textWidth(l, C.TITLE_SIZE, true)),
+                             ...subLines.map(l => textWidth(l, C.SUB_SIZE, false))) * C.WIDTH_MULTIPLIER + C.PADX * 2;
+    const rawH = titleLines.length * C.TITLE_H + subLines.length * C.SUB_H + C.PADY * 2;
 
-  const maxW = Math.max(...nodes.map(n => n.w));
-  for (const node of nodes) node.w = maxW;
+    if (isDiamond) {
+      // Diamonds need rhombic clearance (~1.55x) so text inscribed in the rhombus doesn't collide with angled vertices
+      const diamondW = Math.min(C.MAX_W, Math.max(C.MIN_W, Math.round(rawW * 1.55)));
+      const diamondH = Math.max(80, Math.round(rawH * 1.55));
+      node.w = diamondW;
+      node.h = diamondH;
+    } else {
+      node.w = Math.min(C.MAX_W, Math.max(C.MIN_W, Math.round(rawW)));
+      node.h = rawH;
+    }
+  }
 
   const rank = assignRanks(model);
 
@@ -180,6 +188,44 @@ export function diagramLayout(model: DiagramModel): void {
   }
 
   barycenterOrder(model, ranks);
+
+  // Equalize widths per-rank or across linear single-column flows
+  const isLinearPipeline = ranks.every(r => r.length === 1);
+  if (isLinearPipeline) {
+    const maxW = Math.max(...nodes.filter(n => n.shape !== 'diamond').map(n => n.w), C.MIN_W);
+    for (const node of nodes) {
+      if (node.shape !== 'diamond') node.w = maxW;
+    }
+  } else {
+    // For branching diagrams: single-node ranks share singleRankMaxW,
+    // multi-node ranks equalize to their rankMaxW so short labels don't balloon to 400px.
+    const nonDiamondSingleNodes = ranks
+      .filter(r => r.length === 1)
+      .map(r => model.nodes.get(r[0])!)
+      .filter(n => n.shape !== 'diamond');
+    const singleRankMaxW = nonDiamondSingleNodes.length
+      ? Math.max(...nonDiamondSingleNodes.map(n => n.w))
+      : C.MIN_W;
+    for (const rid of ranks) {
+      if (rid.length === 1) {
+        const n = model.nodes.get(rid[0])!;
+        if (n.shape !== 'diamond') {
+          n.w = singleRankMaxW;
+        }
+      } else {
+        const nonDiamondRankNodes = rid
+          .map(id => model.nodes.get(id)!)
+          .filter(n => n.shape !== 'diamond');
+        if (nonDiamondRankNodes.length > 0) {
+          const rankMaxW = Math.max(...nonDiamondRankNodes.map(n => n.w));
+          for (const id of rid) {
+            const n = model.nodes.get(id)!;
+            if (n.shape !== 'diamond') n.w = rankMaxW;
+          }
+        }
+      }
+    }
+  }
 
   const cx = new Map<string, number>(), cy = new Map<string, number>();
   let y = C.PAD;
