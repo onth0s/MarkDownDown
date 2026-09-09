@@ -17,11 +17,14 @@ export function xyAttrs(x: number, y: number): string {
   return `x="${round1(x)}" y="${round1(y)}"`;
 }
 
+import { stripMarkdown } from './inline-markdown.js';
+
 /** Approximate text width in SVG units based on font size and weight. */
 export function textWidth(text: string, size: number, bold: boolean): number {
+  const plain = stripMarkdown(text);
   const base = size <= 11 ? 7.8 : size <= 12 ? 8.6 : 9.6;
   const boldExtra = bold ? 0.8 : 0;
-  return text.length * (base + boldExtra);
+  return plain.length * (base + boldExtra);
 }
 
 /** Word-wrap text to fit within maxW SVG units. */

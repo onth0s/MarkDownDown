@@ -5,11 +5,12 @@
  */
 import { escHtml as esc } from '../util/escape.js';
 import { TABLE as C } from '../constants.js';
+import { measureFormattedWidth, renderFormattedTspans } from './inline-markdown.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
 function textWidth(text: string, bold = false): number {
-  return text.length * (bold ? C.CHAR_WIDTH_BOLD : C.CHAR_WIDTH);
+  return measureFormattedWidth(text, C.CHAR_WIDTH, C.CHAR_WIDTH_BOLD, bold);
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -107,11 +108,12 @@ export function tableBuildSvg(model: TableModel, title: string): string {
   let headCells = '';
   model.headers.forEach((text, c) => {
     const cx = colX[c], cw = colW[c];
+    const formatted = renderFormattedTspans(text, { codeClass: 'tbl-code-span', strikeClass: 'tbl-strike-span', parentBold: true });
     headCells +=
       `<g class="tcell" data-label-ord="${model.headerOrds[c]}">` +
       `<rect class="tbl-head-bg" x="${cx}" y="${headY}" width="${cw}" height="${C.HEAD_H}"/>` +
       `<text class="tbl-head-text" x="${cx + C.PADX}" y="${headY + C.HEAD_H / 2 + 4}" ` +
-      `font-size="${C.HEAD_FONT_H}" font-weight="700">${esc(text)}</text>` +
+      `font-size="${C.HEAD_FONT_H}" font-weight="700">${formatted}</text>` +
       `</g>`;
   });
 
@@ -120,11 +122,12 @@ export function tableBuildSvg(model: TableModel, title: string): string {
     const ry = rowY[r];
     row.forEach((text, c) => {
       const cx = colX[c], cw = colW[c];
+      const formatted = renderFormattedTspans(text, { codeClass: 'tbl-code-span', strikeClass: 'tbl-strike-span' });
       bodyCells +=
         `<g class="tcell" data-label-ord="${model.rowOrds[r][c]}">` +
         `<rect class="tbl-cell-bg" x="${cx}" y="${ry}" width="${cw}" height="${C.ROW_H}"/>` +
         `<text class="tbl-cell-text" x="${cx + C.PADX}" y="${ry + C.ROW_H / 2 + 4}" ` +
-        `font-size="${C.FONT_H}">${esc(text)}</text>` +
+        `font-size="${C.FONT_H}">${formatted}</text>` +
         `</g>`;
     });
   });
@@ -134,10 +137,12 @@ export function tableBuildSvg(model: TableModel, title: string): string {
   for (let c = 1; c < colCount; c++) {
     grid += `<line class="tbl-grid" x1="${colX[c]}" y1="${headY}" x2="${colX[c]}" y2="${y}"/>`;
   }
-  for (let r = 0; r <= model.rows.length; r++) {
-    const gy = r === 0 ? headY : r === model.rows.length ? y : rowY[r - 1];
-    grid += `<line class="tbl-grid" x1="${C.PAD}" y1="${gy}" x2="${lastX}" y2="${gy}"/>`;
+  // Horizontal grid lines: top of header, bottom of header (top of row 0), bottom of each row
+  grid += `<line class="tbl-grid" x1="${C.PAD}" y1="${headY}" x2="${lastX}" y2="${headY}"/>`;
+  for (let r = 0; r < model.rows.length; r++) {
+    grid += `<line class="tbl-grid" x1="${C.PAD}" y1="${rowY[r]}" x2="${lastX}" y2="${rowY[r]}"/>`;
   }
+  grid += `<line class="tbl-grid" x1="${C.PAD}" y1="${y}" x2="${lastX}" y2="${y}"/>`;
 
   return (
     `<svg class="table-svg" viewBox="0 0 ${gridW} ${gridH}" width="${gridW}" height="${gridH}" ` +

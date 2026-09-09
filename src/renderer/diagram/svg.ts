@@ -7,6 +7,7 @@ import {
   textWidth,
   xyAttrs,
 } from '../svg-helpers.js';
+import { renderFormattedTspans } from '../inline-markdown.js';
 import type { DiagramModel, DiagramNode } from './types.js';
 import { checkBoxesOverlap } from './layout.js';
 
@@ -206,10 +207,11 @@ function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string
     if (e.label) {
       const label = e.label;
       const lw = textWidth(label, C.EDGE_LABEL_SIZE, false) + 14;
+      const formattedLabel = renderFormattedTspans(label, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span' });
       labelSvg =
         `<g class="edge-label" transform="translate(${coordPair(mx, my)})">` +
         `<rect class="edge-label-bg" x="${-lw / 2}" y="${-C.EDGE_LABEL_H / 2}" width="${lw}" height="${C.EDGE_LABEL_H}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${C.EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${escHtml(label)}</text>` +
+        `<text class="edge-label-text" x="0" y="${C.EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${formattedLabel}</text>` +
         `</g>`;
     }
     const ord = e.labelOrd;
@@ -244,12 +246,14 @@ function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string
     const titleLines = node.titleLines.map((l, i) => {
       const tx = nodeCx;
       const ty = textStartY + C.TITLE_H * (i + 1) - 4;
-      return `<text class="node-title" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${escHtml(l)}</text>`;
+      const formatted = renderFormattedTspans(l, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span', parentBold: true });
+      return `<text class="node-title" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${formatted}</text>`;
     }).join('');
     const subLines = node.subLines.map((l, i) => {
       const tx = nodeCx;
       const ty = textStartY + C.TITLE_H * node.titleLines.length + C.SUB_H * (i + 1) - 3;
-      return `<text class="node-sub" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.SUB_SIZE}">${escHtml(l)}</text>`;
+      const formatted = renderFormattedTspans(l, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span' });
+      return `<text class="node-sub" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.SUB_SIZE}">${formatted}</text>`;
     }).join('');
 
     let shapeSvg: string;
@@ -367,10 +371,11 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     if (ed.label) {
       const lw = textWidth(ed.label, C.EDGE_LABEL_SIZE, false) + 14;
       const lx = ed.omx, ly = ed.omy;
+      const formattedLabel = renderFormattedTspans(ed.label, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span' });
       labelSvg =
         `<g class="edge-label" transform="translate(${coordPair(lx, ly)})">` +
         `<rect class="edge-label-bg" x="${round1(-lw / 2)}" y="${round1(-C.EDGE_LABEL_H / 2)}" width="${round1(lw)}" height="${round1(C.EDGE_LABEL_H)}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${round1(C.EDGE_LABEL_H / 2 - 4)}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${escHtml(ed.label)}</text>` +
+        `<text class="edge-label-text" x="0" y="${round1(C.EDGE_LABEL_H / 2 - 4)}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${formattedLabel}</text>` +
         `</g>`;
     }
     const pathD = ed.d;
@@ -386,11 +391,13 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     const textStartY = cy - totalTextH / 2;
     const titleLines = nd.titleLines.map((l, i) => {
       const ty = textStartY + C.TITLE_H * (i + 1) - 4;
-      return `<text class="node-title" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${escHtml(l)}</text>`;
+      const formatted = renderFormattedTspans(l, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span', parentBold: true });
+      return `<text class="node-title" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${formatted}</text>`;
     }).join('');
     const subLines = nd.subLines.map((l, i) => {
       const ty = textStartY + C.TITLE_H * nd.titleLines.length + C.SUB_H * (i + 1) - 3;
-      return `<text class="node-sub" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.SUB_SIZE}">${escHtml(l)}</text>`;
+      const formatted = renderFormattedTspans(l, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span' });
+      return `<text class="node-sub" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.SUB_SIZE}">${formatted}</text>`;
     }).join('');
 
     let shapeSvg: string;

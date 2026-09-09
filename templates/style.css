@@ -356,6 +356,13 @@ html[data-theme="light"] .alert-title {
   fill:color-mix(in srgb, var(--accent) 22%, var(--surface-2));
 }
 .table-svg .tcell.is-current .tbl-head-text, .table-svg .tcell.is-current .tbl-cell-text { fill:var(--accent); font-weight:700; }
+.table-svg .tbl-code-span, .diagram-svg .diag-code-span {
+  font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  fill:var(--accent);
+}
+.table-svg .tbl-strike-span, .diagram-svg .diag-strike-span {
+  text-decoration:line-through;
+}
 
 /* Light mode: crisp text contrast, subtle shadows */
 html[data-theme="light"] .diagram-svg .node-rect { fill:#ffffff; }
