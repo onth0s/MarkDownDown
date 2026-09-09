@@ -50,10 +50,11 @@ export function tableParse(source: string): TableModel {
 
   const lines = source.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
-  // Skip TITLE: directive if present (handled by compile.ts before calling tableParse)
+  // Skip TITLE: directive if present
   for (const line of lines) {
     const off = pos;
     pos += line.length + 1;
+    if (line.toUpperCase().startsWith('TITLE:')) continue;
     const cells = splitCells(line);
     if (!cells.length || isSep(cells)) continue;
 
