@@ -14,26 +14,27 @@ export interface FormattedSpan {
   strike?: boolean;
 }
 
+// Match inline markdown tokens:
+// 1. Code: `code`
+// 2. Bold + Italic: ***text*** or ___text___
+// 3. Bold: **text** or __text__
+// 4. Italic: *text* or _text_
+// 5. Strikethrough: ~~text~~
+// Delimiters can also enclose backtick code, e.g. **`Alt+1`**
+const TOKEN_PATTERN = '(`[^`]+`|\\*\\*\\*[^*]+\\*\\*\\*|___[^_]+___|\\*\\*[^*]+\\*\\*|__[^_]+__|~~[^~]+~~|\\*[^*]+\\*|_[^_]+_)';
+
 /**
  * Tokenize a plain string with inline Markdown into an array of FormattedSpans.
  */
 export function parseInlineMarkdown(input: string): FormattedSpan[] {
   if (!input) return [];
 
-  // Match inline markdown tokens:
-  // 1. Code: `code`
-  // 2. Bold + Italic: ***text*** or ___text___
-  // 3. Bold: **text** or __text__
-  // 4. Italic: *text* or _text_
-  // 5. Strikethrough: ~~text~~
-  // Delimiters can also enclose backtick code, e.g. **`Alt+1`**
-  const TOKEN_RE = /(`[^`]+`|\*\*\*[^*]+\*\*\*|___[^_]+___|\*\*[^*]+\*\*|__[^_]+__|~~[^~]+~~|\*[^*]+\*|_[^_]+_)/g;
-
+  const tokenRe = new RegExp(TOKEN_PATTERN, 'g');
   const spans: FormattedSpan[] = [];
   let lastIdx = 0;
   let match: RegExpExecArray | null;
 
-  while ((match = TOKEN_RE.exec(input)) !== null) {
+  while ((match = tokenRe.exec(input)) !== null) {
     if (match.index > lastIdx) {
       spans.push({ text: input.slice(lastIdx, match.index) });
     }

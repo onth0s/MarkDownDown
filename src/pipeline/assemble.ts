@@ -14,7 +14,7 @@ import { assembleHtml } from '../renderer/template.js';
 import { escHtml } from '../util/escape.js';
 import { hexToRgb } from '../util/color.js';
 import { toErrorMessage } from '../util/error.js';
-import { processLogo } from '../renderer/logo-processor.js';
+import { processLogo } from '../renderer/logo.js';
 
 /** Recursively copy a directory, skipping dotfiles and symlinks. */
 function safeCopyDir(src: string, dest: string): void {

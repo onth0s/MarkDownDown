@@ -1,4 +1,4 @@
-import { processLogo } from '../src/renderer/logo-processor.js';
+import { processLogo } from '../src/renderer/logo.js';
 import fs from 'node:fs';
 import path from 'node:path';
 

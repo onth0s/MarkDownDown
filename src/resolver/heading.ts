@@ -71,10 +71,8 @@ function levenshtein(a: string, b: string): number {
 
 // ── 4-pass fuzzy heading resolver ────────────────────────────────────────────
 
-export type HeadingMatchResult =
-  | { type: 'match'; heading: Heading; pass: string }
-  | { type: 'ambiguous'; candidates: Array<{ heading: Heading; pass: string }> }
-  | { type: 'not-found' };
+export type { HeadingMatchResult } from '../types.js';
+import type { HeadingMatchResult } from '../types.js';
 
 export function resolveHeading(str: string, headings: Heading[]): HeadingMatchResult {
   // Pass 1 — Exact (case-sensitive, whitespace-exact)

@@ -1,4 +1,4 @@
-import { diagramParse } from '../src/renderer/diagram-svg.js';
+import { diagramParse } from '../src/renderer/diagram/index.js';
 
 describe('node label em-dash split (Gotcha #3)', () => {
   test('" — " splits label into title + subtitle', () => {

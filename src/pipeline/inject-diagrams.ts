@@ -2,7 +2,7 @@
  * Inject diagram SVGs into rendered HTML.
  * Finds ```diagram code blocks and renders them to SVG.
  */
-import { diagramParse, diagramLayout, diagramBuildSvg } from '../renderer/diagram-svg.js';
+import { diagramParse, diagramLayout, diagramBuildSvg } from '../renderer/diagram/index.js';
 import { escHtml, htmlDecode } from '../util/escape.js';
 
 const DIAGRAM_SVG_RE = /<div class="code-wrap diagram" data-title="([^"]*)"(?:\s+data-direction="([^"]*)")?(?:\s+data-raw="([^"]*)")?>\s*<pre><code class="language-diagram">([\s\S]*?)<\/code><\/pre>\s*<div class="diagram-render"><\/div>\s*<\/div>/g;

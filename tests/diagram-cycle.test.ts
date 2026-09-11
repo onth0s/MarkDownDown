@@ -1,5 +1,5 @@
 import { diagramParse, diagramLayout, diagramBuildSvg, detectBackEdges }
-  from '../src/renderer/diagram-svg.js';
+  from '../src/renderer/diagram/index.js';
 
 describe('cyclic diagram support (Gotcha #2)', () => {
   test('2-node loop compiles + renders (NO crash)', () => {

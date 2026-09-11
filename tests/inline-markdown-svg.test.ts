@@ -1,6 +1,6 @@
 import { parseInlineMarkdown, stripMarkdown, measureFormattedWidth, renderFormattedTspans } from '../src/renderer/inline-markdown.js';
 import { tableParse, tableBuildSvg } from '../src/renderer/table-svg.js';
-import { diagramParse, diagramLayout, diagramBuildSvg } from '../src/renderer/diagram-svg.js';
+import { diagramParse, diagramLayout, diagramBuildSvg } from '../src/renderer/diagram/index.js';
 
 describe('inline-markdown parser', () => {
   test('parses plain text without tokens', () => {

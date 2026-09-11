@@ -1,16 +1,9 @@
-import type { Heading, Asset } from '../types.js';
+import type { Heading, Asset, ResolvedLink } from '../types.js';
 import { resolveHeading, formatAmbiguityError } from './heading.js';
 import { resolveAsset } from './asset.js';
 import { CompileError } from '../util/error.js';
 
-/**
- * Describes a fully resolved wikilink ready for HTML rendering.
- */
-export type ResolvedLink =
-  | { kind: 'heading'; heading: Heading; display: string }
-  | { kind: 'image'; asset: Asset; display: string }
-  | { kind: 'video'; asset: Asset; display: string }
-  | { kind: 'doc'; asset: Asset; display: string };
+export type { ResolvedLink };
 
 /**
  * Resolve a single [[str|display]] wikilink.

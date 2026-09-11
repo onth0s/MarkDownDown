@@ -5,7 +5,7 @@
 import { loadTemplate } from '../util/template-loader.js';
 import { hexToHsl, hslToHex } from '../util/color.js';
 import { escHtml } from '../util/escape.js';
-import { processLogo } from './logo-processor.js';
+import { processLogo } from './logo.js';
 import { minifyCss, minifyJs, minifyHtml } from '../util/minify.js';
 
 export interface AssembleOptions {

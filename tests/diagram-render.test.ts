@@ -1,4 +1,4 @@
-import { diagramParse, diagramLayout, diagramBuildSvg, validateNoNodeOverlap } from '../src/renderer/diagram-svg.js';
+import { diagramParse, diagramLayout, diagramBuildSvg, validateNoNodeOverlap } from '../src/renderer/diagram/index.js';
 
 describe('diagramParse', () => {
   test('parses flowchart with direction', () => {

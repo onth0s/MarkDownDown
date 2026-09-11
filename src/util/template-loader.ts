@@ -7,7 +7,21 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CompileError } from './error.js';
 
+const templateCache = new Map<string, string>();
+
+/**
+ * Clear the in-memory template cache.
+ * Useful for test suites, watch modes, or hot reloading.
+ */
+export function clearTemplateCache(): void {
+  templateCache.clear();
+}
+
 export function loadTemplate(filename: string): string {
+  if (templateCache.has(filename)) {
+    return templateCache.get(filename)!;
+  }
+
   let dir = '';
   try {
     if (typeof __dirname !== 'undefined') {
@@ -35,7 +49,9 @@ export function loadTemplate(filename: string): string {
       const files = fs.readdirSync(modDir).filter(f => !f.startsWith('.')).sort();
       if (files.length > 0) {
         const parts = files.map(f => fs.readFileSync(path.join(modDir, f), 'utf8'));
-        return `(() => {\n  'use strict';\n\n${parts.join('\n\n')}\n})();\n`;
+        const content = `(() => {\n  'use strict';\n\n${parts.join('\n\n')}\n})();\n`;
+        templateCache.set(filename, content);
+        return content;
       }
     }
   }
@@ -44,7 +60,9 @@ export function loadTemplate(filename: string): string {
   for (const tDir of candidateDirs) {
     const filePath = path.join(tDir, filename);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-      return fs.readFileSync(filePath, 'utf8');
+      const content = fs.readFileSync(filePath, 'utf8');
+      templateCache.set(filename, content);
+      return content;
     }
   }
 

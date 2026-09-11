@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { diagramParse, diagramLayout, detectBackEdges } from '../src/renderer/diagram-svg.js';
+import { diagramParse, diagramLayout, detectBackEdges } from '../src/renderer/diagram/index.js';
 import { tableParse, tableBuildSvg } from '../src/renderer/table-svg.js';
 import { compile } from '../src/compile.js';
 import { SPEC } from '../src/spec.js';

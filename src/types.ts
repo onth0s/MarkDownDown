@@ -108,12 +108,35 @@ export interface CompileResult {
   };
 }
 
+/** Describes a fully resolved wikilink ready for HTML rendering */
+export type ResolvedLink =
+  | { kind: 'heading'; heading: Heading; display: string }
+  | { kind: 'image'; asset: Asset; display: string }
+  | { kind: 'video'; asset: Asset; display: string }
+  | { kind: 'doc'; asset: Asset; display: string };
+
+/** Result of resolving a heading */
+export type HeadingMatchResult =
+  | { type: 'match'; heading: Heading; pass: string }
+  | { type: 'ambiguous'; candidates: Array<{ heading: Heading; pass: string }> }
+  | { type: 'not-found' };
+
+/** Processed brand logo and favicon assets */
+export interface ProcessedLogo {
+  /** The HTML/SVG markup to insert into the topbar navbar */
+  navbarLogo: string;
+  /** The SVG template string (with {accent} and {accentDark} placeholders) or data URI */
+  faviconTemplate: string;
+  /** Initial favicon href data URI */
+  faviconHref: string;
+}
+
 export { CompileError } from './util/error.js';
 
 /** A wikilink collected during token walk, awaiting resolution */
 export interface PendingWikilink {
   target: string;
   display: string;
-  resolution: import('./resolver/wikilink.js').ResolvedLink | null;
+  resolution: ResolvedLink | null;
   error?: string;
 }
