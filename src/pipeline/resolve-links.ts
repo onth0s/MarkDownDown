@@ -7,10 +7,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Options, Heading, Asset, PendingWikilink } from '../types.js';
-import { CompileError } from '../types.js';
+import { CompileError, toErrorMessage } from '../util/error.js';
 import { resolveWikilink } from '../resolver/wikilink.js';
 import { getMime } from '../util/mime.js';
-import { toErrorMessage } from '../util/error.js';
 import type Token from 'markdown-it/lib/token.mjs';
 
 export interface ResolveResult {

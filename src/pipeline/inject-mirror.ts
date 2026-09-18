@@ -36,7 +36,7 @@ export function injectMirrorBlocks(
         const rawAttr = rawMatch ? rawMatch[1] : '';
 
         const rawCode = htmlDecode(codeContent);
-        const model = mirrorParse(rawCode, subkindAttr);
+        const model = mirrorParse(rawCode, subkindAttr, `mirror-${blocks + 1}`);
         if (titleAttr && !model.title) {
           model.title = titleAttr;
         }

@@ -1,10 +1,13 @@
-import type { Heading } from '../types.js';
+import type { Heading, HeadingMatchResult } from '../types.js';
+import type Token from 'markdown-it/lib/token.mjs';
+
+export type { HeadingMatchResult };
 
 /**
  * Extracts clean plain text from a markdown-it inline token's children.
  * Handles text, code spans, wikilinks, line breaks, etc.
  */
-export function extractInlineText(children?: import('markdown-it/lib/token.mjs').default[] | null): string {
+export function extractInlineText(children?: Token[] | null): string {
   if (!children || !children.length) return '';
   let out = '';
   for (const t of children) {
@@ -23,7 +26,7 @@ export function extractInlineText(children?: import('markdown-it/lib/token.mjs')
  * Extracts all headings (h1–h6) from a markdown-it token stream.
  * Returns an array of Heading objects in document order.
  */
-export function extractHeadings(tokens: import('markdown-it/lib/token.mjs').default[]): Heading[] {
+export function extractHeadings(tokens: Token[]): Heading[] {
   const headings: Heading[] = [];
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
@@ -70,9 +73,6 @@ function levenshtein(a: string, b: string): number {
 }
 
 // ── 4-pass fuzzy heading resolver ────────────────────────────────────────────
-
-export type { HeadingMatchResult } from '../types.js';
-import type { HeadingMatchResult } from '../types.js';
 
 export function resolveHeading(str: string, headings: Heading[]): HeadingMatchResult {
   // Pass 1 — Exact (case-sensitive, whitespace-exact)

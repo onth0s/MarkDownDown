@@ -43,8 +43,10 @@ export function resolveFileLink(rawHref: string, inputDir: string = process.cwd(
     return { href: rawHref, exists: true };
   }
 
-  // 2. Fuzzy directory fixes (e.g. 00_DEV <-> 00__DEV)
+  // 2. Fuzzy directory fixes: underscore variations in path segments and basename fallback
   const candidateFixes = [
+    filePath.replace(/([/\\])([^/\\]+?)__([^/\\]*?)([/\\])/g, '$1$2_$3$4'),
+    filePath.replace(/([/\\])([^/\\]+?)_([^/\\]*?)([/\\])/g, '$1$2__$3$4'),
     filePath.replace(/[/\\]00_DEV[/\\]/i, `${path.sep}00__DEV${path.sep}`),
     filePath.replace(/[/\\]00__DEV[/\\]/i, `${path.sep}00_DEV${path.sep}`),
     path.resolve(inputDir, path.basename(filePath)),

@@ -21,7 +21,7 @@ export function resetMirrorIdCounter(): void {
 /**
  * Parses raw ```mirror [subkind] source code into a structured MirrorBlockModel.
  */
-export function mirrorParse(source: string, subkindHint?: string): MirrorBlockModel {
+export function mirrorParse(source: string, subkindHint?: string, explicitId?: string): MirrorBlockModel {
   const lines = source.split(/\r?\n/);
   let title: string | undefined;
   let target: string | undefined;
@@ -234,7 +234,7 @@ export function mirrorParse(source: string, subkindHint?: string): MirrorBlockMo
     else if (items.length > 0) kind = 'qa';
   }
 
-  const id = `mirror-${nextMirrorId++}`;
+  const id = explicitId ?? `mirror-${nextMirrorId++}`;
 
   return {
     id,

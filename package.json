@@ -14,6 +14,7 @@
     "postbuild": "npm link --force",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "pretest": "npm run build",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=\"tests/\""
   },
   "dependencies": {

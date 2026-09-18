@@ -6,14 +6,19 @@ import { tableParse, tableBuildSvg } from '../renderer/table-svg.js';
 import { escHtml, htmlDecode } from '../util/escape.js';
 import { toErrorMessage } from '../util/error.js';
 
-const TABLE_SVG_RE = /<div class="code-wrap table" data-title="([^"]*)"(?:\s+data-raw="([^"]*)")?>\s*<pre><code class="language-table">([\s\S]*?)<\/code><\/pre>\s*<div class="table-render"><\/div>\s*<\/div>/g;
+const TABLE_SVG_RE = /<div class="code-wrap table"([^>]*)>\s*<pre><code class="language-table">([\s\S]*?)<\/code><\/pre>\s*<div class="table-render"><\/div>\s*<\/div>/g;
 
 export function injectTableSvgs(html: string, docTitle: string, warnings: string[]): string {
   TABLE_SVG_RE.lastIndex = 0;
   return html.replace(
     TABLE_SVG_RE,
-    (match, titleAttr, rawAttr, codeContent) => {
+    (match, attrs, codeContent) => {
       try {
+        const titleMatch = attrs.match(/data-title="([^"]*)"/);
+        const rawMatch = attrs.match(/data-raw="([^"]*)"/);
+        const titleAttr = titleMatch ? titleMatch[1] : '';
+        const rawAttr = rawMatch ? rawMatch[1] : '';
+
         const rawCode = htmlDecode(codeContent);
         const tblTitle = titleAttr || docTitle;
         const model = tableParse(rawCode);

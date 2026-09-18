@@ -62,33 +62,29 @@ export function wrapCodeBlocksWithCopyButtons(html: string): string {
 }
 
 export function validateNoNestedCodeWraps(html: string): void {
-  const openWrapRegex = /<div\s+class="code-wrap\b[^"]*"[^>]*>/g;
-  const closeDivRegex = /<\/div>/g;
+  const divTagRegex = /<\/?div\b[^>]*>/gi;
+  const isCodeWrap = (tag: string) => /\bclass\s*=\s*["'][^"']*\bcode-wrap\b/i.test(tag);
 
-  type TagPos = { type: 'open' | 'close'; index: number };
-  const tags: TagPos[] = [];
+  const stack: boolean[] = [];
+  let codeWrapOpenCount = 0;
 
   let match: RegExpExecArray | null;
-  while ((match = openWrapRegex.exec(html)) !== null) {
-    tags.push({ type: 'open', index: match.index });
-  }
-  while ((match = closeDivRegex.exec(html)) !== null) {
-    tags.push({ type: 'close', index: match.index });
-  }
-
-  tags.sort((a, b) => a.index - b.index);
-
-  let depth = 0;
-  for (const tag of tags) {
-    if (tag.type === 'open') {
-      depth++;
-      if (depth > 1) {
-        throw new CompileError('Compilation error: detected illegally nested .code-wrap elements.');
+  while ((match = divTagRegex.exec(html)) !== null) {
+    const tag = match[0];
+    if (tag.startsWith('</')) {
+      if (stack.length > 0) {
+        const wasWrap = stack.pop();
+        if (wasWrap) codeWrapOpenCount--;
       }
-    } else if (tag.type === 'close') {
-      if (depth > 0) {
-        depth--;
+    } else {
+      const wrap = isCodeWrap(tag);
+      if (wrap) {
+        if (codeWrapOpenCount > 0) {
+          throw new CompileError('Compilation error: detected illegally nested .code-wrap elements.');
+        }
+        codeWrapOpenCount++;
       }
+      stack.push(wrap);
     }
   }
 }

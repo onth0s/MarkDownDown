@@ -69,4 +69,26 @@ See [[Spite-Driven Development]] for details.
     expect(res.html).toContain('href="#spite-driven-development"');
     expect(res.stats?.sections).toBe(2);
   });
+
+  test('normalizes diacritics in heading slugs without breaking latin characters', () => {
+    const md = createMarkdownParser();
+    const source = '## Café & Résumé über Größe\n\nSome text.';
+    const tokens = md.parse(source, {});
+    const headings = extractHeadings(tokens);
+
+    expect(headings).toHaveLength(1);
+    expect(headings[0].id).toBe('cafe-resume-uber-grosse');
+  });
+
+  test('disambiguates duplicate heading anchors deterministically', () => {
+    const md = createMarkdownParser();
+    const source = '## Introduction\n\n## Introduction\n\n## Introduction';
+    const tokens = md.parse(source, {});
+    const headings = extractHeadings(tokens);
+
+    expect(headings).toHaveLength(3);
+    expect(headings[0].id).toBe('introduction');
+    expect(headings[1].id).toBe('introduction-1');
+    expect(headings[2].id).toBe('introduction-2');
+  });
 });

@@ -29,6 +29,18 @@ export function createMarkdownParser(): MarkdownIt {
   // Uses a core rule so IDs are present during parse (needed by extractHeadings).
   // Supports bulleted glossary/item headings: # * Term, ## * Term, ### * Term, #### * Term
 
+  const uniqueSlug = (state: { env?: Record<string, unknown> }, text: string): string => {
+    state.env = state.env || {};
+    if (!state.env.seenSlugs) {
+      state.env.seenSlugs = new Map<string, number>();
+    }
+    const seen = state.env.seenSlugs as Map<string, number>;
+    const baseSlug = slugify(text) || 'section';
+    const count = seen.get(baseSlug) || 0;
+    seen.set(baseSlug, count + 1);
+    return count === 0 ? baseSlug : `${baseSlug}-${count}`;
+  };
+
   md.core.ruler.push('heading_ids', (state) => {
     const tokens = state.tokens;
     for (let i = 0; i < tokens.length; i++) {
@@ -47,7 +59,7 @@ export function createMarkdownParser(): MarkdownIt {
           }
         }
 
-        tokens[i].attrSet('id', slugify(text));
+        tokens[i].attrSet('id', uniqueSlug(state, text));
       }
     }
   });
@@ -94,7 +106,7 @@ export function createMarkdownParser(): MarkdownIt {
       bqOpen.tag = 'div';
       bqOpen.attrSet('class', 'alert');
       if (title) {
-        bqOpen.attrSet('id', slugify(title));
+        bqOpen.attrSet('id', uniqueSlug(state, title));
       }
 
       if (title) {

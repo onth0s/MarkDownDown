@@ -271,6 +271,49 @@ export function diagramLayout(model: DiagramModel): void {
     }
   }
 
+  // Compute 2D coordinates for LR mode (rank determines X column, nodes in rank stacked vertically by Y)
+  const lrCx = new Map<string, number>(), lrCy = new Map<string, number>();
+  let curX = C.PAD;
+  let maxColHeight = 0;
+  const colHeights: number[] = [];
+  const colWidths: number[] = [];
+
+  for (let r = 0; r < ranks.length; r++) {
+    const rid = ranks[r];
+    let colW = 0;
+    let colH = 0;
+    for (const id of rid) {
+      const n = model.nodes.get(id)!;
+      colW = Math.max(colW, n.w);
+      colH += n.h + C.V_GAP;
+    }
+    colH -= C.V_GAP;
+    colWidths.push(colW);
+    colHeights.push(colH);
+    maxColHeight = Math.max(maxColHeight, colH);
+  }
+
+  for (let r = 0; r < ranks.length; r++) {
+    const rid = ranks[r];
+    const colW = colWidths[r];
+    const colH = colHeights[r];
+    const yShift = (maxColHeight - colH) / 2;
+    let curY = C.PAD + yShift;
+
+    for (const id of rid) {
+      const n = model.nodes.get(id)!;
+      lrCx.set(id, curX + colW / 2);
+      lrCy.set(id, curY + n.h / 2);
+      curY += n.h + C.V_GAP;
+    }
+    curX += colW + C.LR_H_GAP;
+  }
+
+  model.lrCx = lrCx;
+  model.lrCy = lrCy;
+  model.lrMaxX = curX - C.LR_H_GAP + C.PAD;
+  model.lrMaxY = maxColHeight + C.PAD * 2;
+
   // Validate no node overlap in TB layout
   validateNoNodeOverlap(model, false);
 }

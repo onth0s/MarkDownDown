@@ -293,19 +293,40 @@ function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string
     for (const id of rid) nodesInOrder.push(model.nodes.get(id)!);
   }
 
+  const has2D = model.lrCx && model.lrCy && model.lrMaxX !== undefined && model.lrMaxY !== undefined;
+
   let lrX = C.PAD;
   const nodeData: Array<{ id: string; shape: string; lrX: number; lrY: number; w: number; h: number; titleLines: string[]; subLines: string[]; labelOrd: number }> = [];
-  for (const node of nodesInOrder) {
-    nodeData.push({ id: node.id, shape: node.shape, lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
-    lrX += node.w + C.LR_H_GAP;
+
+  if (has2D) {
+    for (const node of nodesInOrder) {
+      nodeData.push({
+        id: node.id,
+        shape: node.shape,
+        lrX: model.lrCx!.get(node.id)!,
+        lrY: model.lrCy!.get(node.id)!,
+        w: node.w,
+        h: node.h,
+        titleLines: node.titleLines,
+        subLines: node.subLines,
+        labelOrd: node.labelOrd,
+      });
+    }
+  } else {
+    for (const node of nodesInOrder) {
+      nodeData.push({ id: node.id, shape: node.shape, lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
+      lrX += node.w + C.LR_H_GAP;
+    }
   }
 
-  const baseTotalW = Math.round(lrX - C.LR_H_GAP + C.PAD);
-  const baseTotalH = Math.round(Math.max(...nodeData.map(n => n.h)) + C.PAD * 2);
+  const baseTotalW = Math.round(has2D ? model.lrMaxX! : (lrX - C.LR_H_GAP + C.PAD));
+  const baseTotalH = Math.round(has2D ? model.lrMaxY! : (Math.max(...nodeData.map(n => n.h)) + C.PAD * 2));
   const midY = baseTotalH / 2;
 
-  for (const nd of nodeData) {
-    nd.lrY = midY;
+  if (!has2D) {
+    for (const nd of nodeData) {
+      nd.lrY = midY;
+    }
   }
 
   // Validate no node overlap in LR layout

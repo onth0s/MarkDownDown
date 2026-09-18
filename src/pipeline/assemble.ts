@@ -6,8 +6,10 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Options, CompileResult, HeroMeta } from '../types.js';
+import type MarkdownIt from 'markdown-it';
+import type { Options, CompileResult, HeroMeta, Heading } from '../types.js';
 import type { FrontmatterResult } from '../parser/frontmatter.js';
+import type { MirrorStats } from './inject-mirror.js';
 import { buildCss, computeLuminosityParams } from '../renderer/css.js';
 import { buildJs } from '../renderer/js.js';
 import { assembleHtml } from '../renderer/template.js';
@@ -35,7 +37,7 @@ function safeCopyDir(src: string, dest: string): void {
 function buildHeroHtml(
   hero: HeroMeta,
   title: string,
-  md?: import('markdown-it').default,
+  md?: MarkdownIt,
 ): string {
   if (!hero.kicker && !hero.subtitle && !hero.pills?.length) return '';
 
@@ -76,8 +78,8 @@ export function assembleDocument(
   title: string,
   accent: string,
   bodyHtml: string,
-  headings: import('../types.js').Heading[],
-  md?: import('markdown-it').default,
+  headings: Heading[],
+  md?: MarkdownIt,
   warnings: string[] = [],
 ): AssembledDocument {
   const heroHtml = buildHeroHtml(hero, title, md);
@@ -210,10 +212,10 @@ export function assembleAndWrite(
   accent: string,
   bodyHtml: string,
   assetsDir: string,
-  headings: import('../types.js').Heading[],
+  headings: Heading[],
   warnings: string[],
-  md?: import('markdown-it').default,
-  mirrorStats?: import('./inject-mirror.js').MirrorStats,
+  md?: MarkdownIt,
+  mirrorStats?: MirrorStats,
 ): CompileResult {
   const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md, warnings);
   const finalSize = writeOutput(options, assembled, assetsDir, warnings);

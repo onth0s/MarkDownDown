@@ -39,5 +39,9 @@ export interface DiagramModel {
   horizontal: boolean;
   rank: Map<string, number>;
   ranks: string[][];
+  lrCx?: Map<string, number>;
+  lrCy?: Map<string, number>;
+  lrMaxX?: number;
+  lrMaxY?: number;
   warnings?: string[];
 }

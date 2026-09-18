@@ -31,11 +31,11 @@ function syncDiagramHighlights() {
       svg.querySelectorAll('[data-label-ord]').forEach(g => {
         byOrd.set(Number(g.getAttribute('data-label-ord')), g);
         g.classList.remove('is-hit', 'is-current');
-        // Restore original text in text nodes if modified
+        // Restore original HTML in text nodes if modified
         g.querySelectorAll('text').forEach(t => {
-          if (t.dataset.origText !== undefined) {
-            t.textContent = t.dataset.origText;
-            delete t.dataset.origText;
+          if (t.dataset.origHtml !== undefined) {
+            t.innerHTML = t.dataset.origHtml;
+            delete t.dataset.origHtml;
           }
         });
       });
@@ -70,16 +70,44 @@ function syncDiagramHighlights() {
           if (markText.length >= 1) {
             const needle = caseSensitive ? markText : markText.toLowerCase();
             matchedG.querySelectorAll('text').forEach(t => {
-              const orig = t.dataset.origText ?? t.textContent;
-              t.dataset.origText = orig;
-              const haystack = caseSensitive ? orig : orig.toLowerCase();
+              const origHtml = t.dataset.origHtml ?? t.innerHTML;
+              t.dataset.origHtml = origHtml;
+              // Search in plain text content for hit offsets
+              const plain = t.textContent || '';
+              const haystack = caseSensitive ? plain : plain.toLowerCase();
               const idx = haystack.indexOf(needle);
               if (idx >= 0) {
-                const before = orig.slice(0, idx);
-                const hit = orig.slice(idx, idx + needle.length);
-                const after = orig.slice(idx + needle.length);
-                const hitClass = isCurrent ? 'svg-mark is-current' : 'svg-mark is-hit';
-                t.innerHTML = `${before}<tspan class="${hitClass}">${hit}</tspan>${after}`;
+                // If text node has no child tags, simple replacement is safe
+                if (!t.firstElementChild) {
+                  const before = plain.slice(0, idx);
+                  const hit = plain.slice(idx, idx + needle.length);
+                  const after = plain.slice(idx + needle.length);
+                  const hitClass = isCurrent ? 'svg-mark is-current' : 'svg-mark is-hit';
+                  t.innerHTML = `${before}<tspan class="${hitClass}">${hit}</tspan>${after}`;
+                } else {
+                  // For rich formatted tspans, highlight inside child text nodes to preserve styling
+                  const walker = document.createTreeWalker(t, NodeFilter.SHOW_TEXT);
+                  let currNode;
+                  while ((currNode = walker.nextNode())) {
+                    const cText = currNode.nodeValue || '';
+                    const cHaystack = caseSensitive ? cText : cText.toLowerCase();
+                    const cIdx = cHaystack.indexOf(needle);
+                    if (cIdx >= 0) {
+                      const before = cText.slice(0, cIdx);
+                      const hit = cText.slice(cIdx, cIdx + needle.length);
+                      const after = cText.slice(cIdx + needle.length);
+                      const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                      span.setAttribute('class', isCurrent ? 'svg-mark is-current' : 'svg-mark is-hit');
+                      span.textContent = hit;
+                      const frag = document.createDocumentFragment();
+                      if (before) frag.appendChild(document.createTextNode(before));
+                      frag.appendChild(span);
+                      if (after) frag.appendChild(document.createTextNode(after));
+                      currNode.parentNode.replaceChild(frag, currNode);
+                      break;
+                    }
+                  }
+                }
               }
             });
           }
