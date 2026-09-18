@@ -213,6 +213,7 @@ export function assembleAndWrite(
   headings: import('../types.js').Heading[],
   warnings: string[],
   md?: import('markdown-it').default,
+  mirrorStats?: import('./inject-mirror.js').MirrorStats,
 ): CompileResult {
   const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md, warnings);
   const finalSize = writeOutput(options, assembled, assetsDir, warnings);
@@ -229,6 +230,9 @@ export function assembleAndWrite(
       logo: assembled.effectiveLogoPath,
       outputFile: assembled.finalOutputFile,
       sizeBytes: finalSize,
+      mirrorBlocks: mirrorStats?.blocks ?? 0,
+      mirrorItems: mirrorStats?.items ?? 0,
+      mirrorProbes: mirrorStats?.probes ?? 0,
     },
   };
 }

@@ -357,8 +357,45 @@ function setTheme(theme, isInitial = false) {
   }
 }
 
+function setMode(mode, isInitial = false) {
+  const validMode = mode === 'mirror' ? 'mirror' : 'read';
+  body.dataset.mode = validMode;
+  root.dataset.mode = validMode;
+  const readBtn = document.getElementById('modeReadBtn');
+  const mirrorBtn = document.getElementById('modeMirrorBtn');
+  if (readBtn && mirrorBtn) {
+    const isRead = validMode === 'read';
+    readBtn.classList.toggle('active', isRead);
+    readBtn.setAttribute('aria-checked', String(isRead));
+    mirrorBtn.classList.toggle('active', !isRead);
+    mirrorBtn.setAttribute('aria-checked', String(!isRead));
+  }
+  if (validMode === 'read') {
+    document.querySelectorAll('.mirror-block.is-peek-open').forEach(b => b.classList.remove('is-peek-open'));
+  }
+  if (!isInitial) {
+    store.set(`mdd_mode_${location.pathname}`, validMode);
+  }
+}
+
+const mirrorBlocks = [...article.querySelectorAll('.mirror-block')];
+const modeSwitch = document.getElementById('modeSwitch');
+const mirrorGlobalCount = document.getElementById('mirrorGlobalCount');
+if (mirrorBlocks.length > 0) {
+  if (mirrorGlobalCount) {
+    mirrorGlobalCount.textContent = String(mirrorBlocks.length);
+    mirrorGlobalCount.hidden = false;
+  }
+} else {
+  if (modeSwitch) modeSwitch.style.display = 'none';
+  const mirrorSettingRow = document.querySelector('.mirror-setting-row');
+  if (mirrorSettingRow) mirrorSettingRow.style.display = 'none';
+}
+
 // Initialize on page load without causing flash
 const initialAccent = store.get('mdd-accent', docAccent);
 const initialTheme = store.get('mdd-theme', docTheme);
+const initialMode = store.get(`mdd_mode_${location.pathname}`, 'read');
 setAccent(initialAccent, true);
 setTheme(initialTheme, true);
+setMode(initialMode, true);

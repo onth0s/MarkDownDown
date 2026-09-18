@@ -339,6 +339,10 @@ function goToMatch(index) {
       container.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   } else {
+    const mirrorBlock = item.mark.closest('.mirror-block');
+    if (mirrorBlock && (body.dataset.mode !== 'mirror' && root.dataset.mode !== 'mirror')) {
+      mirrorBlock.classList.add('is-peek-open');
+    }
     item.mark.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }

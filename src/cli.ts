@@ -166,6 +166,9 @@ program
         }
         process.stdout.write(` Sections:    ${sections}\n`);
         process.stdout.write(` Wikilinks:   ${wikilinks}\n`);
+        if (result.stats.mirrorBlocks && result.stats.mirrorBlocks > 0) {
+          process.stdout.write(` Mirror:      ${result.stats.mirrorBlocks} blocks (${result.stats.mirrorItems ?? 0} items, ${result.stats.mirrorProbes ?? 0} probes)\n`);
+        }
         process.stdout.write(` Frontmatter: ${frontmatterKeys} entries\n`);
         process.stdout.write(` Mode:        ${outputMode} (${options.minify ? 'minified' : 'unminified'})\n`);
         process.stdout.write(` Output:      ${relOutput} (${sizeFormatted})\n`);

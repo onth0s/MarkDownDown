@@ -13,6 +13,24 @@ if (hasHero) {
   titleLi.appendChild(titleA);
   toc.appendChild(titleLi);
 }
+const mirrorCountByHeadingId = new Map();
+if (mirrorBlocks && mirrorBlocks.length > 0) {
+  mirrorBlocks.forEach(mb => {
+    let nearestHeading = null;
+    for (let i = 0; i < headings.length; i++) {
+      const h = headings[i];
+      if (h.compareDocumentPosition(mb) & Node.DOCUMENT_POSITION_FOLLOWING) {
+        nearestHeading = h;
+      } else {
+        break;
+      }
+    }
+    if (nearestHeading && nearestHeading.id) {
+      mirrorCountByHeadingId.set(nearestHeading.id, (mirrorCountByHeadingId.get(nearestHeading.id) || 0) + 1);
+    }
+  });
+}
+
 headings.forEach((heading) => {
   if (!heading.id || !heading.id.trim()) return;
   const isAlert = heading.classList.contains('alert');
@@ -27,6 +45,14 @@ headings.forEach((heading) => {
   }
   a.className = `l${level}` + (isItem ? ' item-link' : '');
   a.dataset.target = heading.id;
+  const mCount = mirrorCountByHeadingId.get(heading.id) || 0;
+  if (mCount > 0) {
+    const badge = document.createElement('span');
+    badge.className = 'toc-mirror-badge';
+    badge.textContent = `🪞 ${mCount}`;
+    badge.title = `${mCount} Mirror ${mCount === 1 ? 'block' : 'blocks'}`;
+    a.appendChild(badge);
+  }
   li.appendChild(a);
   toc.appendChild(li);
 

@@ -18,8 +18,10 @@ Markdown++ (`.mdd`) is standard GitHub-Flavored Markdown extended with:
 - [[YAML Frontmatter]] for document metadata and theming
 - [[Inline Extension: Wikilinks|Wikilinks]] (`[[str]]` and `[[str|display]]`)
 - [[File Link Resolution]] (`[text](file:///path/to/file#L10)`)
-- [Diagram DSL](./DSL.md) (` ```diagram `) for interactive SVG flowcharts
-- [Table DSL](./DSL.md) (` ```table `) for interactive SVG data tables
+- [Diagram DSL](./DSL.md) (`diagram`) for interactive SVG flowcharts
+- [Table DSL](./DSL.md) (`table`) for interactive SVG data tables
+- [Mirror Mode Blocks](./DSL.md) (`mirror`) for Q&A, FAQ, and semantic alignment probes
+- **Dual-Mode Artifact** — Read Mode (publication view) and Mirror Mode (semantic audit layer)
 - **Item / Glossary Headings** — `# * Term`, `## * Term`, `### * Term`, `#### * Term` bulleted hierarchy with automatic bullet-stripping and anchor generation
 - [[Callout Alerts]] — `[!]` and `[!STRING]` accent-styled notification blocks
 
@@ -302,14 +304,46 @@ Markdown++ documents feature an in-page navigation manager for internal wikilink
 
 ---
 
-## 13. Design Decisions
+## 13. Dual-Mode Architecture & Mirror Mode
+
+Markdown++ produces a dual-mode artifact with two distinct reading experiences:
+
+### 13.1 Read Mode
+
+Read Mode provides a clean, publication-grade reading experience with GFM markdown, native wikilinks, interactive SVG diagram DSL, SVG pipe tables, sidebar TOC, client-side search with SVG highlighting, and theme customization.
+
+When mirror blocks exist, discrete in-margin pills (`🪞 Q&A 1 item`) indicate the presence of supplementary mirror material without interrupting the reader's flow. Clicking a pill displays an in-place peek popover card containing the mirror material.
+
+### 13.2 Mirror Mode
+
+Mirror Mode is a reader-side semantic audit in which the reader reconstructs the author's explicitly stated conceptual map, answers targeted probes about it, and exposes divergences between the reader's reconstruction and the author's declared meaning.
+
+- **Semantic Alignment Probes**: Present the reader with a claim, candidate interpretations, an author's declared meaning, divergence analysis, and self-audit confirmation ("✓ I understand the author's distinction" vs. "⚡ I understand, but disagree with the premise").
+- **Contextual Q&A**: Direct question-and-answer pairs attached to sections or passages.
+- **Reader Question Logging**: Readers can record persistent notes and questions within each mirror block.
+- **Client-Side Persistence**: All probe selections, audit states, and reader questions persist in `localStorage` under `mdd_mirror_<pathname>` and can be cleared via the Appearance settings modal.
+- **Keyboard Shortcut**: `Alt+M` toggles between Read Mode and Mirror Mode.
+
+```table
+TITLE: Mirror Mode Primitives
+| Primitive | Subkind | Purpose |
+| Q&A | qa | Direct questions and answers attached to text |
+| FAQ | faq | Frequently asked questions |
+| Semantic Probe | probe | Multi-choice alignment check against author model |
+| Clarification | clarification | Targeted semantic distinction notes |
+```
+
+---
+
+## 14. Design Decisions
 
 ```table
 TITLE: Key Architectural Design Decisions
 | # | Decision | Rationale |
+|---|---|---|
 | D1 | Title fallback: frontmatter title -> first H1 -> filename | Predictable hierarchy without magic |
 | D2 | Table alignment: uniform left-alignment | High scannability and cleaner SVG rendering |
-| D3 | Fence languages: diagram and table only | Strict, clean language specification |
+| D3 | Fence languages: diagram, table, and mirror | Strict, clean language specification |
 | D4 | Diamond nodes {text} in v1 diagram DSL | Essential for decision branching |
 | D5 | Error format: stderr + non-zero exit code | Clean CLI integration for pipelines and scripts |
 | D6 | Single-file default: --single | Maximum portability for technical specs and docs |

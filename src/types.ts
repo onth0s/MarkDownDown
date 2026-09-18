@@ -96,7 +96,7 @@ export interface CompileResult {
   /** Any warnings accumulated during compilation */
   warnings: string[];
   /** Document statistics */
-  stats?: {
+    stats?: {
     sections: number;
     wikilinks: number;
     frontmatterKeys: number;
@@ -105,7 +105,45 @@ export interface CompileResult {
     logo?: string;
     outputFile: string;
     sizeBytes: number;
+    mirrorBlocks?: number;
+    mirrorItems?: number;
+    mirrorProbes?: number;
   };
+}
+
+/** Kinds of mirror interactions supported */
+export type MirrorKind = 'qa' | 'faq' | 'probe' | 'clarification' | 'generic';
+
+/** Option item within a structured semantic alignment probe */
+export interface MirrorOption {
+  text: string;
+  isAuthorAligned: boolean;
+  explanation?: string;
+}
+
+/** A structured alignment probe for semantic auditing */
+export interface MirrorProbe {
+  claim: string;
+  options: MirrorOption[];
+  authorDeclaredMeaning: string;
+  divergenceExplanation?: string;
+}
+
+/** Standard Question and Answer item */
+export interface MirrorQAItem {
+  question: string;
+  answer: string;
+}
+
+/** Parsed AST model of a ```mirror block */
+export interface MirrorBlockModel {
+  id: string;
+  kind: MirrorKind;
+  title?: string;
+  target?: string;
+  items: MirrorQAItem[];
+  probes: MirrorProbe[];
+  rawSource: string;
 }
 
 /** Describes a fully resolved wikilink ready for HTML rendering */

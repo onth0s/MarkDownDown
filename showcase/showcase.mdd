@@ -2,7 +2,7 @@
 title: "Markdown++ Capability Showcase"
 accent: "#8b5cf6"
 theme: "dark"
-bg_lum: "0.0 : 0.93"
+bg_lum: "0.15 : 0.93"
 assets_dir: "./assets"
 custom_css: "./custom.css"
 logo: "./assets/mdpp-logo.svg"
@@ -12,7 +12,7 @@ pills: ["dogfooding", "reference", "specimen"]
 ---
 
 > [!NOTE]
-> This document **is** the showcase. It is compiled with `mdd showcase/showcase.mdd --single -o showcase/showcase.html`. Every heading, wikilink, diagram, table, and callout below is live: search, theme, accent, navigation history, and SVG highlighting all work on this very page.
+> This document **is** the showcase. It is compiled with `mdd showcase/showcase.mdd --single -o showcase/showcase.html`. Every heading, wikilink, diagram, table, mirror block, and callout below is live: dual-mode switching (Read Mode & Mirror Mode), search, theme, accent, navigation history, and SVG highlighting all work on this very page.
 
 ---
 
@@ -252,10 +252,48 @@ Everything GFM provides still works inside a `.mdd` document:
 
 ---
 
+## Mirror Mode & Dual-Mode Artifact
+
+Markdown++ produces a dual-mode artifact with two complementary reading layers:
+
+1. **Read Mode**: Clean, publication-grade reading experience with in-margin peek pills (`🪞 Q&A` / `🪞 Semantic Probe`) that keep the main narrative flow clean and undisturbed.
+2. **Mirror Mode**: An explicit reader-side semantic audit layer where the reader reconstructs the author's declared conceptual map, answers targeted probes about it, and exposes divergences between the reader's reconstruction and the author's declared meaning.
+
+Toggle modes using the topbar switch or with <kbd>Alt</kbd>+<kbd>M</kbd>.
+
+```mirror qa
+TITLE: Markdown++ Dual-Mode Architecture
+Q: What is the difference between Read Mode and Mirror Mode?
+A: Read Mode preserves an undisturbed, publication-grade reading experience with in-margin peek pills. Mirror Mode fully expands all semantic probes, Q&A blocks, and reader audit tools across the document.
+
+Q: How does client-side state persist?
+A: Probe selections, alignment statuses, and reader questions persist locally in browser localStorage. You can reset all saved state at any time via the Appearance settings modal.
+```
+
+```mirror probe
+TITLE: Semantic Audit vs Compliance Test
+PROBE: What constitutes a successful reader engagement in Mirror Mode?
+[ ] Achieving 100% agreement on all author claims.
+[x] Accurate reconstruction of the author's declared distinction, even if the reader contests the premise --> Mirror Mode separates understanding from agreement.
+[ ] Automatically compiling prose assertions into machine tests.
+
+AUTHOR: The author distinguishes conceptual comprehension from ideological agreement. A reader who accurately maps the author's declared distinction has successfully mirrored the document, regardless of whether they agree with the author's premise.
+DIVERGENCE: Confusing semantic understanding with compliance turns an intellectual audit into an ideological test.
+```
+
+```mirror clarification
+TITLE: Semantic Audit Clarification
+Q: Is a disagreement with the author considered a failure in Mirror Mode?
+A: No. A reader who demonstrates they understand the author's declared distinction, but chooses to contest the premise, is fully aligned in Mirror Mode ("I understand you. I disagree with you" is a successful mirror).
+```
+
+---
+
 ## Runtime: Search, Theme & Navigation
 
 Everything above is not just static markup — the compiled page ships a runtime:
 
+- **Dual-mode toggle** — switch between publication Read Mode and semantic Mirror Mode using the topbar switch or <kbd>Alt</kbd>+<kbd>M</kbd>; in Read Mode, margin pills peek open without moving your reading position; responses and reader notes persist privately in localStorage with instant reset in Appearance settings.
 - **Search inside an SVG** — type `Prose` or `Collision` into the search box above: the matching diagram node/cell lights up with `.is-hit`, and `Prev` / `Next` cycle through results (`N / M` counter). Case-sensitivity toggle available.
 - **Live theme** — toggle dark/light with the moon button; every fill inherits `var(--accent)` and friends.
 - **Live accent** — open the appearance panel and drag the rainbow picker (or tap a swatch): node borders, edges, headers, favicon, and brand logo recolour instantly.

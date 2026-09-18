@@ -7,7 +7,7 @@ theme: "dark"
 # Markdown++ DSL Specification
 
 > [!NOTE]
-> **Status:** Ratified specification for the two fenced code block languages in Markdown++: `diagram` and `table`.
+> **Status:** Ratified specification for the fenced code block languages in Markdown++: `diagram`, `table`, and `mirror`.
 
 ---
 
@@ -201,21 +201,65 @@ TITLE: Table SVG Element Classes
 
 ---
 
-## 3. Shared Rendering Rules
+## 3. `mirror` Fence
 
-### 3.1 Copy Button
+### 3.1 Syntax & Subkinds
+
+The `mirror` fence defines a document-native semantic audit layer. It accepts an optional subkind hint on the fence info string:
+
+- ````mirror qa````: Structured question-and-answer pairs attached to a passage or section.
+- ````mirror faq````: Frequently asked questions.
+- ````mirror probe````: Structured semantic alignment probes with candidate options, author declared meaning, and divergence analysis.
+- ````mirror clarification````: Targeted clarification notes on subtle distinctions.
+- ````mirror````: Generic mirror block (automatically infers probe vs. Q&A based on content).
+
+### 3.2 Metadata Directives
+
+- `TITLE: <string>`: Optional title displayed in the card header and in-margin pill.
+- `TARGET: <string>`: Optional anchor target attaching the mirror block to a specific section or heading.
+
+### 3.3 Q&A Grammar
+
+```
+qa_block     := ( "Q:" question_text "\n" "A:" answer_text "\n"* )+
+```
+
+Each item consists of a `Q:` line followed by an `A:` line. Markdown formatting within question and answer text is rendered inline.
+
+### 3.4 Alignment Probe Grammar
+
+```
+probe_block  := "PROBE:" claim_text "\n" option+ author_decl [divergence]
+option       := ( "[ ]" | "[x]" ) option_text [ "-->" option_explanation ] "\n"
+author_decl  := ( "AUTHOR:" | "MEANING:" | "DECLARED:" ) meaning_text "\n"
+divergence   := ( "DIVERGENCE:" | "DIVERGE:" | "GAP:" ) divergence_text "\n"
+```
+
+- Exactly one option may be marked with `[x]` indicating alignment with the author's declared model.
+- `AUTHOR:` establishes the author's declared conceptual map.
+- `DIVERGENCE:` articulates why competing interpretations drift from the author's intended model.
+- **Self-Audit**: The interactive runtime presents the reader with a two-way alignment choice:
+  - `✓ I understand the author's distinction`
+  - `⚡ I understand, but disagree with the premise`
+
+---
+
+## 4. Shared Rendering Rules
+
+### 4.1 Copy Button
 
 Each `diagram` and `table` block includes a `<button class="copy-btn">` that copies the raw DSL source to the clipboard. The source code `<pre>` is hidden via CSS (`.code-wrap.diagram pre, .code-wrap.table pre { display:none; }`).
 
-### 3.2 Search Highlight Sync
+### 4.2 Search Highlight Sync
 
-When the user searches, the runtime synchronizes search-match highlights onto the pre-rendered SVG nodes:
+When the user searches, the runtime synchronizes search-match highlights onto pre-rendered SVG nodes and mirror cards:
 
 1. For each `<mark data-search-match="true">` inside a code block, compute its character offset within the `<code>` element.
 2. Map the offset to a diagram node or table cell using the `data-label-ord` attribute.
 3. Add `.is-hit` / `.is-current` classes to the matching SVG group.
+4. If a search result falls within a `.mirror-block` in Read Mode, the card automatically peeks open.
 
-### 3.3 Responsive Behavior & Theme
+### 4.3 Responsive Behavior & Theme
 
 - On viewports ≤ 900px, the sidebar collapses to a mobile drawer.
 - Diagram and table SVGs overflow horizontally with smooth 2px custom scrollbars.
@@ -233,9 +277,9 @@ TITLE: Theme Integration CSS Variables
 
 ---
 
-## 4. Reference Examples
+## 5. Reference Examples
 
-### 4.1 Diagram Example
+### 5.1 Diagram Example
 
 ```diagram
 TITLE: CLDS Artifact Relationship Flow
@@ -246,7 +290,7 @@ SPEC -->|defines expected behavior| AUDIT
 AUDIT -->|surfaces conformance gaps| IMPL
 ```
 
-### 4.2 Pipe Table Example
+### 5.2 Pipe Table Example
 
 ```table
 TITLE: Reading Cost Calibration
@@ -259,7 +303,7 @@ TITLE: Reading Cost Calibration
 | Final iron-out review | ~2 minutes | Implementation hygiene |
 ```
 
-### 4.3 Cyclic Diagram Example
+### 5.3 Cyclic Diagram Example
 
 ```diagram
 TITLE: Supervisor Loop
@@ -268,4 +312,28 @@ WORKER["WORKER POOL — processes items"]
 TASK --> WORKER
 WORKER -->|re-enqueues failures| TASK
 WORKER --> DONE["COMPLETED"]
+```
+
+### 5.4 Mirror Alignment Probe Example
+
+```mirror probe
+TITLE: Semantic Alignment Probe
+PROBE: What is the primary role of Mirror Mode?
+[ ] A score-based quiz verifying reader memorization.
+[x] A reader-side semantic audit exposing divergences between reader reconstruction and author meaning.
+[ ] A static comment section for open-ended document discussions.
+
+AUTHOR: Mirror Mode is explicitly an audit layer, not a quiz or evaluation metric. Understanding the author's distinction without necessarily agreeing with their premise is considered a successful mirror.
+DIVERGENCE: Viewing the probe as a compliance test conflates semantic comprehension with ideological agreement.
+```
+
+### 5.5 Mirror Q&A Example
+
+```mirror qa
+TITLE: Frequently Asked Questions
+Q: Can Mirror blocks be attached to any section in the document?
+A: Yes, mirror blocks can be placed anywhere between paragraphs, sections, or diagrams.
+
+Q: Does Read Mode show mirror cards by default?
+A: No, Read Mode presents a clean publication view with discrete margin pills that can be peeked open on demand.
 ```

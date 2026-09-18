@@ -3,16 +3,33 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { diagramParse, diagramLayout, detectBackEdges } from '../src/renderer/diagram/index.js';
 import { tableParse, tableBuildSvg } from '../src/renderer/table-svg.js';
+import { mirrorParse } from '../src/renderer/mirror/parse.js';
+import { mirrorBuildHtml } from '../src/renderer/mirror/html.js';
 import { compile } from '../src/compile.js';
 import { SPEC } from '../src/spec.js';
 
-const DIAGRAM_FENCE_RE = /```diagram[^\n]*\n([\s\S]*?)```/g;
-const TABLE_FENCE_RE = /```table[^\n]*\n([\s\S]*?)```/g;
+const DIAGRAM_FENCE_RE = /(?:^|\n)```diagram[^\n]*\n([\s\S]*?)\n```/g;
+const TABLE_FENCE_RE = /(?:^|\n)```table[^\n]*\n([\s\S]*?)\n```/g;
+const MIRROR_FENCE_RE = /(?:^|\n)```mirror[^\n]*\n([\s\S]*?)\n```/g;
+
+function compileAllMirrorFences(source: string): number {
+  let count = 0;
+  for (const f of source.match(MIRROR_FENCE_RE) || []) {
+    const hint = f.match(/```mirror\s*([a-zA-Z_-]*)/)?.[1];
+    const body = f.replace(/^(?:\r?\n)?```mirror[^\n]*\r?\n/, '').replace(/\r?\n```$/, '');
+    const m = mirrorParse(body, hint as import('../src/types.js').MirrorKind);
+    expect(m.items.length + m.probes.length).toBeGreaterThan(0);
+    const html = mirrorBuildHtml(m, 'Spec Test');
+    expect(html).toContain('class="mirror-block"');
+    count++;
+  }
+  return count;
+}
 
 function compileAllDiagramFences(source: string): number {
   let count = 0;
   for (const f of source.match(DIAGRAM_FENCE_RE) || []) {
-    const body = f.replace(/```diagram[^\n]*\n/, '').replace(/```$/, '');
+    const body = f.replace(/^(?:\r?\n)?```diagram[^\n]*\r?\n/, '').replace(/\r?\n```$/, '');
     const m = diagramParse(body);
     detectBackEdges(m);
     expect(() => diagramLayout(m)).not.toThrow();
@@ -24,7 +41,7 @@ function compileAllDiagramFences(source: string): number {
 function compileAllTableFences(source: string): number {
   let count = 0;
   for (const f of source.match(TABLE_FENCE_RE) || []) {
-    const body = f.replace(/```table[^\n]*\n/, '').replace(/```$/, '');
+    const body = f.replace(/^(?:\r?\n)?```table[^\n]*\r?\n/, '').replace(/\r?\n```$/, '');
     const m = tableParse(body);
     expect(m.headers.length).toBeGreaterThan(0);
     expect(m.rows.length).toBeGreaterThan(0);
@@ -146,5 +163,29 @@ describe('spec alignment and compilation', () => {
     });
     expect(result.html).toContain('<html');
     expect(result.stats?.sections).toBeGreaterThan(40);
+  });
+});
+
+describe('spec-embedded mirror blocks compile', () => {
+  test('every mirror block embedded in DSL.md parses and generates valid HTML', () => {
+    const dsl = fs.readFileSync(path.resolve(process.cwd(), 'DSL.md'), 'utf8');
+    expect(compileAllMirrorFences(dsl)).toBeGreaterThan(0);
+  });
+
+  test('DSL.md compiles end-to-end through the compiler with mirror cards generated', () => {
+    const dslPath = path.resolve(process.cwd(), 'DSL.md');
+    const result = compile({
+      title: 'DSL',
+      assetsDir: path.resolve(process.cwd(), 'assets'),
+      accent: '#3b82f6',
+      inputFile: dslPath,
+      outputPath: path.resolve(process.cwd(), 'dist/dsl-test.html'),
+      outputMode: 'single',
+      noDiagrams: false,
+      noTables: false,
+      verbose: false,
+    });
+    expect(result.html).toContain('class="mirror-block"');
+    expect(result.stats?.mirrorBlocks).toBeGreaterThan(0);
   });
 });

@@ -29,6 +29,10 @@
     <button class="search-nav" id="nextBtn" type="button" aria-label="Next match" title="Next match">↓</button>
   </div>
   <div class="toolbar">
+    <div class="mode-switch" id="modeSwitch" role="radiogroup" aria-label="Reading Mode">
+      <button type="button" class="mode-btn active" id="modeReadBtn" data-mode="read" aria-checked="true" title="Read Mode (Standard publication view)">Read</button>
+      <button type="button" class="mode-btn" id="modeMirrorBtn" data-mode="mirror" aria-checked="false" title="Mirror Mode (Semantic audit, Q&A, and author probes)">Mirror<span class="mirror-count-badge" id="mirrorGlobalCount" hidden>0</span></button>
+    </div>
     <span class="search-count" id="searchCount"></span>
     <button class="tool-btn icon-only" id="themeBtn" title="Toggle light/dark" aria-label="Toggle light/dark">
       <svg class="icon-theme" width="18" height="18" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
@@ -74,6 +78,10 @@
     <button class="swatch" data-color="#10b981" style="background:#10b981" aria-label="Green"></button>
     <button class="swatch" data-color="#f59e0b" style="background:#f59e0b" aria-label="Amber"></button>
     <button class="swatch" data-color="#f43f5e" style="background:#f43f5e" aria-label="Rose"></button>
+  </div>
+  <div class="setting-row mirror-setting-row">
+    <span>Mirror Audit</span>
+    <button type="button" class="btn-reset-mirror" id="resetMirrorBtn" title="Reset all saved probe responses and reader notes">Reset progress</button>
   </div>
 </div>
 

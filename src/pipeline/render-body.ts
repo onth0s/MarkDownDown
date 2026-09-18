@@ -11,7 +11,13 @@ import type { ResolvedLink } from '../resolver/wikilink.js';
 import { escHtml } from '../util/escape.js';
 import { injectDiagramSvgs } from './inject-diagrams.js';
 import { injectTableSvgs } from './inject-tables.js';
+import { injectMirrorBlocks, type MirrorStats } from './inject-mirror.js';
 import { wrapCodeBlocksWithCopyButtons } from './copy-buttons.js';
+
+export interface RenderBodyResult {
+  html: string;
+  mirrorStats: MirrorStats;
+}
 
 /**
  * Render a resolved wikilink token to HTML.
@@ -59,7 +65,7 @@ export function renderBody(
   options: Options,
   docTitle: string,
   warnings: string[],
-): string {
+): RenderBodyResult {
   // Build link lookup map for fast render-time access
   const linkMap = new Map<string, PendingWikilink>();
   for (const pw of pendingLinks) {
@@ -78,11 +84,12 @@ export function renderBody(
 
   const inputDir = path.dirname(options.inputFile);
 
-  // Render markdown to HTML, then inject SVGs and copy buttons
+  // Render markdown to HTML, then inject SVGs, mirror blocks, and copy buttons
   let bodyHtml = md.render(markdownBody, { warnings, inputDir, options, docTitle });
   if (!options.noDiagrams) bodyHtml = injectDiagramSvgs(bodyHtml, docTitle, warnings);
   if (!options.noTables) bodyHtml = injectTableSvgs(bodyHtml, docTitle, warnings);
-  bodyHtml = wrapCodeBlocksWithCopyButtons(bodyHtml);
+  const { html: mirrorHtml, stats: mirrorStats } = injectMirrorBlocks(bodyHtml, docTitle, warnings);
+  bodyHtml = wrapCodeBlocksWithCopyButtons(mirrorHtml);
 
-  return bodyHtml;
+  return { html: bodyHtml, mirrorStats };
 }

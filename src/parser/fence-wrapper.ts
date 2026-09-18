@@ -31,6 +31,7 @@ export function createFenceRenderer(md: MarkdownIt, block: FenceBlock): void {
 
     const arg = infoWords[1]?.toUpperCase() ?? '';
     const dirAttr = /^(TB|TD|BT|LR|RL)$/i.test(arg) ? ` data-direction="${arg}"` : '';
+    const subkindAttr = block.kind === 'mirror' && infoWords[1] ? ` data-subkind="${infoWords[1].toLowerCase()}"` : '';
 
     const { title, body } = parseTitleDirective(token.content);
     const safeTitle = title.replace(/"/g, '&quot;');
@@ -44,7 +45,7 @@ export function createFenceRenderer(md: MarkdownIt, block: FenceBlock): void {
       .replace(/\r?\n/g, '&#10;');
 
     return (
-      `<div class="code-wrap ${block.kind}" data-title="${safeTitle}"${dirAttr} data-raw="${safeRaw}">` +
+      `<div class="code-wrap ${block.kind}" data-title="${safeTitle}"${dirAttr}${subkindAttr} data-raw="${safeRaw}">` +
       `<pre><code class="language-${block.kind}">${safeContent}</code></pre>` +
       `<div class="${block.renderDivClass}"></div>` +
       `</div>\n`

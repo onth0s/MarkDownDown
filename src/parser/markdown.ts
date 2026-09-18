@@ -6,6 +6,7 @@ import MarkdownIt from 'markdown-it';
 import { wikilinkPlugin } from './wikilink.js';
 import { diagramPlugin } from './diagram.js';
 import { tablePlugin } from './table.js';
+import { mirrorPlugin } from './mirror.js';
 import { slugify } from '../util/slugify.js';
 import { resolveFileLink } from '../util/file-link.js';
 import { extractInlineText } from '../resolver/heading.js';
@@ -161,6 +162,7 @@ export function createMarkdownParser(): MarkdownIt {
 
   diagramPlugin(md);
   tablePlugin(md);
+  mirrorPlugin(md);
   wikilinkPlugin(md);
 
   // Intercept links to validate and resolve file:// links

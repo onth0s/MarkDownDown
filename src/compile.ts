@@ -51,13 +51,13 @@ export function compile(options: Options): CompileResult {
   );
 
   // 6. Render body HTML
-  const bodyHtml = renderBody(
+  const { html: bodyHtml, mirrorStats } = renderBody(
     md, markdownBody, pendingLinks, assetBase64Map, options, title, warnings,
   );
 
   // 7. Assemble and write
   const result = assembleAndWrite(
-    options, meta, hero, title, accent, bodyHtml, assetsDir, headings, warnings, md,
+    options, meta, hero, title, accent, bodyHtml, assetsDir, headings, warnings, md, mirrorStats,
   );
   if (result.stats) {
     result.stats.wikilinks = pendingLinks.length;

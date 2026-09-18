@@ -15,6 +15,7 @@ theme: "dark"
 
 - [[Overview]]
 - [[Key Features]]
+- [[Dual-Mode Experience: Read & Mirror]]
 - [[Compilation Architecture]]
 - [[Installation & Quick Start]]
 - [[CLI Usage]]
@@ -23,6 +24,7 @@ theme: "dark"
   - [[Wikilinks & Heading Resolution]]
   - [[Diagram DSL]]
   - [[Table DSL]]
+  - [[Mirror Mode Blocks]]
   - [[Callout Alerts]]
 - [[Development & Testing]]
 - [[License]]
@@ -39,11 +41,29 @@ Unlike traditional static site generators, Markdown++ produces self-contained or
 
 ## Key Features
 
+- **Dual-Mode Artifact (Read Mode & Mirror Mode)**: Seamlessly switch between a publication-grade reading experience and a document-native semantic audit layer with interactive author probes and divergence analysis.
 - **Native Wikilinks (`[[str]]` and `[[str|alias]]`)**: 4-pass fuzzy heading resolver (exact, normalized, prefix/substring, Levenshtein edit distance) and adjacent asset resolution.
 - **Embedded Diagram DSL (` ```diagram `)**: Declarative flowchart syntax compiled directly into responsive SVG nodes with title/subtitle splits and search highlighting.
 - **Embedded Table DSL (` ```table `)**: GFM pipe table syntax rendered as interactive SVGs with custom headers and search match synchronization.
 - **Self-Contained & Split Distribution**: Output as a single standalone HTML file (`--single`) with base64 assets and inlined styles/scripts, or a modular directory (`--split`).
-- **Interactive Search & Navigation**: Pre-rendered SVGs participate directly in document search and table-of-contents navigation.
+- **Interactive Search & Navigation**: Pre-rendered SVGs and mirror cards participate directly in document search and table-of-contents navigation.
+
+---
+
+## Dual-Mode Experience: Read & Mirror
+
+Markdown++ produces a dual-mode interactive artifact:
+
+> [!NOTE]
+> **Mirror Mode** is a reader-side semantic audit in which the reader reconstructs the author's explicitly stated conceptual map, answers targeted probes about it, and exposes divergences between the reader's reconstruction and the author's declared meaning.
+
+1. **Read Mode**: Full publication reading experience with GFM markdown, native wikilinks, interactive SVG diagram DSL, SVG pipe tables, sidebar TOC, client-side search with SVG highlighting, and theme customization. Where mirror material exists, discrete margin pills (`🪞 Q&A 1 item`) allow the reader to peek at mirror material in context without cluttering the main flow.
+2. **Mirror Mode**: A second document-native interaction layer over the document. It lets the author and reader explicitly interrogate the text and each other about meaning.
+   - **Semantic Alignment Probes**: Evaluates candidate interpretations against the author's declared distinction, revealing divergence analysis and offering self-auditing ("I understand the author's distinction" vs. "I understand, but disagree with the premise").
+   - **Contextual Q&A & FAQs**: Question-and-answer pairs attached to sections or passages.
+   - **Reader Question Logging**: Readers can record in-place reflections and queries directly within any mirror block.
+   - **Instant Mode Switching**: Switch between Read Mode and Mirror Mode using the topbar switch or the `Alt+M` keyboard shortcut.
+   - **Zero-Friction Privacy**: Probe responses and reader queries are persisted privately in the browser's `localStorage` and can be reset anytime from the settings panel.
 
 ---
 
@@ -197,6 +217,36 @@ TITLE: Benchmark Results
 | Engine | Latency (p95) | Memory Usage |
 | Markdown++ | 12ms | 24MB |
 | Standard AST | 45ms | 86MB |
+```
+````
+
+### Mirror Mode Blocks
+
+Fenced code block with `mirror` (supports subkind hints `qa`, `faq`, `probe`, or `clarification`):
+
+**Q&A / FAQ Block:**
+````markdown
+```mirror qa
+TITLE: Architecture Q&A
+Q: Why are SVG tables preferred over standard HTML tables?
+A: SVG tables ensure 100% consistent typography, custom scrollbars, and synchronized search highlighting matching the diagram subsystem.
+
+Q: Can wikilinks point to headings inside diagrams?
+A: Yes, the 4-pass fuzzy resolver indexes all diagram node labels and heading anchors.
+```
+````
+
+**Semantic Alignment Probe Block:**
+````markdown
+```mirror probe
+TITLE: Dual-Mode Artifact Conception
+PROBE: What constitutes a successful reader engagement in Mirror Mode?
+[ ] Achieving a 100% agreement score on all author propositions.
+[x] Accurate reconstruction of the author's declared distinction, regardless of whether the reader agrees with the underlying premise.
+[ ] Automatically converting author claims into machine-verifiable unit tests.
+
+AUTHOR: The author distinguishes understanding from agreement. A reader who accurately reconstructs the author's conceptual boundary has achieved a successful mirror, even if they disagree with the author's premise.
+DIVERGENCE: Treating Mirror Mode as an evaluation score collapses semantic auditing into a compliance test.
 ```
 ````
 

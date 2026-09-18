@@ -2,6 +2,10 @@
 
 - Run ESLint after a significant code change or addition.
 
+- DUAL-MODE ARTIFACT (READ MODE & MIRROR MODE): MD++ must produce an artifact with 2 Modes:
+  - Read Mode: Full interactive reading experience with GFM markdown, native wikilinks, interactive SVG diagram DSL, SVG pipe tables, sidebar TOC, client-side search with SVG highlighting, and theme customization.
+  - Mirror Mode: An optional, document-native layer for asking, answering, and resolving questions about the author's meaning, available anywhere in the document—not just a quiz system.
+
 - NEVER add left-side vertical border highlights/strips (`border-left`, accent bars) to active sidebar items, TOC links, or search results. Use standard background and text color styling only.
 
 - WINDOWS ONLY, POWERSHELL FIRST: Never use `++` in executable CLI command names or bin shortcuts (e.g. `markdown++` breaks in PowerShell parser due to the `++` operator). Use `mdd` and `markdowndown` for CLI/bin commands. Preserve `Markdown++` and `MD++` in text, docs, and conceptual branding only.
