@@ -180,9 +180,10 @@ function highlightNode(node, query) {
   const textNodes = [];
   let textNode;
   while ((textNode = walker.nextNode())) {
-    if (textNode.parentElement?.closest('svg, .heading-anchor')) continue;
-    if (textNode.parentElement?.closest('code,pre,script,style') &&
-        !textNode.parentElement.closest('code.language-diagram,code.language-table')) continue;
+    if (textNode.parentElement?.closest('svg, .heading-anchor, .katex-mathml, script, style')) continue;
+    // The mirror DSL source <pre> is hidden (display:none) and has no SVG to sync to;
+    // its visible .mirror-card content is already searchable, so skip the raw source.
+    if (textNode.parentElement?.closest('code.language-mirror')) continue;
     textNodes.push(textNode);
   }
   let cnt = 0;

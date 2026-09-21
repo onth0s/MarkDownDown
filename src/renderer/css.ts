@@ -76,6 +76,13 @@ export function buildCss(accent: string, accentRgb: string, bgLum?: BgLum): stri
   const p = computeLuminosityParams(bgLum);
   const accentFg = getContrastFg(accent);
 
+  let katexCss = '';
+  try {
+    katexCss = '\n' + loadTemplate('katex.css');
+  } catch {
+    // optional fallback if template missing
+  }
+
   return substituteTokens(loadTemplate('style.css'), {
     __ACCENT__: accent,
     __ACCENT_RGB__: accentRgb,
@@ -98,5 +105,5 @@ export function buildCss(accent: string, accentRgb: string, bgLum?: BgLum): stri
     __LIGHT_BG_TINT__: `${p.lightTintPct}%`,
     __LIGHT_SURF_MIX__: `${p.lightSurfaceMixPct}%`,
     __LIGHT_SURF_TINT__: `${p.lightSurfaceTintPct}%`,
-  });
+  }) + katexCss;
 }

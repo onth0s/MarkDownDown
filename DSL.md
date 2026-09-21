@@ -252,7 +252,7 @@ Each `diagram` and `table` block includes a `<button class="copy-btn">` that cop
 
 ### 4.2 Search Highlight Sync
 
-When the user searches, the runtime synchronizes search-match highlights onto pre-rendered SVG nodes and mirror cards:
+Document search matches prose, fenced code blocks, inline code, and raw diagram/table DSL sources (the mirror DSL source is skipped — it is hidden and has no visual counterpart; the mirror card body itself is searchable). When the user searches, the runtime synchronizes search-match highlights onto pre-rendered SVG nodes and mirror cards:
 
 1. For each `<mark data-search-match="true">` inside a code block, compute its character offset within the `<code>` element.
 2. Map the offset to a diagram node or table cell using the `data-label-ord` attribute.

@@ -24,6 +24,7 @@ Markdown++ (`.mdd`) is standard GitHub-Flavored Markdown extended with:
 - **Dual-Mode Artifact** — Read Mode (publication view) and Mirror Mode (semantic audit layer)
 - **Item / Glossary Headings** — `# * Term`, `## * Term`, `### * Term`, `#### * Term` bulleted hierarchy with automatic bullet-stripping and anchor generation
 - [[Callout Alerts]] — `[!]` and `[!STRING]` accent-styled notification blocks
+- **LaTeX Math Expressions** — Inline (`$...$`) and Display (`$$...$$`) compiled via KaTeX with zero runtime overhead
 
 Everything else is standard GFM.
 
@@ -156,6 +157,7 @@ Resolves `[[str]]` against all `h1`–`h6` document headings in 4 sequential pas
 ## 5. Escaping
 
 - `\[[str]]` → literal `[[str]]`
+- `\$` → literal `$` (escapes math delimiters)
 - Inside `` `inline code` `` → literal
 - Inside fenced code blocks → literal
 - Standard GFM backslash escapes apply for all standard markdown syntax.

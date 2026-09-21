@@ -46,7 +46,7 @@ Unlike traditional static site generators, Markdown++ produces self-contained or
 - **Embedded Diagram DSL (` ```diagram `)**: Declarative flowchart syntax compiled directly into responsive SVG nodes with title/subtitle splits and search highlighting.
 - **Embedded Table DSL (` ```table `)**: GFM pipe table syntax rendered as interactive SVGs with custom headers and search match synchronization.
 - **Self-Contained & Split Distribution**: Output as a single standalone HTML file (`--single`) with base64 assets and inlined styles/scripts, or a modular directory (`--split`).
-- **Interactive Search & Navigation**: Pre-rendered SVGs and mirror cards participate directly in document search and table-of-contents navigation.
+- **Interactive Search & Navigation**: Pre-rendered SVGs and mirror cards participate directly in document search and table-of-contents navigation. Search also matches text inside fenced code blocks and inline code — with hits highlighted in place and cycleable Prev / Next results.
 
 ---
 

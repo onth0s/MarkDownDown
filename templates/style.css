@@ -1203,3 +1203,25 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
   color: #ef4444;
 }
 
+/* ── KaTeX Math Elements ── */
+.katex {
+  font-size: 1.1em;
+  text-rendering: auto;
+  line-height: 1.2;
+}
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 12px 0;
+  margin: 1.2em 0;
+  text-align: center;
+}
+.katex-display > .katex {
+  display: inline-block;
+  text-align: initial;
+}
+.katex-error {
+  color: #ef4444;
+}
+
+

@@ -11,7 +11,7 @@ export function extractInlineText(children?: Token[] | null): string {
   if (!children || !children.length) return '';
   let out = '';
   for (const t of children) {
-    if (t.type === 'text' || t.type === 'code_inline') {
+    if (t.type === 'text' || t.type === 'code_inline' || t.type === 'math_inline' || t.type === 'math_display') {
       out += t.content;
     } else if (t.type === 'wikilink') {
       out += t.info || t.content;

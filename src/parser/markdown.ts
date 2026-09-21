@@ -7,6 +7,7 @@ import { wikilinkPlugin } from './wikilink.js';
 import { diagramPlugin } from './diagram.js';
 import { tablePlugin } from './table.js';
 import { mirrorPlugin } from './mirror.js';
+import { mathPlugin } from './math.js';
 import { slugify } from '../util/slugify.js';
 import { resolveFileLink } from '../util/file-link.js';
 import { extractInlineText } from '../resolver/heading.js';
@@ -176,6 +177,7 @@ export function createMarkdownParser(): MarkdownIt {
   tablePlugin(md);
   mirrorPlugin(md);
   wikilinkPlugin(md);
+  mathPlugin(md);
 
   // Intercept links to validate and resolve file:// links
   const defaultLinkOpen = md.renderer.rules.link_open || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options));

@@ -3,11 +3,15 @@ import { parseFrontmatter } from '../src/parser/frontmatter.js';
 
 const render = (src: string) => createMarkdownParser().render(src);
 
-describe('GFM passthrough & LaTeX (Gotcha #4)', () => {
-  test('LaTeX $...$ is literal text, not math', () => {
+describe('GFM passthrough & LaTeX', () => {
+  test('LaTeX $...$ renders with KaTeX math', () => {
     const html = render('Lisa Smith Kilpela, Ph.D. $^a$');
-    expect(html).toContain('$^a$');
-    expect(html).not.toContain('<sup>');
+    expect(html).toContain('class="katex"');
+  });
+  test('Escaped \\$...\\$ remains literal text, not math', () => {
+    const html = render('Price is \\$100 and \\$200');
+    expect(html).toContain('$100');
+    expect(html).not.toContain('class="katex"');
   });
   test('HTML passthrough is disabled (html: false)', () => {
     const html = render('Lisa Smith Kilpela, Ph.D.<sup>a</sup>');

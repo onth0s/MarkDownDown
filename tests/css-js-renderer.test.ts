@@ -51,6 +51,18 @@ describe('renderer / CSS & JS builders', () => {
     expect(js).toContain('searchQuery: currentSearch');
   });
 
+  test('buildJs search highlights inside code blocks (fenced code and inline code)', () => {
+    const js = buildJs('#3b82f6');
+    // Code text must no longer be excluded from search highlight.
+    expect(js).not.toContain("closest('code,pre,script,style')");
+  });
+
+  test('buildJs search still skips mirror DSL source, script/style, svg and anchors', () => {
+    const js = buildJs('#3b82f6');
+    expect(js).toContain("closest('svg, .heading-anchor, .katex-mathml, script, style')");
+    expect(js).toContain("closest('code.language-mirror')");
+  });
+
   test('substituteTokens handles string and function replacers', () => {
     const tpl = 'Hello __NAME__, your code is __CODE__!';
     const result = substituteTokens(tpl, {

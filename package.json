@@ -21,12 +21,14 @@
     "commander": "^12.1.0",
     "esbuild": "^0.23.1",
     "js-yaml": "^4.1.0",
+    "katex": "^0.18.7",
     "markdown-it": "^14.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/jest": "^29.5.0",
     "@types/js-yaml": "^4.0.9",
+    "@types/katex": "^0.16.8",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^22.5.0",
     "esbuild": "^0.23.1",
