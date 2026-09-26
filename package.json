@@ -14,6 +14,7 @@
     "audit:geometry": "tsx tools/geometry-audit.ts showcase/showcase.html",
     "audit:mutations": "tsx tools/audit-mutation-test.ts",
     "audit:tests": "tsx tools/collision-mutation-test.ts",
+    "audit:logo": "tsx tools/logo-mutation-test.ts",
     "postbuild": "npm link --force",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

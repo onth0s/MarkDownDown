@@ -272,6 +272,30 @@ function hslToHex(h, s, l) {
   return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
 }
 
+// Lightness window in which a colour keeps its own tone. Outside it a colour is
+// an extreme -- a white knockout, a black shadow -- whose only job is to
+// contrast with the shapes it sits on.
+var LOGO_MID_LO = 15;
+var LOGO_MID_HI = 85;
+var LOGO_KNOCKOUT_L = 97;
+var LOGO_SHADOW_L = 3;
+
+// Mirrored verbatim from src/renderer/logo.ts (resolveLogoLightness). A
+// mid-tone shape keeps its relative lightness; an extreme would then land on
+// the accent's own lightness and collapse onto that shape, so on multi-tone
+// artwork it is pushed to the far end instead. Single-tone logos still snap
+// wholesale to the accent.
+//
+// `tones` is every lightness the compile step emitted for this logo. It is a
+// fixed point: having emitted {66, 97}, re-reading {66, 97} yields {66, 97},
+// so recolouring at runtime cannot undo the compile-time decision.
+function resolveLogoLightness(l, targetL, tones) {
+  if (typeof l !== 'number' || isNaN(l)) return targetL;
+  if (l > LOGO_MID_LO && l < LOGO_MID_HI) return l;
+  if (new Set(tones).size <= 1) return targetL;
+  return l >= LOGO_MID_HI ? LOGO_KNOCKOUT_L : LOGO_SHADOW_L;
+}
+
 const docAccent = '__ACCENT__';
 const docTheme = '__THEME__';
 const faviconTmpl = '__FAVICON__';
@@ -306,14 +330,17 @@ function setAccent(hex, isInitial = false) {
         favicon.href = faviconTmpl;
       }
     } else if (!isInitial || hex.toLowerCase() !== docAccent.toLowerCase()) {
+      // The whole template's tone set has to be known before any single colour
+      // is resolved, or the first extreme we hit decides multi-tone-ness alone.
+      const faviconTones = [...faviconTmpl.matchAll(/\{L_(\d+)\}/g)]
+        .map(m => parseInt(m[1], 10))
+        .filter(n => !isNaN(n));
       const svg = faviconTmpl
         .replace(/\{accent\}/g, hex)
         .replace(/\{accentDark\}/g, dark)
         .replace(/\{accentFg\}/g, fg)
         .replace(/\{L_(\d+)\}/g, (_, lStr) => {
-          const l = parseInt(lStr, 10);
-          const effectiveL = (l > 15 && l < 85) ? l : targetL;
-          return hslToHex(targetH, targetS, effectiveL);
+          return hslToHex(targetH, targetS, resolveLogoLightness(parseInt(lStr, 10), targetL, faviconTones));
         });
       const newHref = 'data:image/svg+xml,' + encodeURIComponent(svg);
       if (favicon.getAttribute('href') !== newHref) {
@@ -326,10 +353,16 @@ function setAccent(hex, isInitial = false) {
   if (!isInitial || hex.toLowerCase() !== docAccent.toLowerCase()) {
     const navBrandLogo = document.querySelector('.brand svg.brand-logo');
     if (navBrandLogo) {
-      navBrandLogo.querySelectorAll('[data-l]').forEach(el => {
-        const l = parseInt(el.getAttribute('data-l'), 10);
-        const effectiveL = (!isNaN(l) && l > 15 && l < 85) ? l : targetL;
-        const mappedHex = hslToHex(targetH, targetS, effectiveL);
+      const brandEls = [...navBrandLogo.querySelectorAll('[data-l]')];
+      const brandTones = brandEls
+        .map(el => parseInt(el.getAttribute('data-l'), 10))
+        .filter(n => !isNaN(n));
+      brandEls.forEach(el => {
+        const mappedHex = hslToHex(
+          targetH,
+          targetS,
+          resolveLogoLightness(parseInt(el.getAttribute('data-l'), 10), targetL, brandTones),
+        );
         if (el.hasAttribute('fill') && el.getAttribute('fill') !== 'none') {
           el.setAttribute('fill', mappedHex);
         }

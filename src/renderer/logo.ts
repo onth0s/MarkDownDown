@@ -84,15 +84,41 @@ export function processLogo(logoPath?: string, accent = '#3b82f6', warnings?: st
     // Regex matching fill="...", stroke="...", stop-color="...", and style="..." declarations
     const colorRegex = /(fill|stroke|stop-color)\s*[:=]\s*["']?([^"';>]+)["']?/gi;
 
+    // Lightness window in which a colour keeps its own tone. Outside it a colour
+    // is an extreme -- a white knockout, a black shadow -- whose only job is to
+    // contrast with the shapes it sits on.
+    const MID_LO = 15;
+    const MID_HI = 85;
+    const KNOCKOUT_L = 97;
+    const SHADOW_L = 3;
+
+    // Resolve the logo's whole tone set before recolouring any single colour.
+    // Judged per element, an extreme snapped onto the accent's own lightness --
+    // which is exactly where a mid-tone shape had already landed, because
+    // mid-tones keep their relative lightness. The two collapse to one hex and
+    // the knockout text disappears into the shape behind it. Only artwork that
+    // genuinely carries more than one tone is treated as multi-tone, so
+    // single-tone logos keep snapping wholesale to the accent.
+    const sourceTones = new Set<number>();
+    for (const m of innerContent.matchAll(colorRegex)) {
+      const parsed = parseAnyColor(m[2]);
+      if (parsed) sourceTones.add(parsed[2]);
+    }
+    const multiTone = sourceTones.size > 1;
+
+    // Mirrored verbatim in templates/app/01-core.js (resolveLogoLightness); the
+    // two must stay identical or a runtime accent change re-collides the tones.
+    const resolveLogoLightness = (l: number): number => {
+      if (l > MID_LO && l < MID_HI) return l;
+      if (!multiTone) return targetL;
+      return l >= MID_HI ? KNOCKOUT_L : SHADOW_L;
+    };
+
     // Helper to transform any color string
     const transformColor = (colorStr: string): { recoloredHex: string; lightness: number } | null => {
       const hsl = parseAnyColor(colorStr);
       if (!hsl) return null;
-      const [, , l] = hsl;
-
-      // If the element has distinct tonal differences (multi-tone logo), preserve relative lightness;
-      // otherwise, map directly to target accent color (matching accent-logo and theme-logo).
-      const effectiveL = (l > 15 && l < 85) ? l : targetL;
+      const effectiveL = resolveLogoLightness(hsl[2]);
 
       return {
         recoloredHex: hslToHex(targetH, targetS, effectiveL),
