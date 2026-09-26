@@ -2,6 +2,29 @@ export type DiagramDirection = 'TB' | 'TD' | 'BT' | 'LR' | 'RL' | 'auto';
 
 export type NodeShape = 'rect' | 'rounded' | 'diamond';
 
+/** Measured text geometry for a node, relative to the node centre. */
+export interface DiagramTextLine {
+  text: string;
+  size: number;
+  bold: boolean;
+  /** Baseline Y, relative to the node centre. */
+  dy: number;
+  /** Measured advance width, in user units. */
+  width: number;
+}
+
+export interface DiagramNodeMetrics {
+  titleLines: string[];
+  subLines: string[];
+  lines: DiagramTextLine[];
+  /** Baseline Y of the first line, relative to the node centre. */
+  textTop: number;
+  /** Ink height of the whole text block. */
+  textHeight: number;
+  /** Widest measured line, in user units. */
+  textWidth: number;
+}
+
 export interface DiagramNode {
   id: string;
   label: string;
@@ -16,6 +39,7 @@ export interface DiagramNode {
   labelOrd: number;
   titleLines: string[];
   subLines: string[];
+  metrics?: DiagramNodeMetrics;
 }
 
 export interface DiagramEdge {
@@ -43,5 +67,7 @@ export interface DiagramModel {
   lrCy?: Map<string, number>;
   lrMaxX?: number;
   lrMaxY?: number;
+  /** Inter-column gap actually used, widened when a wide edge label needs it. */
+  lrGap?: number;
   warnings?: string[];
 }

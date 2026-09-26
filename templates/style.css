@@ -293,7 +293,19 @@ html[data-theme="light"] .alert-title {
 .code-wrap.table .table-render {
   margin-top:0; padding:18px 18px 26px 18px; overflow-x:auto; background:transparent;
 }
-.code-wrap.diagram .diagram-render svg { display:block; margin:0 auto; height:auto; }
+/*
+ * Diagram and table SVGs carry explicit pixel width/height, so without a
+ * `max-width` an over-wide drawing overflows its container and leaves a
+ * permanent scrollbar even on a wide viewport. Scaling down is preferred, but
+ * never below a legibility floor: past that the drawing is still scrollable,
+ * because unreadable text is worse than a scrollbar.
+ */
+.code-wrap.diagram .diagram-render svg,
+.code-wrap.table .table-render svg {
+  display:block; margin:0 auto; height:auto;
+  max-width:100%;
+  min-width:var(--svg-min-w, 0px);
+}
 .diagram-auto .diagram-lr { display:none; }
 .diagram-auto .diagram-tb { display:block; }
 @media (min-width:768px) {
@@ -305,7 +317,12 @@ html[data-theme="light"] .alert-title {
 .diagram-svg .node-title { fill:var(--accent); font-weight:700; }
 .diagram-svg .node-sub { fill:var(--muted); }
 .diagram-svg .edge-path { fill:none; stroke:var(--accent); stroke-width:1.6; }
-.diagram-svg .edge-label-bg { fill:var(--surface); stroke:var(--border); stroke-width:.8; }
+/*
+ * A return arc is the same colour as a forward edge but carries a lighter,
+ * open head, so a cycle never reads as forward flow.
+ */
+.diagram-svg .edge-path.is-back-edge { stroke-dasharray:5 4; }
+.diagram-svg .edge-label-bg { fill:var(--surface-2); stroke:var(--border); stroke-width:.8; }
 .diagram-svg .edge-label-text { fill:var(--text); }
 .diagram-svg .node.is-hit .node-rect {
   stroke:var(--accent); stroke-width:1.8;
@@ -343,7 +360,6 @@ html[data-theme="light"] .alert-title {
 }
 .diagram-svg .edge.is-current .edge-path { stroke-width:2.6; }
 .diagram-svg .edge.is-current .edge-label-text { fill:var(--accent); font-weight:700; }
-.code-wrap.table .table-render svg { display:block; height:auto; margin:0 auto; }
 .table-svg .tbl-head-bg { fill:color-mix(in srgb, var(--accent) 12%, var(--surface-2)); }
 .table-svg .tbl-cell-bg { fill:var(--surface-2); }
 .table-svg .tbl-head-text { fill:var(--accent); }

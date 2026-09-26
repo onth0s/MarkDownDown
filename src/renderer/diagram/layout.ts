@@ -1,7 +1,7 @@
 import { DIAGRAM as C } from '../../constants.js';
 import { CompileError } from '../../util/error.js';
-import { textWidth, wrapText } from '../svg-helpers.js';
-import type { DiagramModel } from './types.js';
+import { measureInline, measureText, widestLine, wrapToWidth } from '../text-metrics.js';
+import type { DiagramModel, DiagramNode } from './types.js';
 
 /**
  * Mark cyclic (back) edges on model.edges via DFS colouring.
@@ -146,36 +146,194 @@ export function validateNoNodeOverlap(model: DiagramModel, isLR: boolean): void 
   }
 }
 
+/** One measured line of node text, with the metrics needed to place it. */
+export interface TextLine {
+  text: string;
+  size: number;
+  bold: boolean;
+  /** Baseline Y, relative to the node centre. */
+  dy: number;
+  /** Measured advance width, in user units. */
+  width: number;
+}
+
+export interface NodeMetrics {
+  titleLines: string[];
+  subLines: string[];
+  /** Every text line in paint order, with baselines relative to node centre. */
+  lines: TextLine[];
+  /** Vertical offset of the first baseline from the node centre. */
+  textTop: number;
+  /** Total ink height of the text block. */
+  textHeight: number;
+  /** Widest measured line, in user units. */
+  textWidth: number;
+}
+
+/** Cap height of a font size, as a fraction of the em. */
+const CAP_RATIO = 0.72;
+/** Descender depth of a font size, as a fraction of the em. */
+const DESC_RATIO = 0.21;
+
+/** Build the text lines for a node, un-centred: first baseline sits at dy 0. */
+function buildTextLines(titleLines: string[], subLines: string[]): TextLine[] {
+  const lines: TextLine[] = [];
+  titleLines.forEach((text, i) => {
+    lines.push({
+      text,
+      size: C.TITLE_SIZE,
+      bold: true,
+      dy: i * C.TITLE_H,
+      width: measureInline(text, C.TITLE_SIZE, { bold: true }),
+    });
+  });
+  const subBase = titleLines.length ? (titleLines.length - 1) * C.TITLE_H + C.SUB_H : 0;
+  subLines.forEach((text, i) => {
+    lines.push({
+      text,
+      size: C.SUB_SIZE,
+      bold: false,
+      dy: subBase + i * C.SUB_H,
+      width: measureInline(text, C.SUB_SIZE, {}),
+    });
+  });
+  return lines;
+}
+
+/** Vertical extent of a text block, from the top of the first cap to the last descender. */
+function inkExtent(lines: TextLine[]): { top: number; bottom: number } {
+  if (!lines.length) return { top: 0, bottom: 0 };
+  const first = lines[0];
+  const last = lines[lines.length - 1];
+  return {
+    top: first.dy - first.size * CAP_RATIO,
+    bottom: last.dy + last.size * DESC_RATIO,
+  };
+}
+
+/**
+ * Shift a block of lines so its *ink* is centred on the node centre.
+ *
+ * Centring the baselines instead leaves every label sitting low: a line's ink
+ * extends much further above its baseline (cap height) than below it (only the
+ * descenders of g/y/p), so a baseline-centred block reads as dropped. The
+ * previous formula was worse again and placed a single line a full 7px low.
+ */
+function centerOnInk(lines: TextLine[]): TextLine[] {
+  const { top, bottom } = inkExtent(lines);
+  const shift = -(top + bottom) / 2;
+  return lines.map(l => ({ ...l, dy: l.dy + shift }));
+}
+
+/** Lay out a node's label into measured, baseline-positioned text lines. */
+export function measureNodeText(node: DiagramNode): NodeMetrics {
+  const isDiamond = node.shape === 'diamond';
+  const rectTextMaxW = C.MAX_W - C.PADX * 2;
+  const baseWrap = isDiamond ? rectTextMaxW * C.DIAMOND_WRAP_RATIO : rectTextMaxW;
+
+  const wrap = (limit: number): { titleLines: string[]; subLines: string[] } => ({
+    titleLines: wrapToWidth(node.label, C.TITLE_SIZE, limit, { bold: true }),
+    subLines: node.subtitle ? wrapToWidth(node.subtitle, C.SUB_SIZE, limit) : [],
+  });
+
+  let { titleLines, subLines } = wrap(baseWrap);
+
+  // A diamond is inscribed around whatever text it ends up holding, so an
+  // over-wide diamond re-wraps narrower rather than growing without bound.
+  if (isDiamond) {
+    let limit = baseWrap;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (inscribeDiamond(centerOnInk(buildTextLines(titleLines, subLines))).w <= C.DIAMOND_MAX_W) {
+        break;
+      }
+      limit *= 0.8;
+      ({ titleLines, subLines } = wrap(limit));
+    }
+  }
+
+  const lines = centerOnInk(buildTextLines(titleLines, subLines));
+  const { top, bottom } = inkExtent(lines);
+
+  const titleW = widestLine(titleLines, C.TITLE_SIZE, { bold: true });
+  const subW = subLines.length ? widestLine(subLines, C.SUB_SIZE, {}) : 0;
+
+  return {
+    titleLines,
+    subLines,
+    lines,
+    textTop: lines.length ? lines[0].dy : 0,
+    textHeight: bottom - top,
+    textWidth: Math.max(titleW, subW),
+  };
+}
+
+/**
+ * Size a rhombus so every text line fits inside its slanted edges.
+ *
+ * A rhombus with half-width A and half-height B = A * aspect has an available
+ * half-width of `A * (1 - |dy| / B)` at vertical offset `dy`. Requiring
+ * `A * (1 - |dy| / (A * aspect)) >= halfTextW + inset` rearranges to a closed
+ * form: `A >= halfTextW + inset + |dy| / aspect`. No iteration is needed, and a
+ * multi-line label is handled exactly rather than by a blanket multiplier.
+ */
+export function inscribeDiamond(lines: TextLine[]): { w: number; h: number } {
+  const aspect = C.DIAMOND_ASPECT;
+  const inset = C.PADX * 0.55;
+
+  if (!lines.length) {
+    return { w: C.MIN_W, h: Math.round(C.MIN_W * aspect) };
+  }
+
+  let halfW = 0;
+  for (const line of lines) {
+    const need = line.width / 2 + inset + Math.abs(line.dy) / aspect;
+    if (need > halfW) halfW = need;
+  }
+
+  const w = Math.max(C.MIN_W, Math.ceil(halfW * 2));
+  const h = Math.max(C.DIAMOND_MIN_H, Math.ceil(w * aspect));
+  return { w, h };
+}
+
 export function diagramLayout(model: DiagramModel): void {
   detectBackEdges(model);
   const backCount = model.edges.filter(e => e.isBackEdge).length;
   if (backCount > 0) {
-    const msg = `Diagram contains ${backCount} cyclic edge(s); normalized to a DAG for layout (drawn as return arcs).`;
-    (model.warnings ||= []).push(msg);
+    const selfLoops = model.edges.filter(e => e.isBackEdge && e.from === e.to).length;
+    const loops = backCount - selfLoops;
+    const parts: string[] = [];
+    if (loops > 0) parts.push(`${loops} cyclic edge${loops === 1 ? '' : 's'}`);
+    if (selfLoops > 0) parts.push(`${selfLoops} self-loop${selfLoops === 1 ? '' : 's'}`);
+    // A self-loop is an ordinary construct, not something an author needs
+    // telling off about. Only genuine multi-node cycles are worth a warning,
+    // because those change the shape of the layout.
+    if (loops > 0) {
+      const msg = `Diagram contains ${parts.join(' and ')}; normalized to a DAG for layout (drawn as return arcs).`;
+      (model.warnings ||= []).push(msg);
+    }
   }
 
   const nodes = [...model.nodes.values()];
 
   for (const node of nodes) {
-    const isDiamond = node.shape === 'diamond';
-    const textMaxW = isDiamond ? (C.MAX_W - C.PADX * 2) * 0.72 : C.MAX_W - C.PADX * 2;
-    const titleLines = wrapText(node.label, C.TITLE_SIZE, true, textMaxW);
-    const subLines = node.subtitle ? wrapText(node.subtitle, C.SUB_SIZE, false, textMaxW) : [];
-    node.titleLines = titleLines;
-    node.subLines = subLines;
-    const rawW = Math.max(0, ...titleLines.map(l => textWidth(l, C.TITLE_SIZE, true)),
-                             ...subLines.map(l => textWidth(l, C.SUB_SIZE, false))) * C.WIDTH_MULTIPLIER + C.PADX * 2;
-    const rawH = titleLines.length * C.TITLE_H + subLines.length * C.SUB_H + C.PADY * 2;
+    const metrics = measureNodeText(node);
+    node.metrics = metrics;
+    node.titleLines = metrics.titleLines;
+    node.subLines = metrics.subLines;
 
-    if (isDiamond) {
-      // Diamonds need rhombic clearance (~1.55x) so text inscribed in the rhombus doesn't collide with angled vertices
-      const diamondW = Math.min(C.MAX_W, Math.max(C.MIN_W, Math.round(rawW * 1.55)));
-      const diamondH = Math.max(80, Math.round(rawH * 1.55));
-      node.w = diamondW;
-      node.h = diamondH;
+    if (node.shape === 'diamond') {
+      const { w, h } = inscribeDiamond(metrics.lines);
+      node.w = w;
+      node.h = h;
     } else {
-      node.w = Math.min(C.MAX_W, Math.max(C.MIN_W, Math.round(rawW)));
-      node.h = rawH;
+      // Wrapping already guarantees every line fits inside MAX_W - 2*PADX, so
+      // this clamp can no longer truncate the box out from under its own text.
+      // Round *up*: a box narrower than the text inside it is the exact
+      // overflow this sizing exists to prevent, and a fraction of a pixel of
+      // extra padding costs nothing.
+      const rawW = metrics.textWidth + C.PADX * 2;
+      node.w = Math.min(C.MAX_W, Math.max(C.MIN_W, Math.ceil(rawW)));
+      node.h = Math.ceil(metrics.textHeight + C.PADY * 2);
     }
   }
 
@@ -265,7 +423,11 @@ export function diagramLayout(model: DiagramModel): void {
   // Dynamic layout evaluation for 'auto' direction
   if (model.direction === 'auto') {
     const totalLrW = nodes.reduce((sum, n) => sum + n.w + C.LR_H_GAP, C.PAD * 2) - C.LR_H_GAP;
-    if (totalLrW > C.CONTAINER_WIDTH_THRESHOLD || model.ranks.length > C.AUTO_DIRECTION_RANK_THRESHOLD || model.nodes.size > C.AUTO_DIRECTION_NODE_THRESHOLD) {
+    if (
+      totalLrW > C.CONTAINER_WIDTH_THRESHOLD ||
+      model.ranks.length > C.AUTO_DIRECTION_RANK_THRESHOLD ||
+      model.nodes.size > C.AUTO_DIRECTION_NODE_THRESHOLD
+    ) {
       model.direction = 'TB';
       model.horizontal = false;
     }
@@ -277,6 +439,18 @@ export function diagramLayout(model: DiagramModel): void {
   let maxColHeight = 0;
   const colHeights: number[] = [];
   const colWidths: number[] = [];
+
+  // An edge label in an LR flow has to fit in the gap between the two columns
+  // it connects. With the default 80px gap, a label like `labelled prose`
+  // (90px wide) overlapped both of its own nodes, because the placer had
+  // nowhere to move it to. Widening the gap to fit the widest label gives it
+  // somewhere to go.
+  const widestLabel = model.edges.reduce((max, e) => {
+    if (!e.label) return max;
+    return Math.max(max, measureInline(e.label, C.EDGE_LABEL_SIZE, {}) + C.EDGE_LABEL_PAD * 2);
+  }, 0);
+  const lrGap = Math.max(C.LR_H_GAP, widestLabel + C.EDGE_CLEAR * 2);
+  model.lrGap = lrGap;
 
   for (let r = 0; r < ranks.length; r++) {
     const rid = ranks[r];
@@ -306,14 +480,17 @@ export function diagramLayout(model: DiagramModel): void {
       lrCy.set(id, curY + n.h / 2);
       curY += n.h + C.V_GAP;
     }
-    curX += colW + C.LR_H_GAP;
+    curX += colW + lrGap;
   }
 
   model.lrCx = lrCx;
   model.lrCy = lrCy;
-  model.lrMaxX = curX - C.LR_H_GAP + C.PAD;
+  model.lrMaxX = curX - lrGap + C.PAD;
   model.lrMaxY = maxColHeight + C.PAD * 2;
 
   // Validate no node overlap in TB layout
   validateNoNodeOverlap(model, false);
 }
+
+/** Re-export so callers that only need a plain advance width can skip metrics. */
+export { measureText };

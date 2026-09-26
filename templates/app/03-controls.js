@@ -20,7 +20,7 @@ document.getElementById('navBtn').addEventListener('click', () => {
 // ── Mobile search toggle ───────────────────────────────────────────────────
 const searchToggle = document.getElementById('searchToggle');
 const searchIconSvg =
-  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
+  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
 
 function setSearchMode(on) {
   body.classList.toggle('search-mode', on);

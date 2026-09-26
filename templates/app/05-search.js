@@ -29,7 +29,11 @@ function syncDiagramHighlights() {
     for (const svg of svgs) {
       const byOrd = new Map();
       svg.querySelectorAll('[data-label-ord]').forEach(g => {
-        byOrd.set(Number(g.getAttribute('data-label-ord')), g);
+        const ord = Number(g.getAttribute('data-label-ord'));
+        // The renderer omits data-label-ord on unlabelled elements, but a
+        // stale artifact may still carry the old -1 sentinel. Registering it
+        // would let any match resolve to a single arbitrary element.
+        if (ord >= 0) byOrd.set(ord, g);
         g.classList.remove('is-hit', 'is-current');
         // Restore original HTML in text nodes if modified
         g.querySelectorAll('text').forEach(t => {

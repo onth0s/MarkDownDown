@@ -1,4 +1,5 @@
-import { parseInlineMarkdown, stripMarkdown, measureFormattedWidth, renderFormattedTspans } from '../src/renderer/inline-markdown.js';
+import { parseInlineMarkdown, stripMarkdown, renderFormattedTspans } from '../src/renderer/inline-markdown.js';
+import { measureInline, measureText } from '../src/renderer/text-metrics.js';
 import { tableParse, tableBuildSvg } from '../src/renderer/table-svg.js';
 import { diagramParse, diagramLayout, diagramBuildSvg } from '../src/renderer/diagram/index.js';
 
@@ -66,10 +67,27 @@ describe('inline-markdown parser', () => {
     expect(stripMarkdown('~~old~~ and *new* and `code`')).toBe('old and new and code');
   });
 
-  test('measureFormattedWidth ignores delimiter characters', () => {
-    const rawW = measureFormattedWidth('**`Alt+1`**', 10, 12);
-    const plainW = measureFormattedWidth('Alt+1', 10, 12, true);
-    expect(rawW).toBe(plainW);
+  test('measureInline charges code spans at the monospace rate, not the parent rate', () => {
+    // A `code` span is set in the monospace stack, so it must be measured
+    // against those advances. Measuring it at the parent's rate was how a
+    // subtitle containing inline code ended up wider than its own node.
+    const asCode = measureInline('`Alt+1`', 10, {});
+    const asProse = measureText('Alt+1', 10, {});
+    expect(asCode).toBe(measureText('Alt+1', 10, { mono: true }));
+    expect(asCode).toBeGreaterThan(asProse);
+  });
+
+  test('measureInline ignores delimiter characters', () => {
+    expect(measureInline('**Alt+1**', 10, { bold: true })).toBe(
+      measureText('Alt+1', 10, { bold: true })
+    );
+  });
+
+  test('measureText scales with the real font, not a flat per-character rate', () => {
+    // "iiiii" is five narrow stems; "MMMMM" is five wide ones. A flat
+    // per-character rate gives them the same width, which is the bug that made
+    // node boxes the wrong size.
+    expect(measureText('MMMMM', 10)).toBeGreaterThan(measureText('iiiii', 10) * 3);
   });
 
   test('renderFormattedTspans outputs tspans with classes and styles', () => {

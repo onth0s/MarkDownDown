@@ -50,8 +50,10 @@ Standard headings receive auto-generated slugs for deep links, wikilinks, and th
 
 ### * Collision detection
 
-Median-heuristic crossing reduction + bounding-box overlap validation keep diagram
-edges from overlapping nodes (`checkBoxesOverlap`).
+Median-heuristic crossing reduction, then a geometry pass (`resolveGeometry`) that
+validates the resolved layout and repairs it: edges are sampled and re-routed
+around any node they would cut through, edge labels slide along their route
+until they clear every node, and the viewBox is taken from the real ink.
 
 ### * Search & replace
 
@@ -168,7 +170,9 @@ A[Abstract] --> B[Concrete]
 
 ### Text Wrapping
 
-Long labels are word-wrapped at constant char width to fit the widest line:
+Long labels are word-wrapped against a per-glyph advance-width model calibrated for
+the document font stack, so the box is sized to the text it actually holds. A token
+too long to fit on any line is hard-broken at character level:
 
 ```diagram
 TITLE: Text Wrapping
@@ -186,7 +190,9 @@ WORKER -->|requeues failures| QUEUE
 WORKER --> DONE[COMPLETED]
 ```
 
-The back-edge `WORKER → QUEUE` is detected by DFS colouring, excluded from rank assignment, and **drawn as a return arc** below the graph. Compiling warns `Diagram contains 1 cyclic edge(s); normalized to a DAG for layout (drawn as return arcs).`
+The back-edge `WORKER → QUEUE` is detected by DFS colouring, excluded from rank assignment, and **drawn as a return arc** that runs out to the side gutter and back in, never across the graph. Compiling warns `Diagram contains 1 cyclic edge; normalized to a DAG for layout (drawn as return arcs).`
+
+In a left-to-right flow the same cycle routes *below* the graph instead, because exiting sideways would cut straight across the intervening ranks.
 
 ### Self-Loop
 
@@ -195,7 +201,7 @@ TITLE: Self Loop
 PROCESSOR[Processor] --> PROCESSOR
 ```
 
-Self-loops are handled the same way — excluded from ranking, drawn as a side arc that clears the node width.
+Self-loops are excluded from ranking the same way, and drawn as a tight side arc that returns into the node's own edge. A self-loop is an ordinary construct, so it does not emit a cycle warning.
 
 ### Crossing Reduction
 
@@ -215,7 +221,7 @@ Three in, one out — longest-path ranking plus median order within each rank ke
 
 ## Table DSL
 
-GTFM-style pipe tables in a `table` fence render as interactive SVGs with a `TITLE:` header, custom scrollbars, and search-match highlighting:
+GFM-style pipe tables in a `table` fence render as interactive SVGs with a `TITLE:` header, custom scrollbars, and search-match highlighting. Cell text is measured with the same font model as diagrams and wrapped inside a bounded column, so one long cell cannot stretch the table past the reading column:
 
 ```table
 TITLE: Table DSL — SVG Pipe Tables

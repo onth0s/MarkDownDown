@@ -96,27 +96,6 @@ export function stripMarkdown(input: string): string {
 }
 
 /**
- * Approximate text width for a formatted string in SVG units.
- */
-export function measureFormattedWidth(
-  input: string,
-  charWidthNormal: number,
-  charWidthBold: number,
-  defaultBold = false
-): number {
-  const spans = parseInlineMarkdown(input);
-  if (!spans.length) return 0;
-
-  let total = 0;
-  for (const span of spans) {
-    const isBold = span.bold || defaultBold;
-    const rate = isBold ? charWidthBold : charWidthNormal;
-    total += span.text.length * rate;
-  }
-  return total;
-}
-
-/**
  * Render formatted spans to SVG <tspan> elements.
  * If there is no formatting, returns escaped plain text.
  */

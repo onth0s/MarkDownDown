@@ -11,13 +11,21 @@ import { CompileError } from '../util/error.js';
 
 const CODE_BLOCK_OR_WRAPPER_RE = /(<div\s+class="[^"]*\bcode-wrap\b[^"]*"[^>]*>)([\s\S]*?<\/div>)|(<pre><code[\s\S]*?<\/code><\/pre>)|(<table\b[\s\S]*?<\/table>)/g;
 
+/**
+ * Download buttons for graphic code blocks.
+ *
+ * The icons are decorative: each button already carries `aria-label` and
+ * `title`, so exposing the SVG as well would announce the same control twice.
+ * `aria-hidden` + `focusable="false"` matches how the brand logo is emitted in
+ * renderer/logo.ts.
+ */
 const DOWNLOAD_BTNS_HTML =
   '<div class="code-actions">' +
   '<button class="download-btn" data-format="svg" type="button" aria-label="Download SVG" title="Download SVG">' +
-  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
   '<span>SVG</span></button>' +
   '<button class="download-btn" data-format="jpg" type="button" aria-label="Download JPG" title="Download JPG">' +
-  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
+  '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>' +
   '<span>JPG</span></button>' +
   '</div>';
 

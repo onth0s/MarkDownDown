@@ -1,14 +1,74 @@
 import { DIAGRAM as C } from '../../constants.js';
 import type { DiagramDirection, DiagramModel, DiagramNode, NodeShape } from './types.js';
 
+/**
+ * Quote pairs that may wrap a node label, and so are delimiters not content.
+ *
+ * `'` is only a delimiter for the shapes it has always delimited. A rect label
+ * is written `A["text"]`, and its old parser stripped `"` alone; letting `'`
+ * delimit rect labels too would silently eat the apostrophes in a label like
+ * `A['quoted']`. Extending the curly pairs to every shape is purely additive,
+ * so that part is safe.
+ */
+const QUOTE_PAIRS_ALL: ReadonlyArray<readonly [string, string]> = [
+  ['"', '"'],
+  ["'", "'"],
+  ['\u201C', '\u201D'],
+  ['\u2018', '\u2019'],
+];
+const QUOTE_PAIRS_RECT: ReadonlyArray<readonly [string, string]> = QUOTE_PAIRS_ALL.filter(
+  ([open]) => open !== "'"
+);
+
+/**
+ * Drop one matching outer quote pair from a label body.
+ *
+ * DSL.md's own examples write `NODE["Title — Subtitle"]`, so the quotes are
+ * quoting syntax rather than content. Straight quotes were already stripped
+ * for the shapes above; curly ones were not, which left the `“…”` characters
+ * sitting inside the rendered node text. Only a *matching* pair is removed, so a
+ * label that merely starts with a quote, or that nests a quoted phrase, is left
+ * intact.
+ *
+ * A pair that would strip down to nothing is not treated as a delimiter:
+ * `A['']` means the two-character label `''`, not an empty one. Stripping it
+ * would emit a node box with no text element in it at all.
+ */
+function stripWrappingQuotes(body: string, pairs: ReadonlyArray<readonly [string, string]>): string {
+  for (const [open, close] of pairs) {
+    if (body.length >= 2 && body.startsWith(open) && body.endsWith(close)) {
+      const inner = body.slice(1, -1).trim();
+      if (inner) return inner;
+    }
+  }
+  return body.trim();
+}
+
+/** Bracket pair -> node shape. */
+const BRACKET_SHAPES: Readonly<Record<string, readonly [NodeShape, string]>> = {
+  '[': ['rect', ']'],
+  '(': ['rounded', ')'],
+  '{': ['diamond', '}'],
+};
+
+/**
+ * `ID[body]`, `ID(body)` or `ID{body}`.
+ *
+ * The body is matched greedily up to the *last* closing bracket, so a label may
+ * contain its own bracket or quote characters. A mismatched bracket pair is not
+ * a node definition, and the caller falls through to try something else. An
+ * empty body is not a node definition either — `A[]` used to be ignored, and
+ * accepting it would draw a box with nothing in it.
+ */
 function parseNodeShape(raw: string): { id: string; label?: string; shape: NodeShape } | null {
-  const mRect = raw.match(/^([A-Za-z0-9_.\\-]+)\["?([^"\]]+)"?\]$/);
-  if (mRect) return { id: mRect[1], label: mRect[2], shape: 'rect' };
-  const mRounded = raw.match(/^([A-Za-z0-9_.\\-]+)\(["']?([^"')]+)["']?\)$/);
-  if (mRounded) return { id: mRounded[1], label: mRounded[2], shape: 'rounded' };
-  const mDiamond = raw.match(/^([A-Za-z0-9_.\\-]+)\{["']?([^"'}]+)["']?\}$/);
-  if (mDiamond) return { id: mDiamond[1], label: mDiamond[2], shape: 'diamond' };
-  return null;
+  const m = /^([A-Za-z0-9_.-]+)([[({])([\s\S]*)([\])}])$/.exec(raw);
+  if (!m) return null;
+  const [, id, open, body, close] = m;
+  const shape = BRACKET_SHAPES[open!];
+  if (!shape || shape[1] !== close) return null;
+  if (!body!.trim()) return null;
+  const pairs = shape[0] === 'rect' ? QUOTE_PAIRS_RECT : QUOTE_PAIRS_ALL;
+  return { id: id!, label: stripWrappingQuotes(body!, pairs), shape: shape[0] };
 }
 
 /** Split on em-dash separator, respecting `\ — ` escape. */

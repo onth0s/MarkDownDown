@@ -16,3 +16,5 @@
 
 - SPEC FILES ARE MUTABLE: `DSL.md`, `SPEC.md`, `src/spec.ts`, and the `mdd --spec` output are NOT immutable. It is valid — and sometimes necessary — to update them when the engine's behavior changes (e.g. supporting cyclic diagrams, new edge types). HOWEVER, you MUST obtain EXPLICIT USER APPROVAL before editing any spec file. Do not silently rewrite specs. When approved, update the spec to match the new behavior and add a test that the spec's own embedded examples still compile.
 
+- `index.html` IS COMPILED FROM `README.md`: it is the project landing page and a GENERATED artifact, not a hand-authored file. NEVER edit `index.html` directly — change `README.md` and recompile with `node dist/cli.cjs README.md --single -o index.html` (same shape as the `showcase` script). A stale `index.html` silently ships the previous session's renderer output, so regenerate it in the same commit as any change to `src/renderer/**`, `templates/**`, or `src/constants.ts`.
+

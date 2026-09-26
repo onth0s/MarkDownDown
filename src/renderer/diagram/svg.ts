@@ -2,14 +2,14 @@ import { DIAGRAM as C } from '../../constants.js';
 import { escHtml } from '../../util/escape.js';
 import {
   buildArrowMarker,
+  buildBackArrowMarker,
   coordPair,
   round1,
-  textWidth,
   xyAttrs,
 } from '../svg-helpers.js';
 import { renderFormattedTspans } from '../inline-markdown.js';
-import type { DiagramModel, DiagramNode } from './types.js';
-import { checkBoxesOverlap } from './layout.js';
+import { resolveGeometry, type DiagramGeometry, type Orientation, type PlacedNode } from './geometry.js';
+import type { DiagramModel } from './types.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -22,424 +22,147 @@ function hashString(input: string): string {
 }
 
 /**
- * Deterministic arrow-marker id derived from the model, title, and orientation.
+ * Deterministic marker ids derived from the model, title, and orientation.
  * Keeps compiled output reproducible so rebuilds are byte-identical.
  */
-function arrowIdFor(model: DiagramModel, title: string, isLR: boolean): string {
-  const parts = [title, isLR ? 'lr' : 'tb'];
+function markerIdsFor(model: DiagramModel, title: string, orientation: Orientation): { main: string; back: string } {
+  const parts = [title, orientation];
   for (const node of model.nodes.values()) {
     parts.push(node.id, node.shape, node.label, node.subtitle);
   }
   for (const edge of model.edges) {
     parts.push(edge.from, edge.to, String(edge.directed), edge.label);
   }
-  return `arrow-${hashString(parts.join('|'))}`;
+  const digest = hashString(parts.join('|'));
+  return { main: `arrow-${digest}`, back: `arrowback-${digest}` };
 }
 
 export function diagramBuildSvg(model: DiagramModel, title: string, forceHorizontal?: boolean): string {
-  const isLR = forceHorizontal !== undefined ? forceHorizontal : model.horizontal;
-  const arrowId = arrowIdFor(model, title, isLR);
-  return isLR ? buildLrSvg(model, title, arrowId) : buildTbSvg(model, title, arrowId);
+  const orientation: Orientation =
+    forceHorizontal !== undefined ? (forceHorizontal ? 'LR' : 'TB') : model.horizontal ? 'LR' : 'TB';
+  const geometry = resolveGeometry(model, orientation);
+  return serialize(geometry, title, markerIdsFor(model, title, orientation));
 }
 
-function buildTbSvg(model: DiagramModel, title: string, arrowId: string): string {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-  // Collect forward edge counts per source (outForward) and target (inForward) to distribute ports
-  const outForward = new Map<string, typeof model.edges>();
-  const inForward = new Map<string, typeof model.edges>();
-  for (const e of model.edges) {
-    if (!e.isBackEdge) {
-      if (!outForward.has(e.from)) outForward.set(e.from, []);
-      outForward.get(e.from)!.push(e);
-      if (!inForward.has(e.to)) inForward.set(e.to, []);
-      inForward.get(e.to)!.push(e);
-    }
-  }
-  for (const list of outForward.values()) {
-    list.sort((a, b) => (model.cx.get(a.to) ?? 0) - (model.cx.get(b.to) ?? 0));
-  }
-  for (const list of inForward.values()) {
-    list.sort((a, b) => (model.cx.get(a.from) ?? 0) - (model.cx.get(b.from) ?? 0));
-  }
-
-  let maxNodeRight = -Infinity;
-  let minNodeLeft = Infinity;
-  for (const n of model.nodes.values()) {
-    const ncx = model.cx.get(n.id) ?? 0;
-    maxNodeRight = Math.max(maxNodeRight, ncx + n.w / 2);
-    minNodeLeft = Math.min(minNodeLeft, ncx - n.w / 2);
-  }
-
-  const edgeG: string[] = [];
-  model.edges.forEach((e) => {
-    const from = model.nodes.get(e.from);
-    const to = model.nodes.get(e.to);
-    if (!from || !to) return;
-
-    const fromCx = model.cx.get(e.from)!;
-    const fromCy = model.cy.get(e.from)!;
-    const toCx = model.cx.get(e.to)!;
-    const toCy = model.cy.get(e.to)!;
-
-    let sx: number, sy: number, ex: number, ey: number;
-    let d: string;
-    let mx: number, my: number;
-
-    if (e.isBackEdge) {
-      if (e.from === e.to) {
-        // Self loop
-        sx = fromCx + from.w / 2;
-        sy = fromCy + from.h * 0.25;
-        ex = fromCx + from.w / 2 + (e.directed ? C.ARROW_OFFSET : 0);
-        ey = fromCy - from.h * 0.25;
-        const loopR = from.h * 0.4 + C.ARC_LOOP;
-        const c1x = sx + loopR, c1y = sy;
-        const c2x = sx + loopR, c2y = ey;
-        mx = sx + loopR;
-        my = (sy + ey) / 2;
-        d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-        maxX = Math.max(maxX, c1x);
-      } else {
-        // Return arc: check if the source node has a free side edge facing the gutter.
-        // If from node can exit sideways without dipping below the graph, route directly out of the side port.
-        const midX = (minNodeLeft + maxNodeRight) / 2;
-        const useRightGutter = fromCx >= midX || toCx >= midX;
-
-        // Determine if side edge is free on source:
-        // In vertical single-column (fromCx === toCx), loop around bottom as a return arc.
-        // If from node is at or facing the right/left boundary and fromCx !== toCx, exit directly from side edge.
-        const canExitSide = fromCx !== toCx;
-
-        if (useRightGutter) {
-          const gutterX = maxNodeRight + C.GUTTER;
-          ex = toCx + to.w / 2 + (e.directed ? C.ARROW_OFFSET : 0);
-          ey = toCy;
-          if (canExitSide) {
-            sx = fromCx + from.w / 2;
-            sy = fromCy;
-            const c1x = gutterX, c1y = sy;
-            const c2x = gutterX, c2y = ey;
-            mx = gutterX;
-            my = (sy + ey) / 2;
-            d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-          } else {
-            const loopY = model.maxY + C.ARC_LOOP;
-            sx = fromCx;
-            sy = fromCy + from.h / 2;
-            const c1x = gutterX, c1y = loopY;
-            const c2x = gutterX, c2y = ey;
-            mx = gutterX;
-            my = (sy + ey) / 2;
-            d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-            maxY = Math.max(maxY, loopY);
-          }
-          maxX = Math.max(maxX, gutterX);
-        } else {
-          const gutterX = minNodeLeft - C.GUTTER;
-          ex = toCx - to.w / 2 - (e.directed ? C.ARROW_OFFSET : 0);
-          ey = toCy;
-          if (canExitSide) {
-            sx = fromCx - from.w / 2;
-            sy = fromCy;
-            const c1x = gutterX, c1y = sy;
-            const c2x = gutterX, c2y = ey;
-            mx = gutterX;
-            my = (sy + ey) / 2;
-            d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-          } else {
-            const loopY = model.maxY + C.ARC_LOOP;
-            sx = fromCx;
-            sy = fromCy + from.h / 2;
-            const c1x = gutterX, c1y = loopY;
-            const c2x = gutterX, c2y = ey;
-            mx = gutterX;
-            my = (sy + ey) / 2;
-            d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-            maxY = Math.max(maxY, loopY);
-          }
-          minX = Math.min(minX, gutterX);
-        }
-      }
-    } else {
-      const outList = outForward.get(e.from) || [e];
-      const outIdx = outList.indexOf(e);
-      const outTotal = outList.length;
-
-      sx = fromCx;
-      if (outTotal > 1 && from.shape !== 'diamond') {
-        const spread = from.w * C.PORT_SPREAD_RATIO;
-        const ratio = (outIdx / (outTotal - 1)) - 0.5;
-        sx = fromCx + ratio * 2 * spread;
-      }
-      sy = fromCy + from.h / 2;
-
-      const inList = inForward.get(e.to) || [e];
-      const inIdx = inList.indexOf(e);
-      const inTotal = inList.length;
-
-      ex = toCx;
-      if (inTotal > 1 && to.shape !== 'diamond') {
-        const spread = to.w * C.PORT_SPREAD_RATIO;
-        const ratio = (inIdx / (inTotal - 1)) - 0.5;
-        ex = toCx + ratio * 2 * spread;
-      }
-      ey = toCy - to.h / 2 - (e.directed ? C.ARROW_OFFSET : 0);
-
-      const dx = ex - sx;
-      const dy = ey - sy;
-      const isOrthogonal = Math.abs(dx) < 2;
-
-      if (isOrthogonal || !e.directed) {
-        d = `M ${coordPair(sx, sy)} L ${coordPair(ex, ey)}`;
-        mx = (sx + ex) / 2;
-        my = (sy + ey) / 2;
-      } else {
-        const c1x = sx, c1y = sy + dy * 0.45;
-        const c2x = ex, c2y = ey - dy * 0.45;
-        d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-        mx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
-        my = (sy + 3 * c1y + 3 * c2y + ey) / 8;
-      }
-    }
-
-    let labelSvg = '';
-    if (e.label) {
-      const label = e.label;
-      const lw = textWidth(label, C.EDGE_LABEL_SIZE, false) + 14;
-      const formattedLabel = renderFormattedTspans(label, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span' });
-      labelSvg =
-        `<g class="edge-label" transform="translate(${coordPair(mx, my)})">` +
-        `<rect class="edge-label-bg" x="${-lw / 2}" y="${-C.EDGE_LABEL_H / 2}" width="${lw}" height="${C.EDGE_LABEL_H}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${C.EDGE_LABEL_H / 2 - 5}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${formattedLabel}</text>` +
-        `</g>`;
-    }
-    const ord = e.labelOrd;
-    const ordAttr = ord !== undefined ? ` data-label-ord="${ord}"` : '';
-    const pathCls = e.isBackEdge ? 'edge-path is-back-edge' : 'edge-path';
-    edgeG.push(
-      `<g class="edge"${ordAttr}>` +
-      `<path class="${pathCls}" d="${d}" marker-end="url(#${arrowId})"/>` +
-      labelSvg +
-      `</g>`
-    );
-    minX = Math.min(minX, sx, ex);
-    minY = Math.min(minY, sy, ey);
-    maxX = Math.max(maxX, sx, ex);
-    maxY = Math.max(maxY, sy, ey);
-  });
-
-  const nodeG: string[] = [];
-  for (const node of model.nodes.values()) {
-    const nodeCx = model.cx.get(node.id)!;
-    const nodeCy = model.cy.get(node.id)!;
-    const x = nodeCx - node.w / 2;
-    const y = nodeCy - node.h / 2;
-    minX = Math.min(minX, x);
-    minY = Math.min(minY, y);
-    maxX = Math.max(maxX, x + node.w);
-    maxY = Math.max(maxY, y + node.h);
-
-    const totalTextH = node.titleLines.length * C.TITLE_H + node.subLines.length * C.SUB_H;
-    const textStartY = nodeCy - totalTextH / 2;
-
-    const titleLines = node.titleLines.map((l, i) => {
-      const tx = nodeCx;
-      const ty = textStartY + C.TITLE_H * (i + 1) - 4;
-      const formatted = renderFormattedTspans(l, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span', parentBold: true });
-      return `<text class="node-title" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${formatted}</text>`;
-    }).join('');
-    const subLines = node.subLines.map((l, i) => {
-      const tx = nodeCx;
-      const ty = textStartY + C.TITLE_H * node.titleLines.length + C.SUB_H * (i + 1) - 3;
-      const formatted = renderFormattedTspans(l, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span' });
-      return `<text class="node-sub" ${xyAttrs(tx, ty)} text-anchor="middle" font-size="${C.SUB_SIZE}">${formatted}</text>`;
-    }).join('');
-
-    let shapeSvg: string;
-    if (node.shape === 'diamond') {
-      const pts = `${round1(nodeCx)},${round1(y)} ${round1(x + node.w)},${round1(nodeCy)} ${round1(nodeCx)},${round1(y + node.h)} ${round1(x)},${round1(nodeCy)}`;
-      shapeSvg = `<polygon class="node-rect node-diamond" points="${pts}"/>`;
-    } else if (node.shape === 'rounded') {
-      shapeSvg = `<rect class="node-rect node-rounded" x="${round1(x)}" y="${round1(y)}" width="${round1(node.w)}" height="${round1(node.h)}" rx="18"/>`;
-    } else {
-      shapeSvg = `<rect class="node-rect" x="${round1(x)}" y="${round1(y)}" width="${round1(node.w)}" height="${round1(node.h)}" rx="3"/>`;
-    }
-
-    nodeG.push(
-      `<g class="node" data-label-ord="${node.labelOrd}">` +
-      shapeSvg +
-      titleLines + subLines +
-      `</g>`
-    );
-  }
-
-  const vb = `${minX - C.PAD} ${minY - C.PAD} ${(maxX - minX) + C.PAD * 2} ${(maxY - minY) + C.PAD * 2}`;
-  const vbW = Math.round((maxX - minX) + C.PAD * 2);
-  const vbH = Math.round((maxY - minY) + C.PAD * 2);
-
-  return (
-    `<svg class="diagram-svg" viewBox="${vb}" width="${vbW}" height="${vbH}" preserveAspectRatio="xMidYMid meet" ` +
-    `role="img" aria-label="${escHtml(title)}" xmlns="${NS}">` +
-    buildArrowMarker(arrowId) +
-    nodeG.join('') + edgeG.join('') +
-    `</svg>`
-  );
+/** Baseline Y for a node text line, shared by both orientations. */
+function titleTextY(p: PlacedNode, index: number): number {
+  const metrics = p.node.metrics;
+  const line = metrics?.lines[index];
+  const dy = line ? line.dy : index * C.TITLE_H;
+  return p.cy + dy;
 }
 
-function buildLrSvg(model: DiagramModel, title: string, arrowId: string): string {
-  const nodesInOrder: DiagramNode[] = [];
-  for (const rid of model.ranks) {
-    for (const id of rid) nodesInOrder.push(model.nodes.get(id)!);
+function subTextY(p: PlacedNode, index: number): number {
+  const metrics = p.node.metrics;
+  const line = metrics?.lines[(p.node.titleLines.length) + index];
+  const dy = line ? line.dy : index * C.SUB_H;
+  return p.cy + dy;
+}
+
+function nodeShapeSvg(p: PlacedNode): string {
+  const { node, cx, cy } = p;
+  const x = cx - node.w / 2;
+  const y = cy - node.h / 2;
+  if (node.shape === 'diamond') {
+    const pts = `${round1(cx)},${round1(y)} ${round1(cx + node.w / 2)},${round1(cy)} ${round1(cx)},${round1(y + node.h)} ${round1(x)},${round1(cy)}`;
+    return `<polygon class="node-rect node-diamond" points="${pts}"/>`;
   }
+  if (node.shape === 'rounded') {
+    return `<rect class="node-rect node-rounded" x="${round1(x)}" y="${round1(y)}" width="${round1(node.w)}" height="${round1(node.h)}" rx="18"/>`;
+  }
+  return `<rect class="node-rect" x="${round1(x)}" y="${round1(y)}" width="${round1(node.w)}" height="${round1(node.h)}" rx="3"/>`;
+}
 
-  const has2D = model.lrCx && model.lrCy && model.lrMaxX !== undefined && model.lrMaxY !== undefined;
-
-  let lrX = C.PAD;
-  const nodeData: Array<{ id: string; shape: string; lrX: number; lrY: number; w: number; h: number; titleLines: string[]; subLines: string[]; labelOrd: number }> = [];
-
-  if (has2D) {
-    for (const node of nodesInOrder) {
-      nodeData.push({
-        id: node.id,
-        shape: node.shape,
-        lrX: model.lrCx!.get(node.id)!,
-        lrY: model.lrCy!.get(node.id)!,
-        w: node.w,
-        h: node.h,
-        titleLines: node.titleLines,
-        subLines: node.subLines,
-        labelOrd: node.labelOrd,
+function nodeTextSvg(p: PlacedNode): string {
+  const { node, cx } = p;
+  const title = node.titleLines
+    .map((l, i) => {
+      const formatted = renderFormattedTspans(l, {
+        codeClass: 'diag-code-span',
+        strikeClass: 'diag-strike-span',
+        parentBold: true,
       });
-    }
-  } else {
-    for (const node of nodesInOrder) {
-      nodeData.push({ id: node.id, shape: node.shape, lrX: lrX + node.w / 2, lrY: 0, w: node.w, h: node.h, titleLines: node.titleLines, subLines: node.subLines, labelOrd: node.labelOrd });
-      lrX += node.w + C.LR_H_GAP;
-    }
-  }
+      return `<text class="node-title" ${xyAttrs(cx, titleTextY(p, i))} text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${formatted}</text>`;
+    })
+    .join('');
+  const sub = node.subLines
+    .map((l, i) => {
+      const formatted = renderFormattedTspans(l, {
+        codeClass: 'diag-code-span',
+        strikeClass: 'diag-strike-span',
+      });
+      return `<text class="node-sub" ${xyAttrs(cx, subTextY(p, i))} text-anchor="middle" font-size="${C.SUB_SIZE}">${formatted}</text>`;
+    })
+    .join('');
+  return title + sub;
+}
 
-  const baseTotalW = Math.round(has2D ? model.lrMaxX! : (lrX - C.LR_H_GAP + C.PAD));
-  const baseTotalH = Math.round(has2D ? model.lrMaxY! : (Math.max(...nodeData.map(n => n.h)) + C.PAD * 2));
-  const midY = baseTotalH / 2;
+/**
+ * Set the legibility floor used by `templates/style.css`.
+ *
+ * `max-width:100%` lets a wide diagram shrink to any size the viewport demands,
+ * which on a phone turns an 11px edge label into unreadable mush. Publishing the
+ * floor as a custom property means the drawing scales down to 60% of its natural
+ * width and then scrolls, instead of shrinking without limit.
+ */
+function scaleFloorStyle(naturalW: number): string {
+  return `--svg-min-w:${Math.round(naturalW * C.MIN_SCALE)}px`;
+}
 
-  if (!has2D) {
-    for (const nd of nodeData) {
-      nd.lrY = midY;
-    }
-  }
-
-  // Validate no node overlap in LR layout
-  checkBoxesOverlap(
-    nodeData.map(nd => ({ id: nd.id, cx: nd.lrX, cy: nd.lrY, w: nd.w, h: nd.h })),
-    'horizontal layout',
-  );
-
-  const nodeById = new Map<string, typeof nodeData[0]>();
-  for (const nd of nodeData) {
-    nodeById.set(nd.id, nd);
-  }
-
-  const edgeInfo: Array<{ d: string; omx: number; omy: number; label: string; labelOrd: number; backEdge: boolean }> = [];
-  let maxRight = baseTotalW;
-  let maxBottom = baseTotalH;
-  model.edges.forEach(e => {
-    const fromNd = nodeById.get(e.from)!;
-    const toNd = nodeById.get(e.to)!;
-    if (!fromNd || !toNd) return;
-
-    const sx = fromNd.lrX + fromNd.w / 2;
-    const sy = fromNd.lrY;
-    const ex = toNd.lrX - toNd.w / 2 - (e.directed ? C.ARROW_OFFSET : 0);
-    const ey = toNd.lrY;
-
-    let d: string;
-    let omx: number, omy: number;
-    if (e.isBackEdge && e.from === e.to) {
-      const loopR = toNd.h / 2 + C.ARC_LOOP;
-      const c1x = sx, c1y = sy + loopR, c2x = sx, c2y = sy + loopR;
-      omx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
-      omy = (sy + 3 * c1y + 3 * c2y + ey) / 8;
-      d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-      maxBottom = Math.max(maxBottom, sy + 1.5 * loopR);
-    } else if (e.isBackEdge) {
-      const loopX = baseTotalW + C.ARC_LOOP;
-      const c1x = loopX, c1y = sy;
-      const c2x = loopX, c2y = ey;
-      omx = (sx + 3 * c1x + 3 * c2x + ex) / 8;
-      omy = (sy + 3 * c1y + 3 * c2y + ey) / 8;
-      d = `M ${coordPair(sx, sy)} C ${coordPair(c1x, c1y)} ${coordPair(c2x, c2y)} ${coordPair(ex, ey)}`;
-      maxRight = Math.max(maxRight, loopX);
-    } else if (!e.directed) {
-      omx = (sx + ex) / 2;
-      omy = (sy + ey) / 2;
-      d = `M ${coordPair(sx, sy)} L ${coordPair(ex, ey)}`;
-    } else {
-      const dx = ex - sx;
-      d = `M ${coordPair(sx, sy)} C ${coordPair(sx + dx * 0.5, sy)} ${coordPair(ex - dx * 0.5, ey)} ${coordPair(ex, ey)}`;
-      omx = (sx + ex) / 2;
-      omy = (sy + ey) / 2;
-    }
-
-    edgeInfo.push({ d, omx, omy, label: e.label, labelOrd: e.labelOrd, backEdge: !!e.isBackEdge });
+function serialize(
+  geometry: DiagramGeometry,
+  title: string,
+  markers: { main: string; back: string }
+): string {
+  const nodeG = geometry.nodes.map(p => {
+    const ord = p.node.labelOrd;
+    const ordAttr = ord >= 0 ? ` data-label-ord="${ord}"` : '';
+    return `<g class="node"${ordAttr}>` + nodeShapeSvg(p) + nodeTextSvg(p) + `</g>`;
   });
 
-  const totalW = Math.max(baseTotalW, Math.round(maxRight));
-  const totalH = Math.max(baseTotalH, Math.round(maxBottom));
+  const edgeG = geometry.edges.map(({ edge, route, label }) => {
+    // `marker-end` is emitted only for directed edges: `---` is documented as an
+    // undirected line with no arrowhead, and it previously drew one anyway.
+    const markerId = edge.isBackEdge ? markers.back : markers.main;
+    const markerAttr = edge.directed ? ` marker-end="url(#${markerId})"` : '';
+    const pathCls = edge.isBackEdge ? 'edge-path is-back-edge' : 'edge-path';
 
-  const edgeG: string[] = edgeInfo.map(ed => {
     let labelSvg = '';
-    if (ed.label) {
-      const lw = textWidth(ed.label, C.EDGE_LABEL_SIZE, false) + 14;
-      const lx = ed.omx, ly = ed.omy;
-      const formattedLabel = renderFormattedTspans(ed.label, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span' });
+    if (label) {
+      const formatted = renderFormattedTspans(label.text, {
+        codeClass: 'diag-code-span',
+        strikeClass: 'diag-strike-span',
+      });
+      const baseline = C.EDGE_LABEL_SIZE * 0.35;
       labelSvg =
-        `<g class="edge-label" transform="translate(${coordPair(lx, ly)})">` +
-        `<rect class="edge-label-bg" x="${round1(-lw / 2)}" y="${round1(-C.EDGE_LABEL_H / 2)}" width="${round1(lw)}" height="${round1(C.EDGE_LABEL_H)}" rx="6"/>` +
-        `<text class="edge-label-text" x="0" y="${round1(C.EDGE_LABEL_H / 2 - 4)}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${formattedLabel}</text>` +
+        `<g class="edge-label" transform="translate(${coordPair(label.x, label.y)})">` +
+        `<rect class="edge-label-bg" x="${round1(-label.w / 2)}" y="${round1(-label.h / 2)}" width="${round1(label.w)}" height="${round1(label.h)}" rx="6"/>` +
+        `<text class="edge-label-text" x="0" y="${round1(baseline)}" text-anchor="middle" font-size="${C.EDGE_LABEL_SIZE}">${formatted}</text>` +
         `</g>`;
     }
-    const pathD = ed.d;
-    const ordAttr = ed.labelOrd !== undefined ? ` data-label-ord="${ed.labelOrd}"` : '';
-    const pathCls = ed.backEdge ? 'edge-path is-back-edge' : 'edge-path';
-    return `<g class="edge"${ordAttr}><path class="${pathCls}" d="${pathD}" marker-end="url(#${arrowId})"/>${labelSvg}</g>`;
+
+    const ord = edge.labelOrd;
+    const ordAttr = ord >= 0 ? ` data-label-ord="${ord}"` : '';
+    return `<g class="edge"${ordAttr}><path class="${pathCls}" d="${route.d}"${markerAttr}/>${labelSvg}</g>`;
   });
 
-  const nodeG: string[] = nodeData.map(nd => {
-    const cx = nd.lrX, cy = nd.lrY;
-    const w = nd.w, h = nd.h;
-    const totalTextH = nd.titleLines.length * C.TITLE_H + nd.subLines.length * C.SUB_H;
-    const textStartY = cy - totalTextH / 2;
-    const titleLines = nd.titleLines.map((l, i) => {
-      const ty = textStartY + C.TITLE_H * (i + 1) - 4;
-      const formatted = renderFormattedTspans(l, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span', parentBold: true });
-      return `<text class="node-title" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.TITLE_SIZE}" font-weight="700">${formatted}</text>`;
-    }).join('');
-    const subLines = nd.subLines.map((l, i) => {
-      const ty = textStartY + C.TITLE_H * nd.titleLines.length + C.SUB_H * (i + 1) - 3;
-      const formatted = renderFormattedTspans(l, { codeClass: 'diag-code-span', strikeClass: 'diag-strike-span' });
-      return `<text class="node-sub" x="${round1(cx)}" y="${round1(ty)}" text-anchor="middle" font-size="${C.SUB_SIZE}">${formatted}</text>`;
-    }).join('');
-
-    let shapeSvg: string;
-    if (nd.shape === 'diamond') {
-      const pts = `${round1(cx)},${round1(cy - h / 2)} ${round1(cx + w / 2)},${round1(cy)} ${round1(cx)},${round1(cy + h / 2)} ${round1(cx - w / 2)},${round1(cy)}`;
-      shapeSvg = `<polygon class="node-rect node-diamond" points="${pts}"/>`;
-    } else if (nd.shape === 'rounded') {
-      shapeSvg = `<rect class="node-rect node-rounded" x="${round1(cx - w / 2)}" y="${round1(cy - h / 2)}" width="${round1(w)}" height="${round1(h)}" rx="18"/>`;
-    } else {
-      shapeSvg = `<rect class="node-rect" x="${round1(cx - w / 2)}" y="${round1(cy - h / 2)}" width="${round1(w)}" height="${round1(h)}" rx="3"/>`;
-    }
-
-    return `<g class="node" data-label-ord="${nd.labelOrd}">${shapeSvg}${titleLines}${subLines}</g>`;
-  });
-
-  const vb = `0 0 ${totalW} ${totalH}`;
+  // The viewBox is the union of node boxes, sampled edge ink and label boxes.
+  // Deriving it from endpoints and control points instead both over-stated the
+  // drawing (dead space) and, because labels were ignored, clipped them.
+  const { ink } = geometry;
+  const rawW = ink.maxX - ink.minX + C.PAD * 2;
+  const rawH = ink.maxY - ink.minY + C.PAD * 2;
+  const vbX = round1(ink.minX - C.PAD);
+  const vbY = round1(ink.minY - C.PAD);
+  const vbW = round1(rawW);
+  const vbH = round1(rawH);
 
   return (
-    `<svg class="diagram-svg" viewBox="${vb}" width="${totalW}" height="${totalH}" preserveAspectRatio="xMidYMid meet" ` +
+    `<svg class="diagram-svg" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" width="${vbW}" height="${vbH}" ` +
+    `preserveAspectRatio="xMidYMid meet" style="${scaleFloorStyle(rawW)}" ` +
     `role="img" aria-label="${escHtml(title)}" xmlns="${NS}">` +
-    buildArrowMarker(arrowId) +
+    buildArrowMarker(markers.main) +
+    buildBackArrowMarker(markers.back) +
     nodeG.join('') + edgeG.join('') +
     `</svg>`
   );

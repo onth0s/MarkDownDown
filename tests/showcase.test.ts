@@ -53,9 +53,19 @@ describe('showcase/showcase.mdd — self-compiled capability showcase', () => {
   });
 
   test('single mode compiles and surfaces cyclic + file-link warnings', () => {
-    expect(result.warnings.filter(w => /cyclic edge\(s\)/.test(w)).length).toBe(2);
+    // Only the genuine multi-node cycle warns. The self-loop diagram is an
+    // ordinary construct and stays quiet.
+    expect(result.warnings.filter(w => /cyclic edge/.test(w)).length).toBe(1);
     expect(result.warnings.some(w => /File link target not found:/.test(w))).toBe(true);
     expect(fs.existsSync(path.join(tmpDir, 'out.html'))).toBe(true);
+  });
+
+  test('self-loops do not emit a cycle warning', () => {
+    const loopOnly = compile({
+      ...options('single', tmpDir),
+      rawSource: '```diagram\nTITLE: Loop\nA[Self] --> A\n```\n',
+    });
+    expect(loopOnly.warnings.some(w => /cyclic|self-loop/.test(w))).toBe(false);
   });
 
   test('single mode renders hero, frontmatter features, accent, and custom css', () => {
@@ -103,6 +113,44 @@ describe('showcase/showcase.mdd — self-compiled capability showcase', () => {
     expect(html).toContain('data-direction="LR"');
     expect((html.match(/edge-path is-back-edge/g) || []).length).toBeGreaterThanOrEqual(2);
     expect(html).toContain('requeues failures');
+  });
+
+  test('every rendered SVG is self-describing and fits the reading column', () => {
+    const html = readSingle();
+    // Scoped to the generated diagram/table SVGs; the page also embeds the
+    // brand logo, which is not ours to constrain.
+    const svgs = [...html.matchAll(/<svg class="(?:diagram|table)-svg"[\s\S]*?<\/svg>/g)].map(m => m[0]);
+    expect(svgs.length).toBeGreaterThan(0);
+
+    for (const svg of svgs) {
+      const label = /aria-label="([^"]*)"/.exec(svg)?.[1] ?? '(unlabelled)';
+
+      // Every SVG names itself for a screen reader. A `TITLE:` directive is
+      // preferred; failing that the nearest heading is used, so no diagram is
+      // announced as the document title.
+      expect(/role="img"/.test(svg)).toBe(true);
+      expect(label).not.toBe('(unlabelled)');
+      expect(label).not.toBe('Markdown++ Capability Showcase');
+
+      // A legibility floor, so a wide diagram scales down to 60% of natural
+      // width before it starts scrolling.
+      expect(svg).toContain('--svg-min-w');
+
+      // Usable reading width is 1080 - 2*18px padding. Anything wider is
+      // cropped or forces a horizontal page scroll.
+      expect(Number(/ width="(\d+)"/.exec(svg)![1])).toBeLessThanOrEqual(1044);
+    }
+
+    // The undirected `---` form is documented as arrowless; it used to draw a
+    // head anyway, which asserted a direction the author never wrote.
+    const edges = [...html.matchAll(/<path class="edge-path"[^>]*>/g)].map(m => m[0]);
+    expect(edges.length).toBeGreaterThan(0);
+    expect(edges.some(e => !e.includes('marker-end'))).toBe(true);
+    expect(edges.some(e => e.includes('marker-end'))).toBe(true);
+
+    // `data-label-ord` is omitted on unlabelled elements rather than emitted as
+    // a -1 sentinel, so a search match can never resolve to an arbitrary node.
+    expect(html).not.toContain('data-label-ord="-1"');
   });
 
   test('single mode renders the table DSL and search-sync metadata', () => {

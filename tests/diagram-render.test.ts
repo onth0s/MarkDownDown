@@ -363,10 +363,16 @@ describe('diagram shape & routing improvements', () => {
     const d = backEdgeMatch![1];
     // Must contain cubic curve C
     expect(d).toContain('C');
-    // Destination X must match right edge of B
+    // The arc must land exactly on B's right edge. It used to stop a further
+    // 6px short, which left the arrowhead floating in empty space.
     const bNode = m.nodes.get('B')!;
     const bRight = m.cx.get('B')! + bNode.w / 2;
-    expect(d).toContain(String(Math.round(bRight + 6)));
+    const nums = [...d.matchAll(/-?\d+(?:\.\d+)?/g)].map(mm => Number(mm[0]));
+    const endX = nums[nums.length - 2];
+    expect(Math.abs(endX - bRight)).toBeLessThanOrEqual(0.5);
+    // And the control points must reach out past the node column, not straight
+    // through the graph.
+    expect(Math.max(...nums.filter((_, i) => i % 2 === 0))).toBeGreaterThan(bRight);
   });
 
   test('back-edge exits directly from side port when unobstructed (no bottom dip)', () => {
@@ -393,8 +399,32 @@ describe('diagram shape & routing improvements', () => {
     const titleMatch = svg.match(/<text class="node-title"[^>]*y="([^"]+)"/);
     expect(titleMatch).not.toBeNull();
     const titleY = Number(titleMatch![1]);
-    // Single line text: titleY = dCy - 22/2 + 22 - 4 = dCy + 7
-    expect(Math.abs(titleY - (dCy + 7))).toBeLessThanOrEqual(1);
+
+    // The label is centred on its *ink*: the block spans cap-height above the
+    // baseline and only descender-depth below it, so the baseline sits below
+    // centre. The old formula put a single line a further 7px low, and a
+    // baseline-centred one would put it 4px high.
+    const cap = 16 * 0.72;
+    const desc = 16 * 0.21;
+    const expected = dCy + (cap - desc) / 2;
+    expect(Math.abs(titleY - expected)).toBeLessThanOrEqual(0.2);
+  });
+
+  test('multi-line node text is centred on its ink, not on its baselines', () => {
+    const m = diagramParse('TB\n A[Enrichment, and final distribution of the indexed corpus]');
+    diagramLayout(m);
+    const svg = diagramBuildSvg(m, 'Center');
+    const aCy = m.cy.get('A')!;
+    const ys = [...svg.matchAll(/<text class="node-(?:title|sub)"[^>]*y="([^"]+)"/g)]
+      .map(mm => Number(mm[1]));
+    expect(ys.length).toBeGreaterThan(1);
+
+    // Ink of the block: cap above the first baseline, descender below the last.
+    const cap = 16 * 0.72;
+    const desc = 14 * 0.21;
+    const inkTop = Math.min(...ys) - cap;
+    const inkBottom = Math.max(...ys) + desc;
+    expect(Math.abs((inkTop + inkBottom) / 2 - aCy)).toBeLessThanOrEqual(0.5);
   });
 });
 
