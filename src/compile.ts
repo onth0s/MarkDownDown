@@ -61,7 +61,7 @@ export function compile(options: Options): CompileResult {
   // the artifact alone. The assembler prunes it to the slots the rendered DOM
   // cannot reproduce before serializing it into the page.
   const skeleton = buildSkeleton(md, rawSource);
-  const sourceName = path.basename(options.inputFile);
+  const sourceName = path.basename(options.inputFile, path.extname(options.inputFile)) + '.mdd';
 
   // 7. Assemble and write
   const result = assembleAndWrite(
