@@ -18,6 +18,10 @@ Write-Host "Testing..." -ForegroundColor Cyan
 node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern='tests/'
 if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
 
+Write-Host "Regenerating index.html..." -ForegroundColor Cyan
+mdd .\README.md --single -o .\index.html -F
+if ($LASTEXITCODE -ne 0) { throw "index.html generation failed" }
+
 Write-Host "All passed." -ForegroundColor Green
 
 Write-Host "Done." -ForegroundColor Green

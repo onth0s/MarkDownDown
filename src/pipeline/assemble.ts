@@ -10,6 +10,7 @@ import type MarkdownIt from 'markdown-it';
 import type { Options, CompileResult, HeroMeta, Heading } from '../types.js';
 import type { FrontmatterResult } from '../parser/frontmatter.js';
 import type { MirrorStats } from './inject-mirror.js';
+import type { Skeleton } from '../renderer/skeleton.js';
 import { buildCss, computeLuminosityParams } from '../renderer/css.js';
 import { buildJs } from '../renderer/js.js';
 import { assembleHtml } from '../renderer/template.js';
@@ -81,6 +82,8 @@ export function assembleDocument(
   headings: Heading[],
   md?: MarkdownIt,
   warnings: string[] = [],
+  mddSkeleton?: Skeleton,
+  mddSourceName?: string,
 ): AssembledDocument {
   const heroHtml = buildHeroHtml(hero, title, md);
   const accentRgb = hexToRgb(accent);
@@ -148,6 +151,8 @@ export function assembleDocument(
     minify: options.minify,
     logoSvg: processedLogo.navbarLogo,
     faviconHref: processedLogo.faviconHref,
+    skeleton: mddSkeleton,
+    sourceName: mddSourceName,
   });
 
   const outFile = options.outputPath.endsWith('.html')
@@ -216,8 +221,10 @@ export function assembleAndWrite(
   warnings: string[],
   md?: MarkdownIt,
   mirrorStats?: MirrorStats,
+  mddSkeleton?: Skeleton,
+  mddSourceName?: string,
 ): CompileResult {
-  const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md, warnings);
+  const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md, warnings, mddSkeleton, mddSourceName);
   const finalSize = writeOutput(options, assembled, assetsDir, warnings);
 
   return {

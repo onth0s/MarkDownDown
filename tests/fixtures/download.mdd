@@ -1,0 +1,21 @@
+---
+title: Download Round-Trip
+accent: '#3b82f6'
+---
+# Heading One
+
+Paragraph with *em*, **strong**, and `inline code`.
+
+Second paragraph spanning
+two lines with a typographer apostrophe: it's here.
+
+- List item one
+- List item two
+
+> [!NOTE] Alerts work
+
+```diagram
+A --> B
+```
+
+Done — trailer.

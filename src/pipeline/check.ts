@@ -17,7 +17,7 @@
  */
 import crypto from 'node:crypto';
 import type MarkdownIt from 'markdown-it';
-import { assembleFromSkeleton, parseSkeleton, PROSE, SKIP_RUN, type Segment, type Skeleton } from '../renderer/skeleton.js';
+import { assembleFromSkeleton, parseSkeleton, spanAt, PROSE, SKIP_RUN, type Segment, type Skeleton } from '../renderer/skeleton.js';
 import { buildSkeleton } from '../renderer/skeleton-build.js';
 import { extractFences, extractProse } from '../renderer/html-extract.js';
 import { toErrorMessage } from '../util/error.js';
@@ -49,6 +49,24 @@ export interface CheckResult {
 
 function sha256(s: string): string {
   return crypto.createHash('sha256').update(s, 'utf8').digest('hex');
+}
+
+/** The `<script type="application/json" id="mdd-skeleton">` injector's tag. */
+const MDD_SKELETON_RE = /<script type="application\/json" id="mdd-skeleton">([\s\S]*?)<\/script>/i;
+
+/**
+ * Read the skeleton a compiled artifact embeds for its download button.
+ * Returns null when the artifact carries none (or the payload is malformed).
+ */
+export function extractEmbeddedSkeleton(html: string): Skeleton | null {
+  const m = html.match(MDD_SKELETON_RE);
+  if (!m) return null;
+  try {
+    const payload = JSON.parse(m[1]) as { name?: string; skeleton?: Skeleton };
+    return payload?.skeleton && payload.skeleton.v === 1 ? payload.skeleton : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -182,13 +200,14 @@ function firstDifference(a: string, b: string): { line: number; source: string; 
 export function checkRoundTrip(opts: CheckOptions): CheckResult {
   const { md, html, rawSource } = opts;
 
-  // Skeleton: prefer the one embedded in the artifact, else rebuild from source
-  // (which is what a build without embedding would have to ship).
+  // Skeleton: prefer the one explicitly passed, then the one the artifact
+  // embeds for its download button (this ratifies the exact bytes a browser
+  // would reconstruct from), else rebuild from source.
   let skeleton: Skeleton;
   try {
     skeleton = opts.skeletonText
       ? parseSkeleton(opts.skeletonText)
-      : buildSkeleton(md, rawSource);
+      : (extractEmbeddedSkeleton(html) ?? buildSkeleton(md, rawSource));
   } catch (err) {
     return {
       ok: false, semanticEqual: false, byteEqual: false,
@@ -207,14 +226,13 @@ export function checkRoundTrip(opts: CheckOptions): CheckResult {
   // source everywhere the DOM is lossy.
   const prose = extractProse(html);
   const slotCount = skeleton.b.filter(s => typeof s === 'number').length;
-  const spans = skeleton.spans ?? [];
   const fidelity: Segment[] = [];
   let proseOverrides = 0;
   {
     let slot = 0;
     for (const seg of skeleton.b) {
       if (seg === PROSE) {
-        const span = spans[slot];
+        const span = spanAt(skeleton.spans, slot);
         const run = prose[slot];
         if (span !== undefined && run !== undefined && span !== run) {
           fidelity.push(span, SKIP_RUN);
@@ -261,7 +279,13 @@ export function checkRoundTrip(opts: CheckOptions): CheckResult {
   parts.push(`sha256 ${sourceHash.slice(0, 12)}`);
 
   return {
-    ok: semanticEqual,
+    // Byte identity IS the recovery bar: the artifact's download button hands
+    // the user this exact text back as their file, so a rebuild that merely
+    // re-parses to the same meaning is not good enough. Semantic equality stays
+    // a separate signal because it is what the round-trip "means", while a lost
+    // space or a duplicated newline is a lost byte in a file the author will
+    // edit and re-compile. The fence count stays informational (below).
+    ok: semanticEqual && byteEqual,
     semanticEqual,
     byteEqual,
     sourceHash,

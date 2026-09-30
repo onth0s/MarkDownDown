@@ -13,6 +13,7 @@ import { scanAssets } from './resolver/asset.js';
 import { resolveLinks } from './pipeline/resolve-links.js';
 import { renderBody } from './pipeline/render-body.js';
 import { assembleAndWrite } from './pipeline/assemble.js';
+import { buildSkeleton } from './renderer/skeleton-build.js';
 import { isValidHex, formatHexWithHash } from './util/color.js';
 import { CompileError } from './util/error.js';
 
@@ -55,9 +56,16 @@ export function compile(options: Options): CompileResult {
     md, markdownBody, pendingLinks, assetBase64Map, options, title, warnings,
   );
 
+  // 6b. Source skeleton for the in-document download button: the same data
+  // `mdd --check` ratifies, so a browser can reconstruct the exact .mdd from
+  // the artifact alone. The assembler prunes it to the slots the rendered DOM
+  // cannot reproduce before serializing it into the page.
+  const skeleton = buildSkeleton(md, rawSource);
+  const sourceName = path.basename(options.inputFile);
+
   // 7. Assemble and write
   const result = assembleAndWrite(
-    options, meta, hero, title, accent, bodyHtml, assetsDir, headings, warnings, md, mirrorStats,
+    options, meta, hero, title, accent, bodyHtml, assetsDir, headings, warnings, md, mirrorStats, skeleton, sourceName,
   );
   if (result.stats) {
     result.stats.wikilinks = pendingLinks.length;

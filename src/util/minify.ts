@@ -60,16 +60,30 @@ export function minifySvg(svg: string): string {
  */
 export function minifyHtml(html: string): string {
   const protectedBlocks: string[] = [];
-  const placeholder = (idx: number) => `<!--__PROTECTED_BLOCK_${idx}__-->`;
+  // The placeholder is a block-level tag, not a comment, so the inter-block
+  // whitespace rules below still fire in its place and the gap between two
+  // adjacent protected elements collapses to nothing once they are restored.
+  const placeholder = (idx: number) => `<div data-mdd-protected="${idx}"></div>`;
+  const protect = (match: string): string => {
+    protectedBlocks.push(match);
+    return placeholder(protectedBlocks.length - 1);
+  };
 
   // Protect code-wrap blocks (including their data-raw attributes and <pre> tags)
-  const protectedHtml = html.replace(/<div class="code-wrap[\s\S]*?<\/pre>/g, (match) => {
-    protectedBlocks.push(match);
-    return placeholder(protectedBlocks.length - 1);
-  }).replace(/<pre[\s\S]*?<\/pre>/g, (match) => {
-    protectedBlocks.push(match);
-    return placeholder(protectedBlocks.length - 1);
-  });
+  const protectedHtml = html
+  // The JSON download payload must survive verbatim: whitespace collapse would
+  // corrupt its embedded source strings, so treat the whole tag as opaque.
+  .replace(/<script type="application\/json"[^>]*>[\s\S]*?<\/script>/g, protect)
+  // Script and style bodies are code, not markup. The whitespace collapse below
+  // is only valid between tags, and applying it to JS silently rewrites
+  // literals: esbuild prints '\r\n' as a template literal holding a REAL
+  // newline, so the collapse turned it into CR + SPACE and broke the
+  // comparison. String literals, template literals, and regexes are all
+  // whitespace-significant, so the whole element is opaque.
+  .replace(/<script[^>]*>[\s\S]*?<\/script>/g, protect)
+  .replace(/<style[^>]*>[\s\S]*?<\/style>/g, protect)
+  .replace(/<div class="code-wrap[\s\S]*?<\/pre>/g, protect)
+  .replace(/<pre[\s\S]*?<\/pre>/g, protect);
 
   // Block elements where whitespace between tags can be safely eliminated
   const blockTags = 'html|head|body|title|meta|link|style|script|div|section|article|aside|header|footer|nav|main|ul|ol|li|table|thead|tbody|tr|th|td|blockquote|h[1-6]|p|hr';
@@ -84,7 +98,12 @@ export function minifyHtml(html: string): string {
     .trim();
 
   for (let idx = 0; idx < protectedBlocks.length; idx++) {
-    minified = minified.replace(placeholder(idx), protectedBlocks[idx]);
+    // A FUNCTION replacer, never a string: as a replacement string, `$&`, `$'`,
+    // ``$` `` and `$1` inside shipped code would be expanded as substitution
+    // patterns, re-injecting the placeholder and corrupting the block. The
+    // shipped app bundle is full of `.replace(re, '$1')`, so this leaked
+    // `data-mdd-protected` markers into the artifact.
+    minified = minified.replace(placeholder(idx), () => protectedBlocks[idx]);
   }
 
   return minified;

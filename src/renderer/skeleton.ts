@@ -45,11 +45,18 @@ export interface SkeletonOptions {
   /** Dominant line ending of the original source. */
   eol: '\n' | '\r\n';
   /**
-   * Verbatim source text for each PROSE slot, in order. Enables byte fidelity:
-   * when a DOM run cannot reproduce its source text exactly (typographer
-   * rewrites, whitespace collapse, entities), it is swapped for this literal.
+   * Verbatim source text per PROSE slot, enabling byte fidelity: when a DOM run
+   * cannot reproduce its source text exactly (typographer rewrites, whitespace
+   * collapse, entities), it is swapped for this literal.
+   *
+   * Two shapes, both indexed by slot number:
+   *   - `buildSkeleton` emits a dense array covering every PROSE slot. `--check`
+   *     needs the full set to decide which slots are lossy.
+   *   - The embedded download payload is pruned to a sparse record holding only
+   *     the slots that actually differ from their DOM run, so the artifact does
+   *     not carry a second copy of the document text.
    */
-  spans?: string[];
+  spans?: string[] | Record<number, string>;
 }
 
 export interface Skeleton {
@@ -60,8 +67,8 @@ export interface Skeleton {
   b: Segment[];
   /** Dominant line ending of the source. */
   eol: '\n' | '\r\n';
-  /** Verbatim source text for each PROSE slot, in order (see SkeletonOptions). */
-  spans?: string[];
+  /** Verbatim source text per PROSE slot (see SkeletonOptions for both shapes). */
+  spans?: string[] | Record<number, string>;
 }
 
 /**
@@ -83,9 +90,48 @@ export function extractFrontmatter(src: string): string {
   return m ? m[0] : '';
 }
 
+/** Read a slot's source span from either `spans` shape; undefined when absent. */
+export function spanAt(spans: Skeleton['spans'], slot: number): string | undefined {
+  if (!spans) return undefined;
+  const v = (spans as Record<number, string | undefined>)[slot];
+  return typeof v === 'string' ? v : undefined;
+}
+
 /** Serialize a skeleton for embedding into the artifact. */
 export function serializeSkeleton(sk: Skeleton): string {
   return JSON.stringify(sk);
+}
+
+/**
+ * Drop every span whose DOM run already reproduces it, leaving only the slots a
+ * browser genuinely cannot recover from the DOM.
+ *
+ * A dense span set is a full second copy of the document text, which would more
+ * than double the artifact. Since fidelity only matters where the renderer
+ * rewrote the text, the payload keeps just those slots (~10% of source) and the
+ * assembly rule stays "use the span when it exists and differs from the run".
+ */
+export function pruneSkeleton(sk: Skeleton, prose: string[]): Skeleton {
+  if (!sk.spans) return sk;
+  const keep: Record<number, string> = {};
+  let slot = 0;
+  for (const seg of sk.b) {
+    if (seg !== PROSE) continue;
+    const span = spanAt(sk.spans, slot);
+    const run = prose[slot];
+    if (span !== undefined && run !== undefined && span !== run) keep[slot] = span;
+    slot++;
+  }
+  return { ...sk, spans: Object.keys(keep).length > 0 ? keep : undefined };
+}
+
+/**
+ * Serialize the skeleton for the in-document download payload: `{name, skeleton}`.
+ * `<` is escaped so source text can never break out of the `<script>` tag the
+ * JSON lands in (e.g. a code fence containing `</script>`).
+ */
+export function serializeSkeletonPayload(sk: Skeleton, name: string): string {
+  return JSON.stringify({ name, skeleton: sk }).replace(/</g, '\\u003c');
 }
 
 /** Parse a skeleton previously produced by {@link serializeSkeleton}. */

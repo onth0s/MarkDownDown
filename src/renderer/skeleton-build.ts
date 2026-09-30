@@ -118,6 +118,30 @@ function findInBase(base: string, content: string, from: number): number {
   return from;
 }
 
+/**
+ * Trailing line whitespace that markdown-it strips before the inline block sees
+ * it.
+ *
+ * The `paragraph` and `list_item` rules end with `.trim()`, so a source line's
+ * trailing spaces/tabs never reach `inlineToken.content` — the renderer drops
+ * them, the DOM never holds them, and no token can spell them back. The raw
+ * block slice still does, so read the tail off it. Without this the rebuild
+ * silently loses those bytes and the download is not the author's file.
+ *
+ * Returns '' unless everything between the located content and the end of its
+ * line is whitespace, so a mis-located content degrades to no repair rather
+ * than injecting stray indentation.
+ */
+function trailingWhitespace(raw: string, content: string): string {
+  if (content === '' || raw.length === content.length) return '';
+  const at = raw.indexOf(content);
+  if (at < 0) return '';
+  const tail = raw.slice(at + content.length);
+  const nl = tail.indexOf('\n');
+  const line = nl < 0 ? tail : tail.slice(0, nl);
+  return /^[ \t]*$/.test(line) ? line : '';
+}
+
 /** True when a child produces its own DOM text node. */
 function isProseChild(c: Token): boolean {
   if (c.type === 'text') return c.content !== '';
@@ -282,7 +306,11 @@ function containerSegments(base: string, inlines: Token[]): { segs: (string | nu
     const r = inlineSegments(content, tok.children ?? []);
     segs.push(...r.segs);
     spans.push(...r.spans);
-    cursor = found + content.length;
+    // Recover the line whitespace `.trim()` ate, and advance past it so the next
+    // item's literal does not repeat it.
+    const ws = trailingWhitespace(base.slice(found), content);
+    if (ws) segs.push(ws);
+    cursor = found + content.length + ws.length;
   }
   segs.push(base.slice(cursor));
   return { segs, spans };
@@ -329,7 +357,11 @@ export function buildSkeleton(md: MarkdownIt, rawSource: string): Skeleton {
   const src = rawSource.replace(/\r\n/g, '\n');
   const fm = extractFrontmatter(src);
   const body = fm ? src.slice(fm.length) : src;
-  const lines = body.split('\n');
+  // split('\n') leaves a phantom '' after a trailing newline. It is not a source
+  // line, and letting emitRange reach it manufactures a blank line the author
+  // never wrote — which is how a body ending in one newline came back with two.
+  const endsWithNewline = body.endsWith('\n');
+  const lines = (endsWithNewline ? body.slice(0, -1) : body).split('\n');
   const tokens = md.parse(body, {});
 
   const segs: (string | number)[] = [];
@@ -358,10 +390,17 @@ export function buildSkeleton(md: MarkdownIt, rawSource: string): Skeleton {
       if (/^#+$/.test(markup)) {
         segs.push(markup, ' ');
         emitInline(inlineTok?.content ?? '', inlineTok?.children);
+        // The heading rule trims the line too, so an ATX title can lose its
+        // trailing whitespace as well.
+        segs.push(trailingWhitespace(lines[map[0]] ?? '', inlineTok?.content ?? ''));
         segs.push('\n');
       } else {
         // Setext heading: title template, then the underline line verbatim.
         emitInline(inlineTok?.content ?? '', inlineTok?.children);
+        if (inlineTok?.map) {
+          const title = lines.slice(inlineTok.map[0], inlineTok.map[1]).join('\n');
+          segs.push(trailingWhitespace(title, inlineTok.content ?? ''));
+        }
         segs.push('\n');
         if (inlineTok?.map) segs.push(lines[inlineTok.map[1]], '\n');
       }
@@ -387,6 +426,7 @@ export function buildSkeleton(md: MarkdownIt, rawSource: string): Skeleton {
     if (t.type === 'inline' && map) {
       emitRange(last, map[0]);
       emitInline(t.content ?? '', t.children);
+      segs.push(trailingWhitespace(lines.slice(map[0], map[1]).join('\n'), t.content ?? ''));
       segs.push('\n');
       last = map[1];
       i++;
@@ -407,7 +447,7 @@ export function buildSkeleton(md: MarkdownIt, rawSource: string): Skeleton {
   emitRange(last, lines.length);
 
   // Never manufacture a trailing newline for a body that has none.
-  if (!body.endsWith('\n')) {
+  if (!endsWithNewline) {
     const lastSeg = segs[segs.length - 1];
     if (typeof lastSeg === 'string' && lastSeg.endsWith('\n')) {
       segs[segs.length - 1] = lastSeg.slice(0, -1);
