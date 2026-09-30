@@ -54,6 +54,8 @@ export interface CliOptions {
   noDiagrams: boolean;
   noTables: boolean;
   verbose: boolean;
+  /** Verify the source can be recovered from the rendered HTML, then exit */
+  check?: boolean;
   minify?: boolean;
   force?: boolean;
   spec?: boolean;

@@ -10,6 +10,8 @@ import { compile } from './compile.js';
 import type { Options, CliOptions } from './types.js';
 import { CompileError, toErrorMessage } from './util/error.js';
 import { SPEC } from './spec.js';
+import { createMarkdownParser } from './parser/markdown.js';
+import { checkRoundTrip } from './pipeline/check.js';
 
 async function confirmOverwrite(targetPath: string): Promise<boolean> {
   if (!process.stdin.isTTY) return true;
@@ -45,6 +47,7 @@ program
   .option('--no-minify', 'Disable minification in monolithic export')
   .option('-L, --logo [path]', 'Custom SVG or image brand logo and favicon (auto-detects if single .svg exists in working dir)')
   .option('-F, --force', 'Force overwrite without confirmation prompt', false)
+  .option('--check', 'Verify the .mdd can be recovered from the rendered HTML, then exit', false)
   .option('-v, --verbose', 'Verbose output', false)
   .option('--debug', 'Dump full error stack traces on failure', false)
   .action(async (input: string | undefined, opts: CliOptions) => {
@@ -67,6 +70,68 @@ program
     const inputDir = path.dirname(inputFile);
     const parsedPath = path.parse(inputFile);
     const stem = parsedPath.name;
+
+    // --check compiles in memory, verifies the round-trip, and writes nothing.
+    if (opts.check) {
+      const rawSource = fs.readFileSync(inputFile, 'utf8');
+      const checkOptions: Options = {
+        title: stem,
+        assetsDir: path.join(inputDir, 'assets'),
+        accent: '#3b82f6',
+        inputFile,
+        outputPath: path.join(inputDir, `${stem}.html`),
+        outputMode: 'single',
+        noDiagrams: opts.noDiagrams,
+        noTables: opts.noTables,
+        verbose: false,
+        minify: opts.minify !== false,
+      };
+      try {
+        const compiled = compile(checkOptions);
+        for (const w of compiled.warnings) process.stderr.write(`WARN: ${w}\n`);
+
+        const result = checkRoundTrip({
+          md: createMarkdownParser(),
+          html: compiled.html,
+          rawSource,
+        });
+
+        const relInput = path.relative(process.cwd(), inputFile) || inputFile;
+        process.stdout.write(`\n Markdown++ Round-Trip Check\n`);
+        process.stdout.write(` --------------------------------\n`);
+        process.stdout.write(` Source:      ${relInput}\n`);
+        process.stdout.write(` ${result.message}\n`);
+        if (!result.semanticEqual && result.firstDiff) {
+          const d = result.firstDiff;
+          process.stdout.write(`\n First semantic difference at line ${d.line}:\n`);
+          if (opts.verbose) {
+            process.stdout.write(`   source:  ${JSON.stringify(d.source)}\n`);
+            process.stdout.write(`   rebuilt: ${JSON.stringify(d.rebuilt)}\n`);
+            // Show the first differing character position for precision.
+            let i = 0;
+            while (i < d.source.length && i < d.rebuilt.length && d.source[i] === d.rebuilt[i]) i++;
+            process.stdout.write(`   diverges at char ${i}:\n`);
+            process.stdout.write(`     source  ...${JSON.stringify(d.source.slice(Math.max(0, i - 40), i + 40))}\n`);
+            process.stdout.write(`     rebuilt ...${JSON.stringify(d.rebuilt.slice(Math.max(0, i - 40), i + 40))}\n`);
+          } else {
+            process.stdout.write(`   source:  ${JSON.stringify(d.source.slice(0, 160))}\n`);
+            process.stdout.write(`   rebuilt: ${JSON.stringify(d.rebuilt.slice(0, 160))}\n`);
+            process.stdout.write(`   (re-run with -v for the exact divergence)\n`);
+          }
+        }
+        process.stdout.write(`\n Result:     ${result.ok ? 'PASS' : 'FAIL'}\n\n`);
+        process.exit(result.ok ? 0 : 1);
+      } catch (err) {
+        if (err instanceof CompileError) {
+          process.stderr.write(`ERROR: ${err.message}\n`);
+          if (opts.debug) process.stderr.write(`${err.stack}\n`);
+        } else {
+          process.stderr.write(`ERROR: ${toErrorMessage(err)}\n`);
+          if (opts.debug && err instanceof Error) process.stderr.write(`${err.stack}\n`);
+        }
+        process.exit(1);
+      }
+    }
 
     const isSplit = opts.split === true;
     const outputMode = isSplit ? 'split' : 'single';
