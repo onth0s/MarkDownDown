@@ -153,7 +153,7 @@ mdd docs/spec.mdd --split -o dist/spec-site/
 
 ### Downloading the Source
 
-Every artifact carries enough of the document's structure to rebuild the original `.mdd` **byte-for-byte** from the HTML alone. **Right-click the logo in the top-left of the sticky header** and the file downloads under its original name. There is no button and no dialog — the right-click is the whole interface, and nothing appears in the page unless the user asks for it.
+Every artifact carries enough of the document's structure to rebuild the original `.mdd` **byte-for-byte** from the HTML alone. **Right-click the logo in the top-left of the sticky header** and the file downloads, always named after the source with a `.mdd` extension — `README.md` comes back as `README.mdd`. There is no button and no dialog — the right-click is the whole interface, and nothing appears in the page unless the user asks for it.
 
 `mdd --check` ratifies the exact same reconstruction offline, which is what makes the download trustworthy: it recompiles, recovers the source from the rendered HTML, and compares hashes.
 
@@ -168,7 +168,9 @@ SEMANTIC: PASS | byte PASS | fences 13/13 | slots 317/runs 317 | 14381 B -> 1438
 Byte identity is the bar, not semantic equivalence: the file you get back is the file you wrote, down to trailing spaces and line endings.
 
 > [!WARNING]
-> **Windows may refuse to open the downloaded file.** A file saved from a page opened off disk picks up the Mark of the Web — an NTFS alternate data stream named `Zone.Identifier` with `ZoneId=4` — and Windows then blocks it for programs that honor the attachment policy ("These files can't be opened"). The stamp is written by the browser and the OS from the page's origin zone at save time; no page-side code can suppress it or detect it. Clear it once with:
+> **Windows may refuse to open the downloaded file.** A file saved from a page opened off disk picks up the Mark of the Web — an NTFS alternate data stream named `Zone.Identifier` with `ZoneId=4` — and Windows then blocks it for programs that honor the attachment policy ("These files can't be opened"). The stamp is written by the browser and the OS from the page's origin zone at save time; no page-side code can suppress it or detect it, and it is not a property of the file's content, its name, or its encoding.
+>
+> The mark is only advisory to code: `$DATA` and `Zone.Identifier` are separate streams, so PowerShell, .NET, Node, and most editors read the file normally and hash it correctly. It is shell-launched GUI programs that honor the policy. Clear it once, with `Unblock-File` or by ticking **Unblock** on the file's Properties dialog:
 
 ```powershell
 Unblock-File "$env:USERPROFILE\Downloads\input.mdd"
