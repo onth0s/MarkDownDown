@@ -5,6 +5,7 @@
  */
 import { loadTemplate, substituteTokens } from '../util/template-loader.js';
 import { DEFAULT_FAVICON_TEMPLATE } from './logo.js';
+import { SKELETON } from '../constants.js';
 
 export interface BuildJsOptions {
   accent: string;
@@ -51,6 +52,9 @@ export function buildJs(accentOrOpts: string | BuildJsOptions): string {
     "'__THEME__'": () => JSON.stringify(theme),
     "'__FAVICON__'": () => JSON.stringify(faviconTemplate),
     __ROUTES__: () => JSON.stringify(routes),
+    __SKELETON_PROSE_SLOT__: String(SKELETON.PROSE),
+    __SKELETON_SKIP_RUN__: String(SKELETON.SKIP_RUN),
+    __SKELETON_SKIPPED_TAGS__: () => JSON.stringify(Object.fromEntries(SKELETON.SKIPPED_TAGS.map(t => [t, 1]))),
     __BASE_DARK_BG__: darkBg,
     __BASE_DARK_SURFACE__: darkSurface,
     __DARK_BG_MIX__: darkBgMix,
@@ -65,3 +69,4 @@ export function buildJs(accentOrOpts: string | BuildJsOptions): string {
     __LIGHT_SURF_TINT__: lightSurfTint,
   });
 }
+

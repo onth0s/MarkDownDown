@@ -21,9 +21,12 @@ if (mddSkeletonEl && mddBrand && mddArticle) {
     mddPayload = null;
   }
   if (mddPayload && mddPayload.skeleton && Array.isArray(mddPayload.skeleton.b)) {
-    const PROSE_SLOT = -1;
-    const SKIP_RUN = -2;
-    const SKIPPED_TAGS = { svg: 1, pre: 1, button: 1, script: 1, style: 1, textarea: 1 };
+    const PROSE_SLOT = typeof __SKELETON_PROSE_SLOT__ !== 'undefined' ? __SKELETON_PROSE_SLOT__ : -1;
+    const SKIP_RUN = typeof __SKELETON_SKIP_RUN__ !== 'undefined' ? __SKELETON_SKIP_RUN__ : -2;
+    const SKIPPED_TAGS = typeof __SKELETON_SKIPPED_TAGS__ !== 'undefined'
+      ? __SKELETON_SKIPPED_TAGS__
+      : { svg: 1, pre: 1, button: 1, script: 1, style: 1, textarea: 1 };
+
 
     // Flat text-node walk, mirroring stripChrome + extractProse: skip chrome
     // subtrees, drop the whitespace-only node that follows a <br>, and keep

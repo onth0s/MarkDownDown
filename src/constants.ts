@@ -82,3 +82,18 @@ export const TABLE = {
    */
   MIN_SCALE: 0.6,
 } as const;
+
+/** Skeleton serialization protocol constants and opcodes. */
+export const SKELETON = {
+  /** Placeholder opcode: take the next prose run from the DOM, in document order. */
+  PROSE: -1,
+  /**
+   * Opcode: consume the next DOM prose run WITHOUT emitting it. Used when a
+   * PROSE slot was replaced by a source-verbatim literal (byte fidelity), so
+   * run/slot alignment is preserved.
+   */
+  SKIP_RUN: -2,
+  /** Tags whose subtrees are skipped during flat DOM prose extraction. */
+  SKIPPED_TAGS: ['svg', 'pre', 'button', 'script', 'style', 'textarea'] as const,
+} as const;
+

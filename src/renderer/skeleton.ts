@@ -22,15 +22,18 @@
  * number means "take the next DOM text run" and a string is literal source.
  */
 
+import { SKELETON } from '../constants.js';
+
 /** Placeholder opcode: take the next prose run from the DOM, in document order. */
-export const PROSE = -1;
+export const PROSE = SKELETON.PROSE;
 
 /**
  * Opcode: consume the next DOM prose run WITHOUT emitting it. Used when a
  * PROSE slot was replaced by a source-verbatim literal (byte fidelity), so
  * run/slot alignment is preserved.
  */
-export const SKIP_RUN = -2;
+export const SKIP_RUN = SKELETON.SKIP_RUN;
+
 
 /** A skeleton segment: literal source text, a PROSE slot, or a SKIP_RUN. */
 export type Segment = string | number;
