@@ -133,6 +133,7 @@ TITLE: Markdown++ CLI Options
 | --no-minify | flag | Disable minification in monolithic export |
 | -L, --logo [path] | string/flag | Custom brand logo and dynamic favicon (auto-detects if single .svg exists) |
 | -F, --force | flag | Force overwrite without confirmation prompt |
+| --check | flag | Verify the source can be recovered byte-for-byte from the artifact |
 | -v, --verbose | flag | Enable verbose compiler logging |
 | --spec | flag | Print the full MD++ language specification and exit |
 | -V, --version | flag | Output the version number |
