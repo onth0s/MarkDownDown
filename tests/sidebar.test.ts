@@ -24,16 +24,18 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
     expect(styleCss).toContain('cursor: col-resize');
   });
 
-  test('style.css defines desktop collapse state and burger menu activation', () => {
-    expect(styleCss).toContain('body.sidebar-collapsed');
+  test('style.css defines desktop collapse state, full layout width, and burger menu drawer', () => {
+    expect(styleCss).toContain('body.sidebar-collapsed .layout');
+    expect(styleCss).toContain('body.sidebar-collapsed .main');
     expect(styleCss).toContain('body.sidebar-collapsed .mobile-nav');
     expect(styleCss).toContain('display: inline-flex !important');
+    expect(styleCss).toContain('body.sidebar-collapsed.nav-open .sidebar');
   });
 
-  test('style.css defines edge reopen button with hover hit area', () => {
+  test('style.css defines edge reopen button with dynamic visibility', () => {
     expect(styleCss).toContain('.sidebar-reopen-btn');
     expect(styleCss).toContain('body.sidebar-collapsed .sidebar-reopen-btn');
-    expect(styleCss).toContain('.sidebar-reopen-btn::before');
+    expect(styleCss).toContain('.sidebar-reopen-btn.is-visible');
   });
 
   test('style.css defines sidebar-right positioning rules', () => {
@@ -42,13 +44,16 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
     expect(styleCss).toContain('body.sidebar-right .sidebar-reopen-btn');
   });
 
-  test('03-controls.js wires up resize drag, double-click reset, collapse threshold, and position toggle', () => {
+  test('03-controls.js wires up resize drag, dynamic Y-axis arrow tracking, and position toggle', () => {
     expect(controlsJs).toContain('sidebarResizer');
     expect(controlsJs).toContain('sidebarReopenBtn');
     expect(controlsJs).toContain('sidebarPosBtn');
     expect(controlsJs).toContain('DEFAULT_SIDEBAR_WIDTH = 280');
     expect(controlsJs).toContain('COLLAPSE_THRESHOLD = 130');
     expect(controlsJs).toContain('dblclick');
+    expect(controlsJs).toContain("window.addEventListener('mousemove'");
+    expect(controlsJs).toContain('sidebarReopenBtn.style.top');
+    expect(controlsJs).toContain("body.classList.toggle('nav-open')");
     expect(controlsJs).toContain('setSidebarPosition');
     expect(controlsJs).toContain('setSidebarCollapsed');
     expect(controlsJs).toContain('setSidebarWidth');

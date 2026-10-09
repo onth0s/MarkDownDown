@@ -130,16 +130,34 @@ if (sidebarPosBtn) {
 if (sidebarReopenBtn) {
   sidebarReopenBtn.addEventListener('click', () => {
     setSidebarCollapsed(false);
+    sidebarReopenBtn.classList.remove('is-visible');
   });
 }
 
+// Track cursor approach to edge on whatever Y axis it approaches
+window.addEventListener('mousemove', (e) => {
+  if (window.innerWidth <= 900 || !body.classList.contains('sidebar-collapsed') || !sidebarReopenBtn) {
+    if (sidebarReopenBtn) sidebarReopenBtn.classList.remove('is-visible');
+    return;
+  }
+  const isRight = body.classList.contains('sidebar-right');
+  const dist = isRight ? (window.innerWidth - e.clientX) : e.clientX;
+
+  if (dist <= 48 && e.clientY >= 64) {
+    const arrowH = 48;
+    const topMin = 64 + 8;
+    const topMax = window.innerHeight - arrowH - 12;
+    const clampedY = Math.max(topMin, Math.min(topMax, e.clientY - (arrowH / 2)));
+    sidebarReopenBtn.style.top = `${clampedY}px`;
+    sidebarReopenBtn.classList.add('is-visible');
+  } else if (!sidebarReopenBtn.matches(':hover')) {
+    sidebarReopenBtn.classList.remove('is-visible');
+  }
+});
+
 if (navBtn) {
   navBtn.addEventListener('click', () => {
-    if (window.innerWidth > 900 && body.classList.contains('sidebar-collapsed')) {
-      setSidebarCollapsed(false);
-    } else {
-      body.classList.toggle('nav-open');
-    }
+    body.classList.toggle('nav-open');
   });
 }
 
@@ -227,8 +245,8 @@ document.addEventListener('click', (event) => {
   if (dropdownMenu && !dropdownMenu.contains(event.target) && !menuBtn?.contains(event.target)) {
     closeDropdownMenu();
   }
-  if (window.innerWidth <= 900 && body.classList.contains('nav-open') &&
-      !sidebar.contains(event.target) && event.target.id !== 'navBtn') {
+  if (body.classList.contains('nav-open') &&
+      sidebar && !sidebar.contains(event.target) && event.target.id !== 'navBtn') {
     body.classList.remove('nav-open');
   }
   if (window.innerWidth <= 640 && body.classList.contains('search-mode') &&
@@ -242,7 +260,7 @@ window.addEventListener('resize', () => {
   if (window.innerWidth > 640 && body.classList.contains('search-mode')) {
     setSearchMode(false);
   }
-  if (window.innerWidth > 900 && body.classList.contains('nav-open')) {
+  if (window.innerWidth > 900 && body.classList.contains('nav-open') && !body.classList.contains('sidebar-collapsed')) {
     body.classList.remove('nav-open');
   }
   updateNavHistoryUI();

@@ -83,6 +83,7 @@ toc.addEventListener('click', (event) => {
   if (!link) return;
   event.preventDefault();
   if (window.innerWidth <= 900) body.classList.remove('nav-open');
+  if (body.classList.contains('sidebar-collapsed')) body.classList.remove('nav-open');
   tocScrollActive = true;
   if (link.dataset.target === '__doc-title__') {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -102,6 +103,7 @@ article.addEventListener('click', async (event) => {
   const targetId = anchor.dataset.target || anchor.getAttribute('href')?.replace(/^#/, '');
 
   if (window.innerWidth <= 900) body.classList.remove('nav-open');
+  if (body.classList.contains('sidebar-collapsed')) body.classList.remove('nav-open');
   tocScrollActive = true;
 
   const currentSearch = search ? search.value.trim() : '';
