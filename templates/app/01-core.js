@@ -76,7 +76,7 @@ function updateNavHistoryUI() {
   if (sidebar && window.innerWidth > 900) {
     if (body.classList.contains('sidebar-right')) {
       navHistoryBar.style.left = 'calc(max(0px, (100vw - 1500px) / 2) + 20px)';
-    } else if (body.classList.contains('sidebar-collapsed')) {
+    } else if (body.classList.contains('sidebar-collapsed') && !body.classList.contains('nav-open')) {
       navHistoryBar.style.left = 'max(20px, env(safe-area-inset-left))';
     } else {
       const rect = sidebar.getBoundingClientRect();

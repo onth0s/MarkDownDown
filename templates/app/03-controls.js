@@ -82,6 +82,7 @@ function setSidebarWidth(width, persist = true) {
 }
 
 function setSidebarCollapsed(collapsed) {
+  body.classList.add('sidebar-animating');
   body.classList.toggle('sidebar-collapsed', collapsed);
   try { localStorage.setItem('mdd_sidebar_collapsed', String(collapsed)); } catch (_) {}
   if (!collapsed) {
@@ -89,6 +90,10 @@ function setSidebarCollapsed(collapsed) {
     root.style.setProperty('--sidebar-w', `${w}px`);
   }
   updateNavHistoryUI();
+  setTimeout(() => {
+    body.classList.remove('sidebar-animating');
+    updateNavHistoryUI();
+  }, 320);
 }
 
 function setSidebarPosition(pos) {
@@ -129,8 +134,8 @@ if (sidebarPosBtn) {
 
 if (sidebarReopenBtn) {
   sidebarReopenBtn.addEventListener('click', () => {
-    setSidebarCollapsed(false);
     sidebarReopenBtn.classList.remove('is-visible');
+    setSidebarCollapsed(false);
   });
 }
 
@@ -143,7 +148,7 @@ window.addEventListener('mousemove', (e) => {
   const isRight = body.classList.contains('sidebar-right');
   const dist = isRight ? (window.innerWidth - e.clientX) : e.clientX;
 
-  if (dist <= 48 && e.clientY >= 64) {
+  if (dist <= 56 && e.clientY >= 64) {
     const arrowH = 48;
     const topMin = 64 + 8;
     const topMax = window.innerHeight - arrowH - 12;
@@ -158,6 +163,14 @@ window.addEventListener('mousemove', (e) => {
 if (navBtn) {
   navBtn.addEventListener('click', () => {
     body.classList.toggle('nav-open');
+    updateNavHistoryUI();
+  });
+}
+
+if (sidebar) {
+  sidebar.addEventListener('transitionend', () => {
+    body.classList.remove('sidebar-animating');
+    updateNavHistoryUI();
   });
 }
 

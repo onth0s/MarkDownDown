@@ -25,8 +25,7 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
   });
 
   test('style.css defines desktop collapse state, full layout width, and burger menu drawer', () => {
-    expect(styleCss).toContain('body.sidebar-collapsed .layout');
-    expect(styleCss).toContain('body.sidebar-collapsed .main');
+    expect(styleCss).toContain('body.sidebar-collapsed .sidebar');
     expect(styleCss).toContain('body.sidebar-collapsed .mobile-nav');
     expect(styleCss).toContain('display: inline-flex !important');
     expect(styleCss).toContain('body.sidebar-collapsed.nav-open .sidebar');
@@ -34,12 +33,11 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
 
   test('style.css defines edge reopen button with dynamic visibility', () => {
     expect(styleCss).toContain('.sidebar-reopen-btn');
-    expect(styleCss).toContain('body.sidebar-collapsed .sidebar-reopen-btn');
+    expect(styleCss).toContain('body.sidebar-collapsed:not(.nav-open) .sidebar-reopen-btn');
     expect(styleCss).toContain('.sidebar-reopen-btn.is-visible');
   });
 
   test('style.css defines sidebar-right positioning rules', () => {
-    expect(styleCss).toContain('body.sidebar-right .layout');
     expect(styleCss).toContain('body.sidebar-right .sidebar');
     expect(styleCss).toContain('body.sidebar-right .sidebar-reopen-btn');
   });
