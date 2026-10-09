@@ -21,7 +21,8 @@ export interface FormattedSpan {
 // 4. Italic: *text* or _text_
 // 5. Strikethrough: ~~text~~
 // Delimiters can also enclose backtick code, e.g. **`Alt+1`**
-const TOKEN_PATTERN = '(`[^`]+`|\\*\\*\\*[^*]+\\*\\*\\*|___[^_]+___|\\*\\*[^*]+\\*\\*|__[^_]+__|~~[^~]+~~|\\*[^*]+\\*|_[^_]+_)';
+// Underscore delimiters require non-alphanumeric boundaries to avoid mangling snake_case identifiers
+const TOKEN_PATTERN = '(`[^`]+`|\\*\\*\\*[^*]+\\*\\*\\*|(?<![a-zA-Z0-9])___[^_]+___(?![a-zA-Z0-9])|\\*\\*(?:.+?)\\*\\*|(?<![a-zA-Z0-9])__(?:.+?)__(?![a-zA-Z0-9])|~~[^~]+~~|\\*[^*]+\\*|(?<![a-zA-Z0-9])_[^_]+_(?![a-zA-Z0-9]))';
 
 /**
  * Tokenize a plain string with inline Markdown into an array of FormattedSpans.

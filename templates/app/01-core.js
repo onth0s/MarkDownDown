@@ -11,6 +11,10 @@ const settings = document.getElementById('settings');
 const progress = document.getElementById('progress');
 const backtop = document.getElementById('backtop');
 
+const headings = article ? [...article.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id], .alert[id]')].filter(h => !h.closest('.hero')) : [];
+const hasHero = article ? !!article.querySelector('.hero') : false;
+const mirrorBlocks = article ? [...article.querySelectorAll('.mirror-block')] : [];
+
 const navHistoryBar = document.getElementById('navHistoryBar');
 const navClearBtn = document.getElementById('navClearBtn');
 const navBackBtn = document.getElementById('navBackBtn');
@@ -411,7 +415,6 @@ function setMode(mode, isInitial = false) {
   }
 }
 
-const mirrorBlocks = [...article.querySelectorAll('.mirror-block')];
 const modeSwitch = document.getElementById('modeSwitch');
 const mirrorGlobalCount = document.getElementById('mirrorGlobalCount');
 if (mirrorBlocks.length > 0) {

@@ -21,4 +21,9 @@ describe('htmlDecode', () => {
     const original = 'Hello <World> & "Friends"';
     expect(htmlDecode(escHtml(original))).toBe(original);
   });
+
+  test('decodes astral plane Unicode entities (emoji, symbols)', () => {
+    expect(htmlDecode('&#x1F680;')).toBe('🚀');
+    expect(htmlDecode('&#128512;')).toBe('😀');
+  });
 });

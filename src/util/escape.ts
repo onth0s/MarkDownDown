@@ -25,8 +25,12 @@ export function htmlDecode(s: string): string {
     ENTITY_RE,
     (_, entity: string, dec: string | undefined, hex: string | undefined) => {
       if (ENTITY_MAP[entity]) return ENTITY_MAP[entity];
-      if (dec !== undefined) return String.fromCharCode(Number(dec));
-      if (hex !== undefined) return String.fromCharCode(parseInt(hex, 16));
+      try {
+        if (dec !== undefined) return String.fromCodePoint(Number(dec));
+        if (hex !== undefined) return String.fromCodePoint(parseInt(hex, 16));
+      } catch {
+        return _;
+      }
       return _;
     },
   );

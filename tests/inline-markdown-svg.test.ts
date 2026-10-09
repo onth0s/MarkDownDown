@@ -62,6 +62,15 @@ describe('inline-markdown parser', () => {
     ]);
   });
 
+  test('parses nested formatting inside bold (**bold with *italic* inside**)', () => {
+    const spans = parseInlineMarkdown('**bold with *italic* inside**');
+    expect(spans).toEqual([
+      { text: 'bold with ', bold: true },
+      { text: 'italic', bold: true, italic: true },
+      { text: ' inside', bold: true },
+    ]);
+  });
+
   test('stripMarkdown removes delimiters', () => {
     expect(stripMarkdown('**`Alt+1, F` / `F3`**')).toBe('Alt+1, F / F3');
     expect(stripMarkdown('~~old~~ and *new* and `code`')).toBe('old and new and code');
@@ -144,5 +153,14 @@ describe('diagram SVG with Markdown formatting', () => {
     expect(svg).toContain('class="diag-code-span"');
     expect(svg).toContain('triggers');
     expect(svg).not.toContain('**`triggers`**');
+  });
+
+  test('preserves snake_case identifiers without unwanted italicization', () => {
+    const spans = parseInlineMarkdown('user_profile_id and _italic_ text');
+    expect(spans).toEqual([
+      { text: 'user_profile_id and ' },
+      { text: 'italic', italic: true },
+      { text: ' text' },
+    ]);
   });
 });

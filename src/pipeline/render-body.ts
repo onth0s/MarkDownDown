@@ -73,19 +73,32 @@ export function renderBody(
   }
 
   // Custom renderer for wikilink tokens
-  md.renderer.rules['wikilink'] = (tokens, idx) => {
+  md.renderer.rules['wikilink'] = (tokens, idx, _opt, env) => {
     const tok = tokens[idx];
     const target = tok.content;
     const display = tok.info || target;
-    const pw = linkMap.get(`${target}|${display}`);
+    const currentLinkMap = (env && env.linkMap) || linkMap;
+    const pw = currentLinkMap.get(`${target}|${display}`);
     if (!pw?.resolution) return `[[${target}]]`;
-    return renderWikilinkToken(target, display, pw.resolution, options.outputMode, assetBase64Map, md);
+    const mode = (env && env.outputMode) || options.outputMode;
+    const b64Map = (env && env.assetBase64Map) || assetBase64Map;
+    const parser = (env && env.md) || md;
+    return renderWikilinkToken(target, display, pw.resolution, mode, b64Map, parser);
   };
 
   const inputDir = path.dirname(options.inputFile);
 
   // Render markdown to HTML, then inject SVGs, mirror blocks, and copy buttons
-  let bodyHtml = md.render(markdownBody, { warnings, inputDir, options, docTitle });
+  let bodyHtml = md.render(markdownBody, {
+    warnings,
+    inputDir,
+    options,
+    docTitle,
+    linkMap,
+    outputMode: options.outputMode,
+    assetBase64Map,
+    md,
+  });
   if (!options.noDiagrams) bodyHtml = injectDiagramSvgs(bodyHtml, docTitle, warnings);
   if (!options.noTables) bodyHtml = injectTableSvgs(bodyHtml, docTitle, warnings);
   const { html: mirrorHtml, stats: mirrorStats } = injectMirrorBlocks(bodyHtml, docTitle, warnings);

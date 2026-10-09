@@ -117,8 +117,9 @@ export function resolveHeading(str: string, headings: Heading[]): HeadingMatchRe
   const lev: Array<{ heading: Heading; dist: number }> = [];
   for (const h of headings) {
     const nh = norm(h.text);
-    const dist = levenshtein(ns, nh);
     const threshold = Math.max(2, Math.floor(nh.length * 0.3));
+    if (Math.abs(ns.length - nh.length) > threshold) continue;
+    const dist = levenshtein(ns, nh);
     if (dist <= threshold) {
       lev.push({ heading: h, dist });
       if (dist < minDist) minDist = dist;

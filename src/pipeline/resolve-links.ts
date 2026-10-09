@@ -55,7 +55,33 @@ export function resolveLinks(
   // Build asset base64 map (--single mode)
   const assetBase64Map = new Map<string, string>();
   if (options.outputMode === 'single') {
-    for (const asset of assets) {
+    const referencedPaths = new Set<string>();
+    for (const pw of pendingLinks) {
+      if (pw.resolution && (pw.resolution.kind === 'image' || pw.resolution.kind === 'video')) {
+        referencedPaths.add(pw.resolution.asset.absolutePath);
+      }
+    }
+    for (const token of tokens) {
+      if (token.type === 'inline' && token.children) {
+        for (const child of token.children) {
+          if (child.type === 'image') {
+            const src = child.attrGet('src');
+            if (src) {
+              const matching = assets.find(
+                a => a.relativePath === src || path.basename(a.relativePath) === path.basename(src) || a.absolutePath === src,
+              );
+              if (matching) referencedPaths.add(matching.absolutePath);
+            }
+          }
+        }
+      }
+    }
+
+    const targetAssets = (tokens.length === 0 && pendingLinks.length === 0)
+      ? assets
+      : assets.filter(a => referencedPaths.has(a.absolutePath));
+
+    for (const asset of targetAssets) {
       if (asset.kind === 'image' || asset.kind === 'video') {
         try {
           const data = fs.readFileSync(asset.absolutePath);

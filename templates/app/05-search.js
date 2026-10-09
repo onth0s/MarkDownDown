@@ -2,6 +2,10 @@
 const diagramContainers = [...article.querySelectorAll('.code-wrap.diagram')];
 const tableContainers = [...article.querySelectorAll('.code-wrap.table')];
 
+let caseSensitive = false;
+let matches = [];
+let currentMatch = -1;
+
 function sourceOffsetOf(el, root) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let off = 0;
@@ -144,10 +148,6 @@ searchableNodes.forEach(node => {
 });
 
 const navigableHeadings = headings.filter(h => h.id);
-
-let caseSensitive = false;
-let matches = [];
-let currentMatch = -1;
 
 function escapeRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

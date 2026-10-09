@@ -97,3 +97,11 @@ export const SKELETON = {
   SKIPPED_TAGS: ['svg', 'pre', 'button', 'script', 'style', 'textarea'] as const,
 } as const;
 
+/** Brand logo lightness tone thresholds and extremes. */
+export const LOGO = {
+  MID_LO: 15,
+  MID_HI: 85,
+  KNOCKOUT_L: 97,
+  SHADOW_L: 3,
+} as const;
+

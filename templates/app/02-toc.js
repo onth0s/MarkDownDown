@@ -1,8 +1,4 @@
 // ── Table of Contents & Copy Anchors ─────────────────────────────────────────
-const headings = [...article.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id], .alert[id]')]
-  .filter(h => !h.closest('.hero'));
-
-const hasHero = !!article.querySelector('.hero');
 toc.replaceChildren();
 if (hasHero) {
   const titleLi = document.createElement('li');

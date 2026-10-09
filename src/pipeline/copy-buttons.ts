@@ -9,8 +9,6 @@
  */
 import { CompileError } from '../util/error.js';
 
-const CODE_BLOCK_OR_WRAPPER_RE = /(<div\s+class="[^"]*\bcode-wrap\b[^"]*"[^>]*>)([\s\S]*?<\/div>)|(<pre><code[\s\S]*?<\/code><\/pre>)|(<table\b[\s\S]*?<\/table>)/g;
-
 /**
  * Download buttons for graphic code blocks.
  *
@@ -29,39 +27,77 @@ const DOWNLOAD_BTNS_HTML =
   '<span>JPG</span></button>' +
   '</div>';
 
-export function wrapCodeBlocksWithCopyButtons(html: string): string {
-  CODE_BLOCK_OR_WRAPPER_RE.lastIndex = 0;
-  const result = html.replace(
-    CODE_BLOCK_OR_WRAPPER_RE,
-    (_fullMatch, openWrapTag: string | undefined, wrapBody: string | undefined, plainPreBlock: string | undefined, tableBlock: string | undefined) => {
-      if (openWrapTag && wrapBody) {
-        const isGraphic = openWrapTag.includes('diagram') || openWrapTag.includes('table');
-        const hasCopy = wrapBody.includes('class="copy-btn"');
-        const hasDl = wrapBody.includes('class="download-btn"');
-        const titleMatch = openWrapTag.match(/data-title="([^"]*)"/);
-        const titleText = titleMatch ? titleMatch[1].trim() : '';
-
-        let headerHtml = '';
-        let prefix = '';
-        if (isGraphic && !hasDl) prefix += DOWNLOAD_BTNS_HTML;
-
-        if (isGraphic && titleText) {
-          headerHtml = `<div class="code-title-bar"><span class="code-title-text">${titleText}</span>${!hasCopy ? '<button class="copy-btn in-title-bar" type="button">Copy</button>' : ''}</div>`;
-        } else if (!hasCopy) {
-          prefix += '<button class="copy-btn" type="button">Copy</button>';
-        }
-
-        return `${openWrapTag}${headerHtml}${prefix}${wrapBody}`;
+/**
+ * Finds the index right after the closing </div> that balances the <div> starting at startIndex.
+ */
+function findMatchingClosingDiv(html: string, startIndex: number): number {
+  let depth = 0;
+  const tagRe = /<\/?div\b[^>]*>/gi;
+  tagRe.lastIndex = startIndex;
+  let match: RegExpExecArray | null;
+  while ((match = tagRe.exec(html)) !== null) {
+    if (match[0].startsWith('</')) {
+      depth--;
+      if (depth === 0) {
+        return match.index; // start of the closing </div> tag
       }
-      if (plainPreBlock) {
-        return `<div class="code-wrap"><button class="copy-btn" type="button">Copy</button>${plainPreBlock}</div>`;
-      }
-      if (tableBlock) {
-        return `<div class="code-wrap table"><button class="copy-btn" type="button">Copy</button>${DOWNLOAD_BTNS_HTML}${tableBlock}</div>`;
-      }
-      return _fullMatch;
+    } else {
+      depth++;
     }
-  );
+  }
+  return -1;
+}
+
+export function wrapCodeBlocksWithCopyButtons(html: string): string {
+  const tokenRe = /(<div\s+class="[^"]*\bcode-wrap\b[^"]*"[^>]*>)|(<pre><code[\s\S]*?<\/code><\/pre>)|(<table\b[\s\S]*?<\/table>)/gi;
+  let result = '';
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenRe.exec(html)) !== null) {
+    result += html.slice(lastIndex, match.index);
+
+    const [fullMatch, openWrapTag, plainPreBlock, tableBlock] = match;
+
+    if (openWrapTag) {
+      const closeDivStart = findMatchingClosingDiv(html, match.index);
+      if (closeDivStart === -1) {
+        // Fallback if malformed: append match and continue
+        result += fullMatch;
+        lastIndex = match.index + fullMatch.length;
+        continue;
+      }
+
+      const wrapBody = html.slice(match.index + openWrapTag.length, closeDivStart);
+      const isGraphic = openWrapTag.includes('diagram') || openWrapTag.includes('table');
+      const hasCopy = wrapBody.includes('class="copy-btn"');
+      const hasDl = wrapBody.includes('class="download-btn"');
+      const titleMatch = openWrapTag.match(/data-title="([^"]*)"/);
+      const titleText = titleMatch ? titleMatch[1].trim() : '';
+
+      let headerHtml = '';
+      let prefix = '';
+      if (isGraphic && !hasDl) prefix += DOWNLOAD_BTNS_HTML;
+
+      if (isGraphic && titleText) {
+        headerHtml = `<div class="code-title-bar"><span class="code-title-text">${titleText}</span>${!hasCopy ? '<button class="copy-btn in-title-bar" type="button">Copy</button>' : ''}</div>`;
+      } else if (!hasCopy) {
+        prefix += '<button class="copy-btn" type="button">Copy</button>';
+      }
+
+      result += `${openWrapTag}${headerHtml}${prefix}${wrapBody}</div>`;
+      lastIndex = closeDivStart + 6; // skip </div>
+      tokenRe.lastIndex = lastIndex;
+    } else if (plainPreBlock) {
+      result += `<div class="code-wrap"><button class="copy-btn" type="button">Copy</button>${plainPreBlock}</div>`;
+      lastIndex = match.index + plainPreBlock.length;
+    } else if (tableBlock) {
+      result += `<div class="code-wrap table"><button class="copy-btn" type="button">Copy</button>${DOWNLOAD_BTNS_HTML}${tableBlock}</div>`;
+      lastIndex = match.index + tableBlock.length;
+    }
+  }
+
+  result += html.slice(lastIndex);
 
   // Validate no nested code-wrappers
   validateNoNestedCodeWraps(result);
