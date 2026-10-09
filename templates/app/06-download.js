@@ -144,8 +144,7 @@ if (mddSkeletonEl && mddBrand && mddArticle) {
       setTimeout(() => URL.revokeObjectURL(url), 0);
     }
 
-    mddBrand.addEventListener('contextmenu', (ev) => {
-      ev.preventDefault();
+    function executeMddDownload() {
       try {
         // Work on a detached copy so the live page (search highlights, layout)
         // is never mutated by the seam unwrapping below.
@@ -166,6 +165,23 @@ if (mddSkeletonEl && mddBrand && mddArticle) {
       } catch (_) {
         // Never interrupt the user's reading session over a download hiccup.
       }
+    }
+
+    mddBrand.addEventListener('contextmenu', (ev) => {
+      ev.preventDefault();
+      executeMddDownload();
     });
+
+    const mddMenuDownloadBtn = document.getElementById('downloadMddBtn');
+    if (mddMenuDownloadBtn) {
+      mddMenuDownloadBtn.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        const dropMenu = document.getElementById('dropdownMenu');
+        if (dropMenu) dropMenu.classList.remove('open');
+        const mBtn = document.getElementById('menuBtn');
+        if (mBtn) mBtn.setAttribute('aria-expanded', 'false');
+        executeMddDownload();
+      });
+    }
   }
 }

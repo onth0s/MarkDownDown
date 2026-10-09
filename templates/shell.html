@@ -59,6 +59,13 @@
         <ellipse cx="310.52" cy="538.027" rx="57.8814" ry="55.5669"/>
       </svg>
     </button>
+    <button class="tool-btn icon-only" id="menuBtn" type="button" title="More options" aria-label="More options" aria-haspopup="true" aria-expanded="false">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="5" r="2"/>
+        <circle cx="12" cy="12" r="2"/>
+        <circle cx="12" cy="19" r="2"/>
+      </svg>
+    </button>
   </div>
 </header>
 
@@ -83,6 +90,43 @@
     <span>Mirror Audit</span>
     <button type="button" class="btn-reset-mirror" id="resetMirrorBtn" title="Reset all saved probe responses and reader notes">Reset progress</button>
   </div>
+</div>
+
+<div class="dropdown-menu" id="dropdownMenu" role="menu" aria-label="More options">
+  <button type="button" class="dropdown-item" id="downloadMddBtn" role="menuitem" title="Download the original Markdown++ source reconstructed from this document">
+    <span class="dropdown-item-left">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      <span>Download original MD++ file</span>
+    </span>
+  </button>
+  <button type="button" class="dropdown-item is-stub" id="exportPdfStubBtn" role="menuitem" title="Feature coming soon">
+    <span class="dropdown-item-left">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      <span>Export as PDF</span>
+    </span>
+    <span class="stub-badge">Stub</span>
+  </button>
+  <button type="button" class="dropdown-item is-stub" id="docStatsStubBtn" role="menuitem" title="Feature coming soon">
+    <span class="dropdown-item-left">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      <span>Document statistics</span>
+    </span>
+    <span class="stub-badge">Stub</span>
+  </button>
 </div>
 
 <div class="layout">

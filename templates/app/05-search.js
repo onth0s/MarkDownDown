@@ -523,13 +523,24 @@ document.addEventListener('keydown', event => {
     else search.focus();
   }
   if (event.key === 'Escape') {
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    const menuBtn = document.getElementById('menuBtn');
+    if (dropdownMenu && dropdownMenu.classList.contains('open')) {
+      dropdownMenu.classList.remove('open');
+      menuBtn?.setAttribute('aria-expanded', 'false');
+      menuBtn?.focus();
+      return;
+    }
     if (window.innerWidth <= 900 && body.classList.contains('nav-open')) {
       body.classList.remove('nav-open');
     }
     if (window.innerWidth <= 640 && body.classList.contains('search-mode')) {
       setSearchMode(false);
     }
-    if (settings.classList.contains('open')) settings.classList.remove('open');
+    if (settings && settings.classList.contains('open')) {
+      settings.classList.remove('open');
+      return;
+    }
     if (search.value) {
       search.value = '';
       search.dispatchEvent(new Event('input'));
