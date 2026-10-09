@@ -59,6 +59,8 @@ const navBtn = document.getElementById('navBtn');
 const sidebarResizer = document.getElementById('sidebarResizer');
 const sidebarReopenBtn = document.getElementById('sidebarReopenBtn');
 const sidebarPosBtn = document.getElementById('sidebarPosBtn');
+const dropdownSidebarPosBtn = document.getElementById('dropdownSidebarPosBtn');
+const dropdownSidebarPosBadge = document.getElementById('dropdownSidebarPosBadge');
 
 const DEFAULT_SIDEBAR_WIDTH = 280;
 const MIN_SIDEBAR_WIDTH = 160;
@@ -99,8 +101,12 @@ function setSidebarCollapsed(collapsed) {
 function setSidebarPosition(pos) {
   const isRight = pos === 'right';
   body.classList.toggle('sidebar-right', isRight);
+  const posText = isRight ? 'Right' : 'Left';
   if (sidebarPosBtn) {
-    sidebarPosBtn.textContent = isRight ? 'Right' : 'Left';
+    sidebarPosBtn.textContent = posText;
+  }
+  if (dropdownSidebarPosBadge) {
+    dropdownSidebarPosBadge.textContent = posText;
   }
   try { localStorage.setItem('mdd_sidebar_pos', isRight ? 'right' : 'left'); } catch (_) {}
   updateNavHistoryUI();
@@ -129,6 +135,15 @@ if (sidebarPosBtn) {
   sidebarPosBtn.addEventListener('click', () => {
     const currentIsRight = body.classList.contains('sidebar-right');
     setSidebarPosition(currentIsRight ? 'left' : 'right');
+  });
+}
+
+if (dropdownSidebarPosBtn) {
+  dropdownSidebarPosBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const currentIsRight = body.classList.contains('sidebar-right');
+    setSidebarPosition(currentIsRight ? 'left' : 'right');
+    closeDropdownMenu();
   });
 }
 

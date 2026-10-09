@@ -13,8 +13,10 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
     expect(shellHtml).toContain('id="sidebarReopenBtn"');
     expect(shellHtml).toContain('class="sidebar-reopen-btn"');
     expect(shellHtml).toContain('id="sidebarPosBtn"');
+    expect(shellHtml).toContain('id="dropdownSidebarPosBtn"');
     expect(shellHtml).toContain('class="btn-sidebar-pos"');
     expect(shellHtml).toContain('Sidebar position');
+    expect(shellHtml).toContain('Switch sidebar position');
   });
 
   test('style.css defines custom property --sidebar-w and responsive grid layout', () => {
@@ -46,6 +48,7 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
     expect(controlsJs).toContain('sidebarResizer');
     expect(controlsJs).toContain('sidebarReopenBtn');
     expect(controlsJs).toContain('sidebarPosBtn');
+    expect(controlsJs).toContain('dropdownSidebarPosBtn');
     expect(controlsJs).toContain('DEFAULT_SIDEBAR_WIDTH = 280');
     expect(controlsJs).toContain('COLLAPSE_THRESHOLD = 130');
     expect(controlsJs).toContain('dblclick');
