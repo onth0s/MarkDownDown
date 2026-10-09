@@ -86,6 +86,10 @@
     <button class="swatch" data-color="#f59e0b" style="background:#f59e0b" aria-label="Amber"></button>
     <button class="swatch" data-color="#f43f5e" style="background:#f43f5e" aria-label="Rose"></button>
   </div>
+  <div class="setting-row sidebar-setting-row">
+    <span>Sidebar position</span>
+    <button type="button" class="btn-sidebar-pos" id="sidebarPosBtn" title="Switch sidebar between left and right">Left</button>
+  </div>
   <div class="setting-row mirror-setting-row">
     <span>Mirror Audit</span>
     <button type="button" class="btn-reset-mirror" id="resetMirrorBtn" title="Reset all saved probe responses and reader notes">Reset progress</button>
@@ -133,6 +137,7 @@
   <aside class="sidebar" id="sidebar">
     <ul class="toc" id="toc"></ul>
   </aside>
+  <div class="sidebar-resizer" id="sidebarResizer" role="separator" aria-orientation="vertical" title="Drag to resize, double-click to reset" tabindex="0"></div>
   <main class="main">
     <article class="article" id="article">
       {{hero}}
@@ -151,6 +156,12 @@
     <span class="nav-label" id="navForwardLabel">Forward</span> <span class="nav-arrow">→</span>
   </button>
 </div>
+
+<button class="sidebar-reopen-btn" id="sidebarReopenBtn" type="button" aria-label="Expand sidebar" title="Expand sidebar">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <polyline points="9 18 15 12 9 6"/>
+  </svg>
+</button>
 
 <button class="backtop" id="backtop" aria-label="Back to top">↑</button>
 

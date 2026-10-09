@@ -74,4 +74,12 @@ describe('assembleHtml', () => {
     });
     expect(html).toContain('<title>Tom &amp; Jerry &quot;Show&quot;</title>');
   });
+
+  test('renders sidebar resizer, edge reopen button, and position toggle in shell', () => {
+    const html = assembleHtml(baseOpts);
+    expect(html).toContain('id="sidebarResizer"');
+    expect(html).toContain('id="sidebarReopenBtn"');
+    expect(html).toContain('id="sidebarPosBtn"');
+    expect(html).toContain('Sidebar position');
+  });
 });

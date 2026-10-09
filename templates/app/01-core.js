@@ -74,8 +74,14 @@ function updateNavHistoryUI() {
 
   // Position strictly to the right outside of the sidebar
   if (sidebar && window.innerWidth > 900) {
-    const rect = sidebar.getBoundingClientRect();
-    navHistoryBar.style.left = `${Math.round(rect.right + 20)}px`;
+    if (body.classList.contains('sidebar-right')) {
+      navHistoryBar.style.left = 'calc(max(0px, (100vw - 1500px) / 2) + 20px)';
+    } else if (body.classList.contains('sidebar-collapsed')) {
+      navHistoryBar.style.left = 'max(20px, env(safe-area-inset-left))';
+    } else {
+      const rect = sidebar.getBoundingClientRect();
+      navHistoryBar.style.left = `${Math.round(rect.right + 20)}px`;
+    }
   } else {
     navHistoryBar.style.left = 'max(16px, env(safe-area-inset-left))';
   }
