@@ -239,10 +239,22 @@ title_directive := "TITLE:" text
 header_row      := "|" cell ("|" cell)* ["|"]
 separator       := "|"? ("-" | ":") ("-" | ":")+ ("|" ("-" | ":")+)* ["|"]
 data_rows       := "|" cell ("|" cell)* ["|"]
-cell            := [^\|]*
+cell            := (escape | code_span | [^|`\\])*
+escape          := "\|" | "\\" | "\`"
+code_span       := "`"+ [^`]* "`"+
 ```
 
 Standard GFM pipe-table syntax. Separator-row alignment markers (`:---`, `:---:`, `---:`) are parsed but ignored — all cells render left-aligned.
+
+A `|` starts a new cell only when it is **neither backslash-escaped nor inside a backtick code span**. Outside code spans, `\|` yields a literal `|`, `\\` a literal `\`, and `` \` `` a literal backtick; a `\\` immediately before a `|` is a literal backslash followed by a real delimiter. Inside a code span everything is literal, so model tokens such as `<|image|>` stay in one cell when wrapped in backticks. This is deliberately friendlier than strict GFM, which requires escaping pipes even inside code spans.
+
+```table
+TITLE: Pipe Handling in Cells
+| Source | Cells |
+| `a|b` | One cell: a pipe inside inline code never delimits |
+| f\|oo | One cell: a backslash-escaped pipe is literal text |
+| a | b | Two cells: a bare pipe always delimits |
+```
 
 Cell text is measured with the same font model as diagrams (§1.8) and wrapped inside a bounded column width. Row heights are derived from the number of wrapped lines in the tallest cell of the row, so a long cell wraps instead of stretching the table past the reading column (§1.12).
 

@@ -1,6 +1,7 @@
 import { DIAGRAM as C } from '../../constants.js';
 import { CompileError } from '../../util/error.js';
-import { measureInline, measureText, widestLine, wrapToWidth } from '../text-metrics.js';
+import { parseInlineMarkdown, type FormattedSpan } from '../inline-markdown.js';
+import { measureInline, measureSpans, measureText, widestSpans, wrapSpansToWidth } from '../text-metrics.js';
 import type { DiagramModel, DiagramNode } from './types.js';
 
 /**
@@ -158,8 +159,8 @@ export interface TextLine {
 }
 
 export interface NodeMetrics {
-  titleLines: string[];
-  subLines: string[];
+  titleLines: FormattedSpan[][];
+  subLines: FormattedSpan[][];
   /** Every text line in paint order, with baselines relative to node centre. */
   lines: TextLine[];
   /** Vertical offset of the first baseline from the node centre. */
@@ -176,25 +177,25 @@ const CAP_RATIO = 0.72;
 const DESC_RATIO = 0.21;
 
 /** Build the text lines for a node, un-centred: first baseline sits at dy 0. */
-function buildTextLines(titleLines: string[], subLines: string[]): TextLine[] {
+function buildTextLines(titleLines: FormattedSpan[][], subLines: FormattedSpan[][]): TextLine[] {
   const lines: TextLine[] = [];
-  titleLines.forEach((text, i) => {
+  titleLines.forEach((spans, i) => {
     lines.push({
-      text,
+      text: spans.map(s => s.text).join(''),
       size: C.TITLE_SIZE,
       bold: true,
       dy: i * C.TITLE_H,
-      width: measureInline(text, C.TITLE_SIZE, { bold: true }),
+      width: measureSpans(spans, C.TITLE_SIZE, { bold: true }),
     });
   });
   const subBase = titleLines.length ? (titleLines.length - 1) * C.TITLE_H + C.SUB_H : 0;
-  subLines.forEach((text, i) => {
+  subLines.forEach((spans, i) => {
     lines.push({
-      text,
+      text: spans.map(s => s.text).join(''),
       size: C.SUB_SIZE,
       bold: false,
       dy: subBase + i * C.SUB_H,
-      width: measureInline(text, C.SUB_SIZE, {}),
+      width: measureSpans(spans, C.SUB_SIZE, {}),
     });
   });
   return lines;
@@ -231,9 +232,10 @@ export function measureNodeText(node: DiagramNode): NodeMetrics {
   const rectTextMaxW = C.MAX_W - C.PADX * 2;
   const baseWrap = isDiamond ? rectTextMaxW * C.DIAMOND_WRAP_RATIO : rectTextMaxW;
 
-  const wrap = (limit: number): { titleLines: string[]; subLines: string[] } => ({
-    titleLines: wrapToWidth(node.label, C.TITLE_SIZE, limit, { bold: true }),
-    subLines: node.subtitle ? wrapToWidth(node.subtitle, C.SUB_SIZE, limit) : [],
+  const wrap = (limit: number): { titleLines: FormattedSpan[][]; subLines: FormattedSpan[][] } => ({
+    // Parse before wrapping so a span split across lines keeps its formatting.
+    titleLines: wrapSpansToWidth(parseInlineMarkdown(node.label), C.TITLE_SIZE, limit, { bold: true }),
+    subLines: node.subtitle ? wrapSpansToWidth(parseInlineMarkdown(node.subtitle), C.SUB_SIZE, limit) : [],
   });
 
   let { titleLines, subLines } = wrap(baseWrap);
@@ -254,8 +256,8 @@ export function measureNodeText(node: DiagramNode): NodeMetrics {
   const lines = centerOnInk(buildTextLines(titleLines, subLines));
   const { top, bottom } = inkExtent(lines);
 
-  const titleW = widestLine(titleLines, C.TITLE_SIZE, { bold: true });
-  const subW = subLines.length ? widestLine(subLines, C.SUB_SIZE, {}) : 0;
+  const titleW = widestSpans(titleLines, C.TITLE_SIZE, { bold: true });
+  const subW = subLines.length ? widestSpans(subLines, C.SUB_SIZE, {}) : 0;
 
   return {
     titleLines,

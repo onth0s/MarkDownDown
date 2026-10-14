@@ -7,7 +7,7 @@ import {
   round1,
   xyAttrs,
 } from '../svg-helpers.js';
-import { renderFormattedTspans } from '../inline-markdown.js';
+import { renderFormattedTspans, renderSpansTspans } from '../inline-markdown.js';
 import { resolveGeometry, type DiagramGeometry, type Orientation, type PlacedNode } from './geometry.js';
 import type { DiagramModel } from './types.js';
 
@@ -77,7 +77,7 @@ function nodeTextSvg(p: PlacedNode): string {
   const { node, cx } = p;
   const title = node.titleLines
     .map((l, i) => {
-      const formatted = renderFormattedTspans(l, {
+      const formatted = renderSpansTspans(l, {
         codeClass: 'diag-code-span',
         strikeClass: 'diag-strike-span',
         parentBold: true,
@@ -87,7 +87,7 @@ function nodeTextSvg(p: PlacedNode): string {
     .join('');
   const sub = node.subLines
     .map((l, i) => {
-      const formatted = renderFormattedTspans(l, {
+      const formatted = renderSpansTspans(l, {
         codeClass: 'diag-code-span',
         strikeClass: 'diag-strike-span',
       });

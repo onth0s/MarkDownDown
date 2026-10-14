@@ -1,3 +1,5 @@
+import type { FormattedSpan } from '../inline-markdown.js';
+
 export type DiagramDirection = 'TB' | 'TD' | 'BT' | 'LR' | 'RL' | 'auto';
 
 export type NodeShape = 'rect' | 'rounded' | 'diamond';
@@ -14,8 +16,8 @@ export interface DiagramTextLine {
 }
 
 export interface DiagramNodeMetrics {
-  titleLines: string[];
-  subLines: string[];
+  titleLines: FormattedSpan[][];
+  subLines: FormattedSpan[][];
   lines: DiagramTextLine[];
   /** Baseline Y of the first line, relative to the node centre. */
   textTop: number;
@@ -37,8 +39,8 @@ export interface DiagramNode {
   w: number;
   h: number;
   labelOrd: number;
-  titleLines: string[];
-  subLines: string[];
+  titleLines: FormattedSpan[][];
+  subLines: FormattedSpan[][];
   metrics?: DiagramNodeMetrics;
 }
 

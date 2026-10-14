@@ -141,6 +141,18 @@ describe('diagramLayout + diagramBuildSvg', () => {
     expect(Number(wMatch![1])).toBeGreaterThan(Number(hMatch![1]));
   });
 
+  test('long code span in a node label keeps code styling on every wrapped line', () => {
+    const model = diagramParse(
+      'flowchart TB\n  A[`config with a very long value {"vision_config": None, "audio_config": None} end`]'
+    );
+    diagramLayout(model);
+    const node = model.nodes.get('A');
+    expect(node?.titleLines.length).toBeGreaterThan(1);
+    const svg = diagramBuildSvg(model, 'Test');
+    expect((svg.match(/diag-code-span/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect(svg).not.toContain('`');
+  });
+
   test('dynamically resolves long chain in auto mode to TB', () => {
     const model = diagramParse(`flowchart
       A["Input Document — Source file"]

@@ -7,15 +7,16 @@
  */
 import { escHtml as esc } from '../util/escape.js';
 import { TABLE as C } from '../constants.js';
-import { renderFormattedTspans } from './inline-markdown.js';
-import { measureInline, wrapToWidth } from './text-metrics.js';
+import { parseInlineMarkdown, renderSpansTspans, type FormattedSpan } from './inline-markdown.js';
+import { measureSpans, wrapSpansToWidth } from './text-metrics.js';
 import { round1 } from './svg-helpers.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
 /** One laid-out cell: its wrapped lines and the width they need. */
 interface CellLayout {
-  lines: string[];
+  /** Wrapped lines as pre-parsed spans, so formatting survives wrap points. */
+  lines: FormattedSpan[][];
   /** Measured width of the widest line, excluding cell padding. */
   width: number;
   lineH: number;
@@ -32,10 +33,12 @@ function layoutCell(text: string, bold: boolean): CellLayout {
   const size = bold ? C.HEAD_FONT_SIZE : C.FONT_SIZE;
   const lineH = bold ? C.HEAD_LINE_H : C.LINE_H;
   const maxTextW = Math.max(24, C.MAX_COL_TEXT_W - C.PADX * 2);
-  const lines = wrapToWidth(text, size, maxTextW, { bold });
+  // Parse before wrapping: a span split across lines keeps its formatting on
+  // every fragment instead of being re-parsed (and lost) per line.
+  const lines = wrapSpansToWidth(parseInlineMarkdown(text), size, maxTextW, { bold });
   let width = 0;
   for (const line of lines) {
-    const w = measureInline(line, size, { bold });
+    const w = measureSpans(line, size, { bold });
     if (w > width) width = w;
   }
   return { lines, width: Math.ceil(width), lineH };
@@ -88,8 +91,92 @@ export function tableParse(source: string): TableModel {
     return ord - 1;
   };
 
-  const splitCells = (line: string): string[] =>
-    line.replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+  /** A split cell: cooked text plus raw offsets into the source line for labels. */
+  interface SplitCell {
+    text: string;
+    start: number;
+    end: number;
+  }
+
+  /**
+   * Split a table row on delimiter pipes.
+   *
+   * GFM-friendly: a `|` only delimits when it is neither backslash-escaped
+   * (`\|`) nor inside a backtick code span (`` `...` ``). This keeps model
+   * tokens like `<|image|>` inside inline code in a single cell. Escapes
+   * (`\|` → `|`, `\\` → `\`, `` \` `` → `` ` ``) are resolved outside code
+   * spans; code-span content is kept literal.
+   */
+  const splitCells = (line: string): SplitCell[] => {
+    interface Seg {
+      cooked: string;
+      start: number;
+      end: number;
+    }
+    const segs: Seg[] = [];
+    let cooked = '';
+    let segStart = 0;
+    let codeLen = 0; // 0 = outside code; otherwise the opening backtick run length
+    let i = 0;
+    const pushSeg = (end: number): void => {
+      segs.push({ cooked, start: segStart, end });
+      cooked = '';
+      segStart = end + 1;
+    };
+    while (i < line.length) {
+      const ch = line[i];
+      if (codeLen > 0) {
+        if (ch === '`') {
+          let j = i;
+          while (j < line.length && line[j] === '`') j++;
+          cooked += line.slice(i, j);
+          if (j - i === codeLen) codeLen = 0;
+          i = j;
+          continue;
+        }
+        cooked += ch;
+        i++;
+        continue;
+      }
+      if (ch === '\\' && i + 1 < line.length && (line[i + 1] === '|' || line[i + 1] === '\\' || line[i + 1] === '`')) {
+        cooked += line[i + 1];
+        i += 2;
+        continue;
+      }
+      if (ch === '`') {
+        let j = i;
+        while (j < line.length && line[j] === '`') j++;
+        codeLen = j - i;
+        cooked += line.slice(i, j);
+        i = j;
+        continue;
+      }
+      if (ch === '|') {
+        pushSeg(i);
+        i++;
+        continue;
+      }
+      cooked += ch;
+      i++;
+    }
+    segs.push({ cooked, start: segStart, end: line.length });
+
+    // Drop the empty outer segments produced by leading/trailing delimiters.
+    if (segs.length > 1 && segs[0].start === 0 && segs[0].end === 0) segs.shift();
+    const last = segs[segs.length - 1];
+    if (segs.length > 1 && last && last.start === line.length && last.end === line.length) segs.pop();
+
+    // Trim display text; nudge raw offsets past surrounding whitespace so
+    // search labels still point at the cell in source (escapes for `|`, `\`,
+    // `` ` `` never produce whitespace, so raw whitespace == cooked whitespace).
+    return segs.map((s) => {
+      const raw = line.slice(s.start, s.end);
+      const lead = raw.length - raw.trimStart().length;
+      const trail = raw.length - raw.trimEnd().length;
+      const start = s.start + lead;
+      return { text: s.cooked.trim(), start, end: Math.max(start, s.end - trail) };
+    });
+  };
 
   const isSep = (cells: string[]): boolean =>
     cells.length > 0 && cells.every((c) => /^:?-+:?$/.test(c));
@@ -101,17 +188,11 @@ export function tableParse(source: string): TableModel {
     const off = pos;
     pos += line.length + 1;
     if (line.toUpperCase().startsWith('TITLE:')) continue;
-    const cells = splitCells(line);
+    const split = splitCells(line);
+    const cells = split.map((c) => c.text);
     if (!cells.length || isSep(cells)) continue;
 
-    let linePos = 0;
-    const ords: number[] = [];
-    for (const cell of cells) {
-      const rel = line.indexOf(cell, linePos);
-      const idx = rel >= 0 ? rel : linePos;
-      ords.push(pushLabel(cell, off + idx));
-      linePos = idx + cell.length;
-    }
+    const ords: number[] = split.map((c) => pushLabel(c.text, off + c.start));
 
     if (!seenHeader) {
       model.headers = cells;
@@ -187,7 +268,7 @@ export function tableBuildSvg(model: TableModel, title: string): string {
       .map(
         (line, i) =>
           `<tspan x="${cx + C.PADX}" dy="${i === 0 ? 0 : layout.lineH}">` +
-          renderFormattedTspans(line, {
+          renderSpansTspans(line, {
             codeClass: 'tbl-code-span',
             strikeClass: 'tbl-strike-span',
             parentBold: true,
@@ -214,7 +295,7 @@ export function tableBuildSvg(model: TableModel, title: string): string {
         .map(
           (line, i) =>
             `<tspan x="${cx + C.PADX}" dy="${i === 0 ? 0 : layout.lineH}">` +
-            renderFormattedTspans(line, { codeClass: 'tbl-code-span', strikeClass: 'tbl-strike-span' }) +
+            renderSpansTspans(line, { codeClass: 'tbl-code-span', strikeClass: 'tbl-strike-span' }) +
             `</tspan>`
         )
         .join('');

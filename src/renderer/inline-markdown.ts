@@ -109,11 +109,30 @@ export function renderFormattedTspans(
     parentItalic?: boolean;
   } = {}
 ): string {
-  const spans = parseInlineMarkdown(input);
+  return renderSpansTspans(parseInlineMarkdown(input), options);
+}
+
+/**
+ * Render pre-parsed spans to SVG <tspan> elements.
+ *
+ * Unlike `renderFormattedTspans`, this accepts spans directly so callers that
+ * wrap text *after* parsing (and may split a span across lines) keep the
+ * span's formatting on every fragment. Re-parsing each wrapped line instead
+ * would drop formatting wherever a span crosses a wrap point.
+ */
+export function renderSpansTspans(
+  spans: FormattedSpan[],
+  options: {
+    codeClass?: string;
+    strikeClass?: string;
+    parentBold?: boolean;
+    parentItalic?: boolean;
+  } = {}
+): string {
   const hasFormatting = spans.some(s => s.bold || s.italic || s.code || s.strike);
 
   if (!hasFormatting) {
-    return escHtml(input);
+    return escHtml(spans.map(s => s.text).join(''));
   }
 
   return spans.map(s => {

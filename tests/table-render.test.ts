@@ -1,4 +1,6 @@
 import { tableParse, tableBuildSvg } from '../src/renderer/table-svg.js';
+import { parseInlineMarkdown } from '../src/renderer/inline-markdown.js';
+import { wrapSpansToWidth, wrapToWidth } from '../src/renderer/text-metrics.js';
 
 describe('tableParse', () => {
   const sample = `| Column A | Column B | Column C |
@@ -68,5 +70,101 @@ describe('tableBuildSvg', () => {
     expect(svg).toContain('Item');
     expect(svg).toContain('One');
     expect(svg).toContain('Two');
+  });
+});
+
+describe('tableParse pipe escapes', () => {
+  test('pipes inside inline code spans do not split cells', () => {
+    const model = tableParse(`| Fact | Value (source) |
+|---|---|
+| Placeholders | \`<|image|>\`, \`<|video|>\`, \`<|audio|>\` mark media positions in text (HF card) |`);
+    expect(model.headers).toEqual(['Fact', 'Value (source)']);
+    expect(model.rows.length).toBe(1);
+    expect(model.rows[0].length).toBe(2);
+    expect(model.rows[0][0]).toBe('Placeholders');
+    expect(model.rows[0][1]).toContain('<|image|>');
+    expect(model.rows[0][1]).toContain('<|video|>');
+    expect(model.rows[0][1]).toContain('<|audio|>');
+  });
+
+  test('backslash-escaped pipes do not split cells', () => {
+    const model = tableParse(`| A | B |\n|---|---|\n| f\\|oo | bar |`);
+    expect(model.rows.length).toBe(1);
+    expect(model.rows[0]).toEqual(['f|oo', 'bar']);
+  });
+
+  test('double-backslash before a pipe still delimits', () => {
+    const model = tableParse(`| A | B |\n|---|---|\n| a\\\\ | b |`);
+    expect(model.rows.length).toBe(1);
+    expect(model.rows[0]).toEqual(['a\\', 'b']);
+  });
+
+  test('double-backtick code spans protect pipes', () => {
+    const model = tableParse('| A | B |\n|---|---|\n| ``a|b`` | c |');
+    expect(model.rows.length).toBe(1);
+    expect(model.rows[0]).toEqual(['``a|b``', 'c']);
+  });
+
+  test('label offsets still point at cell text', () => {
+    const src = `| Fact | Value |\n|---|---|\n| Placeholders | \`<|image|>\` ok |`;
+    const model = tableParse(src);
+    expect(model.rows[0].length).toBe(2);
+    const ord = model.rowOrds[0][1];
+    const label = model.labels.find((l) => l.ord === ord);
+    expect(label).toBeDefined();
+    expect(src.slice(label!.offset, label!.offset + 11)).toBe('`<|image|>`');
+  });
+});
+
+describe('wrapSpansToWidth', () => {
+  test('matches wrapToWidth line breaks for plain text', () => {
+    const cases = [
+      'Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu',
+      'A supercalifragilisticexpialidocious token that must hard break somewhere',
+      ' short ',
+    ];
+    for (const text of cases) {
+      for (const maxW of [300, 276, 120, 40]) {
+        const plain = wrapToWidth(text, 12, maxW, {});
+        const spanned = wrapSpansToWidth(parseInlineMarkdown(text), 12, maxW, {});
+        expect(spanned.map((l) => l.map((s) => s.text).join(''))).toEqual(plain);
+      }
+    }
+  });
+
+  test('carries code flags across wrapped lines', () => {
+    const lines = wrapSpansToWidth(
+      parseInlineMarkdown('`{"vision_config": None, "audio_config": None}`'),
+      12,
+      276,
+      {}
+    );
+    expect(lines.length).toBeGreaterThan(1);
+    for (const line of lines) {
+      expect(line.length).toBeGreaterThan(0);
+      for (const s of line) expect(s.code).toBe(true);
+    }
+  });
+});
+
+describe('tableBuildSvg wrapped inline formatting', () => {
+  test('code span split across wrapped lines keeps code styling on every line', () => {
+    const model = tableParse(
+      '| Load | config |\n|---|---|\n| Full | `{"vision_config": None, "audio_config": None}` |'
+    );
+    expect(model.rows[0].length).toBe(2);
+    const svg = tableBuildSvg(model, 'Test');
+    expect((svg.match(/tbl-code-span/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect(svg).not.toContain('`');
+    expect(svg).toContain('vision_config');
+  });
+
+  test('bold span split across wrapped lines keeps bold on every line', () => {
+    const model = tableParse(
+      '| A | B |\n|---|---|\n| x | **alpha beta gamma delta epsilon zeta eta theta iota kappa** |'
+    );
+    const svg = tableBuildSvg(model, 'Test');
+    expect((svg.match(/<tspan[^>]*font-weight="700"/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect(svg).not.toContain('**');
   });
 });

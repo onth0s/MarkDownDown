@@ -92,7 +92,7 @@ describe('spec-embedded diagrams compile (Gotcha #8)', () => {
 describe('spec-embedded tables compile', () => {
   test('every table in `mdd --spec` parses and generates valid SVG', () => {
     const spec = execFileSync('node', ['dist/cli.cjs', '--spec'], { encoding: 'utf8' });
-    expect(compileAllTableFences(spec)).toBe(13);
+    expect(compileAllTableFences(spec)).toBe(14);
   });
 
   test('every table embedded in SPEC.md parses and generates valid SVG', () => {
@@ -102,7 +102,7 @@ describe('spec-embedded tables compile', () => {
 
   test('every table embedded in DSL.md parses and generates valid SVG', () => {
     const dsl = fs.readFileSync(path.resolve(process.cwd(), 'DSL.md'), 'utf8');
-    expect(compileAllTableFences(dsl)).toBe(8);
+    expect(compileAllTableFences(dsl)).toBe(9);
   });
 });
 

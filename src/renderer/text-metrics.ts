@@ -89,7 +89,7 @@ function glyphEm(ch: string): number {
   return FULL_EM;
 }
 
-import { parseInlineMarkdown } from './inline-markdown.js';
+import { parseInlineMarkdown, type FormattedSpan } from './inline-markdown.js';
 
 export interface MeasureOptions {
   /** Render at weight 700. */
@@ -132,12 +132,26 @@ export function measureText(text: string, size: number, opts: MeasureOptions = {
   return opts.exact ? raw : raw * SAFETY;
 }
 
-/** Split `text` into maximal runs that share a rendering style. */
-interface StyledRun {
-  text: string;
-  bold: boolean;
-  italic: boolean;
-  mono: boolean;
+/** Advance width of pre-parsed spans, in SVG user units (before SAFETY bias). */
+function spansWidth(spans: FormattedSpan[], size: number, parentBold: boolean): number {
+  let total = 0;
+  for (const span of spans) {
+    // Italic does not change advances; only bold and the monospace family do.
+    // Code is always measured bold monospace, matching the SVG it renders to.
+    total += runWidth(span.text, size, !!(span.bold || span.code) || parentBold, !!span.code);
+  }
+  return total;
+}
+
+/**
+ * Measure pre-parsed inline-Markdown spans, charging each at its own weight
+ * and family. This is `measureInline` without the re-parse step, for callers
+ * that wrap *after* parsing and must measure fragments of split spans.
+ */
+export function measureSpans(spans: FormattedSpan[], size: number, opts: MeasureOptions = {}): number {
+  if (!spans.length) return 0;
+  const total = spansWidth(spans, size, !!opts.bold);
+  return opts.exact ? total : total * SAFETY;
 }
 
 /**
@@ -150,25 +164,7 @@ interface StyledRun {
  */
 export function measureInline(text: string, size: number, opts: MeasureOptions = {}): number {
   if (!text) return 0;
-  const parentBold = !!opts.bold;
-  const runs = styledRuns(text, parentBold, !!opts.italic);
-  let total = 0;
-  for (const run of runs) {
-    total += runWidth(run.text, size, run.bold, run.mono);
-  }
-  return opts.exact ? total : total * SAFETY;
-}
-
-/** Build the styled runs for a line, resolving nested inline Markdown. */
-function styledRuns(text: string, parentBold: boolean, parentItalic: boolean): StyledRun[] {
-  const spans = parseInlineMarkdown(text);
-  if (!spans.length) return [];
-  return spans.map(span => ({
-    text: span.text,
-    bold: !!(span.bold || span.code) || parentBold,
-    italic: !!(span.italic || parentItalic),
-    mono: !!span.code,
-  }));
+  return measureSpans(parseInlineMarkdown(text), size, opts);
 }
 
 /**
@@ -234,4 +230,156 @@ export function widestLine(lines: string[], size: number, opts: MeasureOptions =
     if (w > max) max = w;
   }
   return max;
+}
+
+/** Widest line of an already-wrapped span block, in SVG user units. */
+export function widestSpans(lines: FormattedSpan[][], size: number, opts: MeasureOptions = {}): number {
+  let max = 0;
+  for (const line of lines) {
+    const w = measureSpans(line, size, opts);
+    if (w > max) max = w;
+  }
+  return max;
+}
+
+/** One character with the inline-Markdown flags of the span it came from. */
+interface StyledChar {
+  ch: string;
+  bold: boolean;
+  italic: boolean;
+  code: boolean;
+  strike: boolean;
+}
+
+/**
+ * Word-wrap pre-parsed spans so every produced line measures no wider than
+ * `maxW`, keeping each fragment's formatting.
+ *
+ * This is `wrapToWidth` for callers that parse *before* wrapping: a span may
+ * be split across lines (or hard-broken mid-token) and every fragment retains
+ * the span's flags, so rendering the lines never drops code/bold/italic/strike
+ * the way re-parsing each wrapped line does. For text without formatting the
+ * break decisions and widths are identical to `wrapToWidth`.
+ */
+export function wrapSpansToWidth(
+  spans: FormattedSpan[],
+  size: number,
+  maxW: number,
+  opts: MeasureOptions = {},
+): FormattedSpan[][] {
+  const chars: StyledChar[] = [];
+  for (const s of spans) {
+    for (const ch of s.text) {
+      chars.push({ ch, bold: !!s.bold, italic: !!s.italic, code: !!s.code, strike: !!s.strike });
+    }
+  }
+
+  const words: StyledChar[][] = [];
+  let word: StyledChar[] = [];
+  for (const c of chars) {
+    if (/\s/.test(c.ch)) {
+      if (word.length) {
+        words.push(word);
+        word = [];
+      }
+      continue;
+    }
+    word.push(c);
+  }
+  if (word.length) words.push(word);
+  if (!words.length) return [];
+
+  const limit = Math.max(1, maxW);
+  const parentBold = !!opts.bold;
+  const charWidth = (c: StyledChar): number =>
+    runWidth(c.ch, size, c.bold || c.code || parentBold, c.code);
+  const biased = (raw: number): number => (opts.exact ? raw : raw * SAFETY);
+  const widthOf = (cs: StyledChar[]): number => {
+    let total = 0;
+    for (const c of cs) total += charWidth(c);
+    return biased(total);
+  };
+  // The single-space separator between words. It inherits the style of the
+  // text before it, so a break inside a code span keeps a monospace space.
+  const sepWidth = (prev: StyledChar | undefined): number =>
+    biased(runWidth(' ', size, (prev?.bold || prev?.code || parentBold) ?? parentBold, !!prev?.code));
+
+  const toSpans = (cs: StyledChar[]): FormattedSpan[] => {
+    const out: FormattedSpan[] = [];
+    for (const c of cs) {
+      const last = out[out.length - 1];
+      // Flags are optional on FormattedSpan, so normalize before comparing:
+      // `undefined` and `false` both mean "off" and must merge.
+      if (
+        last &&
+        !!last.bold === c.bold &&
+        !!last.italic === c.italic &&
+        !!last.code === c.code &&
+        !!last.strike === c.strike
+      ) {
+        last.text += c.ch;
+      } else {
+        const span: FormattedSpan = { text: c.ch };
+        if (c.bold) span.bold = true;
+        if (c.italic) span.italic = true;
+        if (c.code) span.code = true;
+        if (c.strike) span.strike = true;
+        out.push(span);
+      }
+    }
+    return out;
+  };
+
+  const lines: StyledChar[][] = [];
+  let current: StyledChar[] = [];
+  let currentW = 0;
+
+  const flush = (): void => {
+    if (current.length) lines.push(current);
+    current = [];
+    currentW = 0;
+  };
+
+  for (const w of words) {
+    const wW = widthOf(w);
+    if (wW <= limit) {
+      const prev = current.length ? current[current.length - 1] : undefined;
+      const sep = prev ? sepWidth(prev) : 0;
+      if (!prev || currentW + sep + wW <= limit) {
+        if (prev) {
+          current.push({ ch: ' ', bold: prev.bold, italic: prev.italic, code: prev.code, strike: prev.strike });
+          currentW += sep;
+        }
+        current.push(...w);
+        currentW += wW;
+        continue;
+      }
+      flush();
+      current = [...w];
+      currentW = wW;
+      continue;
+    }
+
+    // Over-long token: hard-break it so no line can exceed the limit.
+    flush();
+    let chunk: StyledChar[] = [];
+    let chunkW = 0;
+    for (const ch of w) {
+      const cw = biased(charWidth(ch));
+      if (chunk.length && chunkW + cw > limit) {
+        lines.push(chunk);
+        chunk = [ch];
+        chunkW = cw;
+      } else {
+        chunk.push(ch);
+        chunkW += cw;
+      }
+    }
+    current = chunk;
+    currentW = chunkW;
+  }
+  flush();
+
+  const out = lines.map(toSpans);
+  return out.length ? out : [[]];
 }
