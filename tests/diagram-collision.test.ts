@@ -276,6 +276,71 @@ end
     }
     expect(geo.warnings.filter(w => /edge crossing pair/.test(w))).toEqual([]);
   });
+
+  test('no edge passes through any subgraph title text box across the showcase corpus', () => {
+    for (const fence of showcaseDiagrams()) {
+      for (const orientation of ['TB', 'LR'] as Orientation[]) {
+        const m = diagramParse(fence);
+        diagramLayout(m);
+        const geo = resolveGeometry(m, orientation);
+        if (!geo.subgraphs || geo.subgraphs.length === 0) continue;
+
+        for (const placed of geo.edges) {
+          for (const sg of geo.subgraphs) {
+            const tw = measureText(sg.subgraph.label, 12, { bold: true });
+            const titleBox: Box = {
+              minX: sg.box.minX,
+              minY: sg.box.minY,
+              maxX: Math.min(sg.box.maxX, sg.box.minX + 12 + tw + 12),
+              maxY: sg.box.minY + (sg.subgraph.headerH || 28),
+            };
+            for (const p of placed.route.points) {
+              const inside =
+                p.x >= titleBox.minX &&
+                p.x <= titleBox.maxX &&
+                p.y >= titleBox.minY &&
+                p.y <= titleBox.maxY;
+              expect(inside).toBe(false);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  test('blueprint cross-cluster edge Controller --> Layout routes around the Pipeline header title banner', () => {
+    const fences = showcaseDiagrams();
+    const blueprintFence = fences.find(f => f.includes('Architectural Blueprint'))!;
+    expect(blueprintFence).toBeDefined();
+
+    for (const orientation of ['TB', 'LR'] as Orientation[]) {
+      const m = diagramParse(blueprintFence);
+      diagramLayout(m);
+      const geo = resolveGeometry(m, orientation);
+      const edge = geo.edges.find(e => e.edge.from === 'Controller' && e.edge.to === 'Layout');
+      expect(edge).toBeDefined();
+
+      const pipeline = geo.subgraphs?.find(s => s.subgraph.id === 'Pipeline');
+      expect(pipeline).toBeDefined();
+
+      const tw = measureText(pipeline!.subgraph.label, 12, { bold: true });
+      const titleBox: Box = {
+        minX: pipeline!.box.minX,
+        minY: pipeline!.box.minY,
+        maxX: Math.min(pipeline!.box.maxX, pipeline!.box.minX + 12 + tw + 12),
+        maxY: pipeline!.box.minY + (pipeline!.subgraph.headerH || 28),
+      };
+
+      for (const p of edge!.route.points) {
+        const inside =
+          p.x >= titleBox.minX &&
+          p.x <= titleBox.maxX &&
+          p.y >= titleBox.minY &&
+          p.y <= titleBox.maxY;
+        expect(inside).toBe(false);
+      }
+    }
+  });
 });
 
 describe('diagram geometry: edge labels clear the nodes', () => {

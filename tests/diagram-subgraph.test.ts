@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from '@jest/globals';
 import { diagramParse, diagramLayout, diagramBuildSvg } from '../src/renderer/diagram/index.js';
 
@@ -155,5 +157,22 @@ end
     const idxL3 = svg.indexOf('data-id="L3"');
     expect(idxL1).toBeLessThan(idxL2);
     expect(idxL2).toBeLessThan(idxL3);
+  });
+
+  it('inlines explicit presentation attributes on subgraph elements in 03-controls.js to prevent pitch-black rasterization', () => {
+    const controlsJs = fs.readFileSync(path.resolve(process.cwd(), 'templates/app/03-controls.js'), 'utf8');
+
+    // Ensure computed style sampling is registered for subgraphs
+    expect(controlsJs).toContain("sampleSubgraphBody");
+    expect(controlsJs).toContain("sampleSubgraphHdr");
+    expect(controlsJs).toContain("sampleSubgraphTitle");
+
+    // Ensure presentation attributes are inlined on cloned SVG
+    expect(controlsJs).toContain("svgClone.querySelectorAll('.subgraph-body')");
+    expect(controlsJs).toContain("svgClone.querySelectorAll('.subgraph-hdr')");
+    expect(controlsJs).toContain("svgClone.querySelectorAll('.subgraph-title')");
+    expect(controlsJs).toContain("el.setAttribute('fill', subgraphBodyFill)");
+    expect(controlsJs).toContain("el.setAttribute('fill', subgraphHdrFill)");
+    expect(controlsJs).toContain("el.setAttribute('fill', subgraphTitleFill)");
   });
 });

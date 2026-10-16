@@ -453,6 +453,9 @@ document.querySelectorAll('.download-btn').forEach(btn => {
     const sampleTblCellBg = svg.querySelector('.tbl-cell-bg') || liveWrap.querySelector('.tbl-cell-bg');
     const sampleTblCellText = svg.querySelector('.tbl-cell-text') || liveWrap.querySelector('.tbl-cell-text');
     const sampleTblGrid = svg.querySelector('.tbl-grid') || liveWrap.querySelector('.tbl-grid');
+    const sampleSubgraphBody = svg.querySelector('.subgraph-body') || liveWrap.querySelector('.subgraph-body');
+    const sampleSubgraphHdr = svg.querySelector('.subgraph-hdr') || liveWrap.querySelector('.subgraph-hdr');
+    const sampleSubgraphTitle = svg.querySelector('.subgraph-title') || liveWrap.querySelector('.subgraph-title');
 
     const accent = getResolvedColor(sampleNodeTitle, 'fill', rootStyles.getPropertyValue('--accent').trim() || '#3b82f6');
     const nodeRectFill = getResolvedColor(sampleNodeRect, 'fill', isLight ? '#ffffff' : '#172033');
@@ -467,6 +470,11 @@ document.querySelectorAll('.download-btn').forEach(btn => {
     const tblCellBg = getResolvedColor(sampleTblCellBg, 'fill', isLight ? '#ffffff' : '#172033');
     const tblCellText = getResolvedColor(sampleTblCellText, 'fill', isLight ? '#0f172a' : '#f8fafc');
     const tblGridStroke = getResolvedColor(sampleTblGrid, 'stroke', nodeRectStroke);
+    const subgraphBodyFill = getResolvedColor(sampleSubgraphBody, 'fill', isLight ? '#f8fafc' : '#111827');
+    const subgraphBodyStroke = getResolvedColor(sampleSubgraphBody, 'stroke', isLight ? '#e2e8f0' : '#1e293b');
+    const subgraphHdrFill = getResolvedColor(sampleSubgraphHdr, 'fill', isLight ? '#f1f5f9' : '#1a2234');
+    const subgraphHdrStroke = getResolvedColor(sampleSubgraphHdr, 'stroke', isLight ? '#e2e8f0' : '#1e293b');
+    const subgraphTitleFill = getResolvedColor(sampleSubgraphTitle, 'fill', isLight ? '#64748b' : '#94a3b8');
 
     // Purge any preexisting or embedded <style> tags so vector parsers (Figma) don't get confused by CSS cascades
     svgClone.querySelectorAll('style').forEach(s => s.remove());
@@ -569,6 +577,28 @@ document.querySelectorAll('.download-btn').forEach(btn => {
     svgClone.querySelectorAll('.tbl-grid').forEach(el => {
       el.setAttribute('stroke', tblGridStroke);
       el.setAttribute('stroke-width', '1');
+      el.removeAttribute('style');
+    });
+    svgClone.querySelectorAll('.subgraph-body').forEach(el => {
+      el.setAttribute('fill', subgraphBodyFill);
+      el.setAttribute('stroke', subgraphBodyStroke);
+      el.setAttribute('stroke-width', '1');
+      el.setAttribute('fill-opacity', '1');
+      el.removeAttribute('style');
+    });
+    svgClone.querySelectorAll('.subgraph-hdr').forEach(el => {
+      el.setAttribute('fill', subgraphHdrFill);
+      el.setAttribute('stroke', subgraphHdrStroke);
+      el.setAttribute('stroke-width', '1');
+      el.setAttribute('fill-opacity', '1');
+      el.removeAttribute('style');
+    });
+    svgClone.querySelectorAll('.subgraph-title').forEach(el => {
+      el.setAttribute('fill', subgraphTitleFill);
+      el.setAttribute('fill-opacity', '1');
+      el.setAttribute('font-family', 'Inter, sans-serif');
+      el.setAttribute('font-size', '12px');
+      el.setAttribute('font-weight', '600');
       el.removeAttribute('style');
     });
 

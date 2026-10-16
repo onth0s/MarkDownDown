@@ -15,7 +15,7 @@
  */
 
 import { DIAGRAM as C } from '../../constants.js';
-import { measureInline } from '../text-metrics.js';
+import { measureInline, measureText } from '../text-metrics.js';
 import {
   cubicRoute,
   lineRoute,
@@ -517,7 +517,10 @@ function routeAround(
       const preferredX = Math.abs(chordMidX - rightX) <= Math.abs(chordMidX - leftX) ? rightX : leftX;
       const alternateX = preferredX === rightX ? leftX : rightX;
       const gateY = Math.min(box.minY - C.EDGE_CLEAR, start.y + 8);
-      const exitY = Math.max(box.maxY + C.EDGE_CLEAR, end.y - 8);
+      let exitY = Math.max(box.maxY + C.EDGE_CLEAR, end.y - 8);
+      if (box.maxY < end.y && exitY > end.y - 6) {
+        exitY = Math.max(box.maxY + 4, end.y - 8);
+      }
 
       const candidates: Array<{ route: EdgeRoute; crossings: number }> = [];
       for (const corridorX of [preferredX, alternateX]) {
@@ -571,7 +574,10 @@ function routeAround(
     const preferredY = Math.abs(chordMidY - botY) <= Math.abs(chordMidY - topY) ? botY : topY;
     const alternateY = preferredY === botY ? topY : botY;
     const gateX = Math.min(box.minX - C.EDGE_CLEAR, start.x + 8);
-    const exitX = Math.max(box.maxX + C.EDGE_CLEAR, end.x - 8);
+    let exitX = Math.max(box.maxX + C.EDGE_CLEAR, end.x - 8);
+    if (box.maxX < end.x && exitX > end.x - 6) {
+      exitX = Math.max(box.maxX + 4, end.x - 8);
+    }
 
     const candidates: Array<{ route: EdgeRoute; crossings: number }> = [];
     for (const corridorY of [preferredY, alternateY]) {
@@ -691,6 +697,45 @@ export function resolveGeometry(model: DiagramModel, orientation: Orientation): 
   const ports = buildPortMaps(model, nodes);
   const warnings: string[] = [];
 
+  const isLR = orientation === 'LR';
+  const subgraphTitleObstacles: PlacedNode[] = [];
+  if (model.subgraphs) {
+    for (const sg of model.subgraphs.values()) {
+      const sgX = isLR ? (sg.lrX ?? sg.x) : sg.x;
+      const sgY = isLR ? (sg.lrY ?? sg.y) : sg.y;
+      const sgW = isLR ? (sg.lrW ?? sg.w) : sg.w;
+      const headerH = sg.headerH || 28;
+      const titleW = measureText(sg.label, 12, { bold: true });
+      const titleBox: Box = {
+        minX: sgX,
+        minY: sgY,
+        maxX: Math.min(sgX + sgW, sgX + 12 + titleW + 12),
+        maxY: sgY + headerH,
+      };
+      subgraphTitleObstacles.push({
+        node: {
+          id: `__subgraph_title_${sg.id}`,
+          label: sg.label,
+          subtitle: '',
+          shape: 'rect',
+          rank: 0,
+          order: 0,
+          x: (titleBox.minX + titleBox.maxX) / 2,
+          y: (titleBox.minY + titleBox.maxY) / 2,
+          w: titleBox.maxX - titleBox.minX,
+          h: titleBox.maxY - titleBox.minY,
+          labelOrd: -1,
+          titleLines: [],
+          subLines: [],
+        },
+        cx: (titleBox.minX + titleBox.maxX) / 2,
+        cy: (titleBox.minY + titleBox.maxY) / 2,
+        box: titleBox,
+        isSubgraph: true,
+      });
+    }
+  }
+
   const placed: PlacedEdge[] = [];
 
   for (const edge of model.edges) {
@@ -744,7 +789,13 @@ export function resolveGeometry(model: DiagramModel, orientation: Orientation): 
       // re-threaded through a free corridor beside the obstruction. Endpoint
       // contact with the source and target is expected, so the port-aware
       // check ignores it.
-      const others = nodes.filter(n => isObstacleForEdge(n, edge.from, edge.to, model));
+      const others = [
+        ...nodes.filter(n => isObstacleForEdge(n, edge.from, edge.to, model)),
+        ...subgraphNodes.filter(n => isObstacleForEdge(n, edge.from, edge.to, model)),
+        ...subgraphTitleObstacles.filter(
+          t => t.node.id !== `__subgraph_title_${edge.from}` && t.node.id !== `__subgraph_title_${edge.to}`
+        ),
+      ];
       const hits = edgeNodeCollisions(route, others);
       if (hits.length) {
         const obstacles = others.filter(n => hits.some(h => h.nodeId === n.node.id));
