@@ -27,6 +27,12 @@ const DOWNLOAD_BTNS_HTML =
   '<span>JPG</span></button>' +
   '</div>';
 
+const VIEW_TOGGLE_BTN_HTML =
+  '<button class="view-toggle-btn" type="button" aria-label="Show raw DSL" title="Show raw DSL">' +
+  '<svg class="view-toggle-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>' +
+  '<span class="view-toggle-text">Raw</span>' +
+  '</button>';
+
 /**
  * Finds the index right after the closing </div> that balances the <div> starting at startIndex.
  */
@@ -72,12 +78,15 @@ export function wrapCodeBlocksWithCopyButtons(html: string): string {
       const isGraphic = openWrapTag.includes('diagram') || openWrapTag.includes('table');
       const hasCopy = wrapBody.includes('class="copy-btn"');
       const hasDl = wrapBody.includes('class="download-btn"');
+      const hasToggle = wrapBody.includes('class="view-toggle-btn"');
+      const hasPre = wrapBody.includes('<pre');
       const titleMatch = openWrapTag.match(/data-title="([^"]*)"/);
       const titleText = titleMatch ? titleMatch[1].trim() : '';
 
       let headerHtml = '';
       let prefix = '';
       if (isGraphic && !hasDl) prefix += DOWNLOAD_BTNS_HTML;
+      if (isGraphic && hasPre && !hasToggle) prefix += VIEW_TOGGLE_BTN_HTML;
 
       if (isGraphic && titleText) {
         headerHtml = `<div class="code-title-bar"><span class="code-title-text">${titleText}</span>${!hasCopy ? '<button class="copy-btn in-title-bar" type="button">Copy</button>' : ''}</div>`;

@@ -41,7 +41,7 @@ export function diagramBuildSvg(model: DiagramModel, title: string, forceHorizon
   const orientation: Orientation =
     forceHorizontal !== undefined ? (forceHorizontal ? 'LR' : 'TB') : model.horizontal ? 'LR' : 'TB';
   const geometry = resolveGeometry(model, orientation);
-  return serialize(geometry, title, markerIdsFor(model, title, orientation));
+  return serialize(geometry, title, markerIdsFor(model, title, orientation), model);
 }
 
 /** Baseline Y for a node text line, shared by both orientations. */
@@ -112,13 +112,47 @@ function scaleFloorStyle(naturalW: number): string {
 function serialize(
   geometry: DiagramGeometry,
   title: string,
-  markers: { main: string; back: string }
+  markers: { main: string; back: string },
+  model?: DiagramModel
 ): string {
-  const nodeG = geometry.nodes.map(p => {
-    const ord = p.node.labelOrd;
+  const subgraphs = geometry.subgraphs || [];
+  const depthOf = (sgId: string): number => {
+    let d = 0;
+    let curr = model?.subgraphs.get(sgId)?.parentId;
+    while (curr) {
+      d++;
+      curr = model?.subgraphs.get(curr)?.parentId;
+    }
+    return d;
+  };
+  const sortedSubgraphs = [...subgraphs].sort(
+    (a, b) => depthOf(a.subgraph.id) - depthOf(b.subgraph.id)
+  );
+
+  const subgraphG = sortedSubgraphs.map(({ subgraph: sg, box }) => {
+    const ord = sg.labelOrd;
     const ordAttr = ord >= 0 ? ` data-label-ord="${ord}"` : '';
-    return `<g class="node"${ordAttr}>` + nodeShapeSvg(p) + nodeTextSvg(p) + `</g>`;
+    const x = box.minX;
+    const y = box.minY;
+    const w = box.maxX - box.minX;
+    const h = box.maxY - box.minY;
+    const headerH = sg.headerH || 28;
+    return (
+      `<g class="subgraph" data-id="${escHtml(sg.id)}" data-label="${escHtml(sg.label)}"${ordAttr}>` +
+      `<rect class="subgraph-body" x="${round1(x)}" y="${round1(y)}" width="${round1(w)}" height="${round1(h)}" rx="4"/>` +
+      `<rect class="subgraph-hdr" x="${round1(x)}" y="${round1(y)}" width="${round1(w)}" height="${round1(headerH)}" rx="4"/>` +
+      `<text class="subgraph-title" x="${round1(x + 12)}" y="${round1(y + headerH / 2)}" font-size="12" font-weight="600" dy="4.2">${escHtml(sg.label)}</text>` +
+      `</g>`
+    );
   });
+
+  const nodeG = geometry.nodes
+    .filter(p => !p.isSubgraph)
+    .map(p => {
+      const ord = p.node.labelOrd;
+      const ordAttr = ord >= 0 ? ` data-label-ord="${ord}"` : '';
+      return `<g class="node"${ordAttr}>` + nodeShapeSvg(p) + nodeTextSvg(p) + `</g>`;
+    });
 
   const edgeG = geometry.edges.map(({ edge, route, label }) => {
     // `marker-end` is emitted only for directed edges: `---` is documented as an
@@ -163,7 +197,9 @@ function serialize(
     `role="img" aria-label="${escHtml(title)}" xmlns="${NS}">` +
     buildArrowMarker(markers.main) +
     buildBackArrowMarker(markers.back) +
-    nodeG.join('') + edgeG.join('') +
+    subgraphG.join('') +
+    edgeG.join('') +
+    nodeG.join('') +
     `</svg>`
   );
 }

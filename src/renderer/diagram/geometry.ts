@@ -26,7 +26,7 @@ import {
   type EdgeRoute,
   type Point,
 } from '../svg-helpers.js';
-import type { DiagramEdge, DiagramModel, DiagramNode } from './types.js';
+import type { DiagramEdge, DiagramModel, DiagramNode, DiagramSubgraph } from './types.js';
 
 export type Orientation = 'TB' | 'LR';
 
@@ -36,6 +36,7 @@ export interface PlacedNode {
   cx: number;
   cy: number;
   box: Box;
+  isSubgraph?: boolean;
 }
 
 export interface PlacedLabel {
@@ -54,10 +55,16 @@ export interface PlacedEdge {
   label?: PlacedLabel;
 }
 
+export interface PlacedSubgraph {
+  subgraph: DiagramSubgraph;
+  box: Box;
+}
+
 export interface DiagramGeometry {
   orientation: Orientation;
   nodes: PlacedNode[];
   edges: PlacedEdge[];
+  subgraphs?: PlacedSubgraph[];
   /** Union of node boxes, edge ink and label boxes. */
   ink: Box;
   /** Residual violations the repair pass could not clear. */
@@ -145,12 +152,11 @@ export function trimPolylineEnds(points: Point[], distance: number): Point[] {
     acc = to;
 
     // Keep the part of this segment that lies more than `target` from either end.
-    const segStart = Math.max(target - from, 0);
-    const segEnd = Math.min(target - from + d, total - target) - target;
-    if (segEnd <= segStart) continue;
-    const t0 = segStart / d;
-    const t1 = segEnd / d;
-    if (d === 0) continue;
+    const rangeStart = Math.max(from, target);
+    const rangeEnd = Math.min(to, total - target);
+    if (rangeEnd <= rangeStart || d === 0) continue;
+    const t0 = (rangeStart - from) / d;
+    const t1 = (rangeEnd - from) / d;
     inner.push({
       x: points[i - 1].x + (points[i].x - points[i - 1].x) * t0,
       y: points[i - 1].y + (points[i].y - points[i - 1].y) * t0,
@@ -195,8 +201,8 @@ function polylinesCross(a: Point[], b: Point[]): boolean {
 /** Node placements for one orientation. */
 function placeNodes(model: DiagramModel, orientation: Orientation): PlacedNode[] {
   const out: PlacedNode[] = [];
-  const xs = orientation === 'TB' ? model.cx : model.lrCx!;
-  const ys = orientation === 'TB' ? model.cy : model.lrCy!;
+  const xs = orientation === 'TB' ? model.cx : (model.lrCx ?? model.cx);
+  const ys = orientation === 'TB' ? model.cy : (model.lrCy ?? model.cy);
   for (const node of model.nodes.values()) {
     const cx = xs.get(node.id)!;
     const cy = ys.get(node.id)!;
@@ -208,6 +214,60 @@ function placeNodes(model: DiagramModel, orientation: Orientation): PlacedNode[]
     });
   }
   return out;
+}
+
+function placeSubgraphs(model: DiagramModel, orientation: Orientation): PlacedNode[] {
+  const out: PlacedNode[] = [];
+  if (!model.subgraphs) return out;
+  const isLR = orientation === 'LR';
+  for (const sg of model.subgraphs.values()) {
+    const sgX = isLR ? (sg.lrX ?? sg.x) : sg.x;
+    const sgY = isLR ? (sg.lrY ?? sg.y) : sg.y;
+    const sgW = isLR ? (sg.lrW ?? sg.w) : sg.w;
+    const sgH = isLR ? (sg.lrH ?? sg.h) : sg.h;
+    const cx = sgX + sgW / 2;
+    const cy = sgY + sgH / 2;
+    out.push({
+      node: {
+        id: sg.id,
+        label: sg.label,
+        subtitle: '',
+        shape: 'rect',
+        rank: 0,
+        order: 0,
+        x: sgX,
+        y: sgY,
+        w: sgW,
+        h: sgH,
+        labelOrd: sg.labelOrd,
+        titleLines: [],
+        subLines: [],
+      },
+      cx,
+      cy,
+      box: { minX: sgX, minY: sgY, maxX: sgX + sgW, maxY: sgY + sgH },
+      isSubgraph: true,
+    });
+  }
+  return out;
+}
+
+function isDescendantOf(id: string, ancestorSgId: string, model: DiagramModel): boolean {
+  if (id === ancestorSgId) return true;
+  let currSgId = model.nodeToSubgraph.get(id) ?? (model.subgraphs.has(id) ? model.subgraphs.get(id)?.parentId : undefined);
+  while (currSgId) {
+    if (currSgId === ancestorSgId) return true;
+    currSgId = model.subgraphs.get(currSgId)?.parentId;
+  }
+  return false;
+}
+
+function isObstacleForEdge(p: PlacedNode, fromId: string, toId: string, model: DiagramModel): boolean {
+  if (p.node.id === fromId || p.node.id === toId) return false;
+  if (!p.isSubgraph) return true;
+  if (isDescendantOf(fromId, p.node.id, model)) return false;
+  if (isDescendantOf(toId, p.node.id, model)) return false;
+  return true;
 }
 
 function nodeInkBox(p: PlacedNode): Box {
@@ -430,7 +490,9 @@ function routeAround(
   start: Point,
   end: Point,
   obstacles: PlacedNode[],
-  orientation: Orientation
+  orientation: Orientation,
+  allOthers?: PlacedNode[],
+  existingEdges?: PlacedEdge[]
 ): EdgeRoute | null {
   if (!obstacles.length) return null;
 
@@ -438,34 +500,121 @@ function routeAround(
   for (const o of obstacles) obstructing = unionBox(obstructing, o.box);
   if (!obstructing) return null;
 
-  const rightX = obstructing.maxX + C.EDGE_CLEAR;
-  const leftX = obstructing.minX - C.EDGE_CLEAR;
-  const chordMidX = (start.x + end.x) / 2;
-  const corridorX = Math.abs(chordMidX - rightX) <= Math.abs(chordMidX - leftX) ? rightX : leftX;
+  const countCrossings = (pts: Point[]): number => {
+    if (!existingEdges?.length) return 0;
+    let count = 0;
+    for (const e of existingEdges) {
+      if (polylinesCross(pts, e.route.points)) count++;
+    }
+    return count;
+  };
 
   if (orientation === 'TB') {
-    // Duck under the obstruction: drop to just above it, cross, then drop the
-    // last little way into the target's top port.
-    const gateY = Math.min(obstructing.minY - C.EDGE_CLEAR, start.y + 8);
-    return roundedPolylineRoute(
-      [
-        start,
-        { x: start.x, y: gateY },
-        { x: corridorX, y: gateY },
-        { x: end.x, y: gateY },
-        end,
-      ],
-      10
-    );
+    const tryCorridors = (box: Box): EdgeRoute | null => {
+      const rightX = box.maxX + C.EDGE_CLEAR;
+      const leftX = box.minX - C.EDGE_CLEAR;
+      const chordMidX = (start.x + end.x) / 2;
+      const preferredX = Math.abs(chordMidX - rightX) <= Math.abs(chordMidX - leftX) ? rightX : leftX;
+      const alternateX = preferredX === rightX ? leftX : rightX;
+      const gateY = Math.min(box.minY - C.EDGE_CLEAR, start.y + 8);
+      const exitY = Math.max(box.maxY + C.EDGE_CLEAR, end.y - 8);
+
+      const candidates: Array<{ route: EdgeRoute; crossings: number }> = [];
+      for (const corridorX of [preferredX, alternateX]) {
+        const candidate = roundedPolylineRoute(
+          [
+            start,
+            { x: start.x, y: gateY },
+            { x: corridorX, y: gateY },
+            { x: corridorX, y: exitY },
+            { x: end.x, y: exitY },
+            end,
+          ],
+          10
+        );
+        if (allOthers && edgeNodeCollisions(candidate, allOthers).length > 0) {
+          continue;
+        }
+        const crossings = countCrossings(candidate.points);
+        if (crossings === 0) return candidate;
+        candidates.push({ route: candidate, crossings });
+      }
+      if (candidates.length > 0) {
+        candidates.sort((a, b) => a.crossings - b.crossings);
+        return candidates[0].route;
+      }
+      return null;
+    };
+
+    let result = tryCorridors(obstructing);
+    if (!result && allOthers?.length) {
+      let expandedBox: Box | undefined = obstructing;
+      const minY = Math.min(start.y, end.y);
+      const maxY = Math.max(start.y, end.y);
+      for (const o of allOthers) {
+        if (o.box.maxY > minY + 4 && o.box.minY < maxY - 4) {
+          expandedBox = unionBox(expandedBox, o.box);
+        }
+      }
+      if (expandedBox) {
+        result = tryCorridors(expandedBox);
+      }
+    }
+    return result;
   }
 
-  // LR: duck around the far side of the obstruction, in the vertical band it
-  // occupies, before closing on the target's left port.
-  const gateX = Math.max(obstructing.maxX + C.EDGE_CLEAR, start.x + 8);
-  return roundedPolylineRoute(
-    [start, { x: gateX, y: start.y }, { x: gateX, y: end.y }, end],
-    10
-  );
+  // LR: duck around the far side of the obstruction
+  const tryCorridorsLR = (box: Box): EdgeRoute | null => {
+    const botY = box.maxY + C.EDGE_CLEAR;
+    const topY = box.minY - C.EDGE_CLEAR;
+    const chordMidY = (start.y + end.y) / 2;
+    const preferredY = Math.abs(chordMidY - botY) <= Math.abs(chordMidY - topY) ? botY : topY;
+    const alternateY = preferredY === botY ? topY : botY;
+    const gateX = Math.min(box.minX - C.EDGE_CLEAR, start.x + 8);
+    const exitX = Math.max(box.maxX + C.EDGE_CLEAR, end.x - 8);
+
+    const candidates: Array<{ route: EdgeRoute; crossings: number }> = [];
+    for (const corridorY of [preferredY, alternateY]) {
+      const candidate = roundedPolylineRoute(
+        [
+          start,
+          { x: gateX, y: start.y },
+          { x: gateX, y: corridorY },
+          { x: exitX, y: corridorY },
+          { x: exitX, y: end.y },
+          end,
+        ],
+        10
+      );
+      if (allOthers && edgeNodeCollisions(candidate, allOthers).length > 0) {
+        continue;
+      }
+      const crossings = countCrossings(candidate.points);
+      if (crossings === 0) return candidate;
+      candidates.push({ route: candidate, crossings });
+    }
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => a.crossings - b.crossings);
+      return candidates[0].route;
+    }
+    return null;
+  };
+
+  let result = tryCorridorsLR(obstructing);
+  if (!result && allOthers?.length) {
+    let expandedBox: Box | undefined = obstructing;
+    const minX = Math.min(start.x, end.x);
+    const maxX = Math.max(start.x, end.x);
+    for (const o of allOthers) {
+      if (o.box.maxX > minX + 4 && o.box.minX < maxX - 4) {
+        expandedBox = unionBox(expandedBox, o.box);
+      }
+    }
+    if (expandedBox) {
+      result = tryCorridorsLR(expandedBox);
+    }
+  }
+  return result;
 }
 
 function labelBox(text: string, x: number, y: number): PlacedLabel {
@@ -533,7 +682,11 @@ function placeLabel(route: EdgeRoute, text: string, nodes: PlacedNode[]): Placed
  */
 export function resolveGeometry(model: DiagramModel, orientation: Orientation): DiagramGeometry {
   const nodes = placeNodes(model, orientation);
-  const byId = new Map(nodes.map(p => [p.node.id, p]));
+  const subgraphNodes = placeSubgraphs(model, orientation);
+  const byId = new Map([
+    ...nodes.map(p => [p.node.id, p] as const),
+    ...subgraphNodes.map(p => [p.node.id, p] as const),
+  ]);
   const bounds = graphBounds(nodes);
   const ports = buildPortMaps(model, nodes);
   const warnings: string[] = [];
@@ -591,19 +744,17 @@ export function resolveGeometry(model: DiagramModel, orientation: Orientation): 
       // re-threaded through a free corridor beside the obstruction. Endpoint
       // contact with the source and target is expected, so the port-aware
       // check ignores it.
-      const others = nodes.filter(n => n.node.id !== edge.from && n.node.id !== edge.to);
+      const others = nodes.filter(n => isObstacleForEdge(n, edge.from, edge.to, model));
       const hits = edgeNodeCollisions(route, others);
       if (hits.length) {
         const obstacles = others.filter(n => hits.some(h => h.nodeId === n.node.id));
-        const detour = routeAround(start, end, obstacles, orientation);
+        const detour = routeAround(start, end, obstacles, orientation, others, placed);
         if (detour) {
-          if (edgeNodeCollisions(detour, others).length === 0) {
-            route = detour;
-          } else {
-            warnings.push(
-              `edge ${edge.from} -> ${edge.to} passes through node "${hits[0].nodeId}" and could not be re-routed`
-            );
-          }
+          route = detour;
+        } else {
+          warnings.push(
+            `edge ${edge.from} -> ${edge.to} passes through node "${hits[0].nodeId}" and could not be re-routed`
+          );
         }
       }
     }
@@ -647,8 +798,14 @@ export function resolveGeometry(model: DiagramModel, orientation: Orientation): 
     }
   }
 
+  const placedSubgraphs: PlacedSubgraph[] = subgraphNodes.map(p => ({
+    subgraph: model.subgraphs.get(p.node.id)!,
+    box: p.box,
+  }));
+
   let ink: Box | undefined;
   for (const p of nodes) ink = unionBox(ink, p.box);
+  for (const s of placedSubgraphs) ink = unionBox(ink, s.box);
   for (const e of placed) {
     ink = unionBox(ink, routeBox(e.route));
     if (e.label) ink = unionBox(ink, e.label.box);
@@ -658,6 +815,7 @@ export function resolveGeometry(model: DiagramModel, orientation: Orientation): 
     orientation,
     nodes,
     edges: placed,
+    subgraphs: placedSubgraphs,
     ink: ink ?? { minX: 0, minY: 0, maxX: 0, maxY: 0 },
     warnings,
   };

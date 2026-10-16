@@ -9,6 +9,7 @@ import { parseTitleDirective } from '../util/fence.js';
 
 export interface FenceBlock {
   kind: string;
+  aliases?: string[];
   renderDivClass: string;
 }
 
@@ -25,7 +26,8 @@ export function createFenceRenderer(md: MarkdownIt, block: FenceBlock): void {
     const token = tokens[idx];
     const infoWords = token.info.trim().split(/\s+/);
     const kind = infoWords[0]?.toLowerCase() ?? '';
-    if (kind !== block.kind) {
+    const matches = kind === block.kind || (block.aliases && block.aliases.includes(kind));
+    if (!matches) {
       return defaultFence(tokens, idx, options, env, self);
     }
 

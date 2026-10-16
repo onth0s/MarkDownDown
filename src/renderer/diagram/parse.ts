@@ -68,7 +68,8 @@ function parseNodeShape(raw: string): { id: string; label?: string; shape: NodeS
   if (!shape || shape[1] !== close) return null;
   if (!body!.trim()) return null;
   const pairs = shape[0] === 'rect' ? QUOTE_PAIRS_RECT : QUOTE_PAIRS_ALL;
-  return { id: id!, label: stripWrappingQuotes(body!, pairs), shape: shape[0] };
+  const stripped = stripWrappingQuotes(body!, pairs).replace(/\\n/g, '\n');
+  return { id: id!, label: stripped, shape: shape[0] };
 }
 
 /** Split on em-dash separator, respecting `\ — ` escape. */
@@ -80,6 +81,8 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
   const model: DiagramModel = {
     nodes: new Map(),
     edges: [],
+    subgraphs: new Map(),
+    nodeToSubgraph: new Map(),
     labels: [],
     direction: /^(TB|TD|BT|LR|RL)$/i.test(normalizedInitial) ? normalizedInitial : 'auto',
     cx: new Map(),
@@ -92,6 +95,7 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
   };
   let ord = 0;
   let charPos = 0;
+  const subgraphStack: string[] = [];
 
   const pushLabel = (text: string, offset: number) => {
     model.labels.push({ text, offset, ord: ord++ });
@@ -116,11 +120,21 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
         subLines: [],
       };
       model.nodes.set(id, node);
+      if (subgraphStack.length > 0 && !model.nodeToSubgraph.has(id)) {
+        const currentSgId = subgraphStack[subgraphStack.length - 1];
+        model.nodeToSubgraph.set(id, currentSgId);
+        model.subgraphs.get(currentSgId)?.nodeIds.add(id);
+      }
     } else if (label !== undefined) {
       const parts = label.split(SPLIT_RE);
       node.label = cleanEscaped(parts[0]);
       node.subtitle = cleanEscaped(parts[1] ?? '');
       if (shape) node.shape = shape;
+      if (subgraphStack.length > 0 && !model.nodeToSubgraph.has(id)) {
+        const currentSgId = subgraphStack[subgraphStack.length - 1];
+        model.nodeToSubgraph.set(id, currentSgId);
+        model.subgraphs.get(currentSgId)?.nodeIds.add(id);
+      }
     }
     return node;
   };
@@ -147,6 +161,43 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
     const legacyHeaderMatch = line.match(/^(?:flowchart|graph)\s*(TB|TD|BT|LR|RL)?\s*$/i);
     if (legacyHeaderMatch) {
       model.direction = (legacyHeaderMatch[1]?.toUpperCase() ?? 'auto') as DiagramDirection;
+      continue;
+    }
+
+    const subgraphMatch = line.match(/^subgraph\s+([A-Za-z0-9_.-]+)(?:\s*(?:\[(["']?)([\s\S]*?)\2\]|\((["']?)([\s\S]*?)\4\)))?\s*$/i);
+    if (subgraphMatch) {
+      const id = subgraphMatch[1];
+      const rawLabel = subgraphMatch[3] ?? subgraphMatch[5] ?? id;
+      const label = cleanEscaped(rawLabel.trim()).replace(/\\n/g, '\n');
+      const parentId = subgraphStack.length > 0 ? subgraphStack[subgraphStack.length - 1] : undefined;
+      let sg = model.subgraphs.get(id);
+      if (!sg) {
+        sg = {
+          id,
+          label: label || id,
+          parentId,
+          nodeIds: new Set(),
+          subgraphIds: new Set(),
+          x: 0,
+          y: 0,
+          w: 0,
+          h: 0,
+          headerH: 28,
+          labelOrd: pushLabel(label || id, lineStartPos),
+        };
+        model.subgraphs.set(id, sg);
+        if (parentId) {
+          model.subgraphs.get(parentId)?.subgraphIds.add(id);
+        }
+      }
+      subgraphStack.push(id);
+      continue;
+    }
+
+    if (/^end\s*$/i.test(line)) {
+      if (subgraphStack.length > 0) {
+        subgraphStack.pop();
+      }
       continue;
     }
 
@@ -182,6 +233,9 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
           ensureNode(parsed.id, parsed.label, parsed.shape, nodeOffset);
           return parsed.id;
         }
+        if (model.subgraphs.has(raw)) {
+          return raw;
+        }
         ensureNode(raw, undefined, undefined, nodeOffset);
         return raw;
       };
@@ -205,6 +259,14 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
     const bareNode = line.match(/^([A-Za-z0-9_.\\-]+)$/);
     if (bareNode) {
       ensureNode(bareNode[1], undefined, undefined, lineStartPos + rawLine.indexOf(line));
+    }
+  }
+
+  for (const sgId of model.subgraphs.keys()) {
+    const node = model.nodes.get(sgId);
+    if (node && node.label === node.id && !node.subtitle && node.shape === 'rect') {
+      model.nodes.delete(sgId);
+      model.nodeToSubgraph.delete(sgId);
     }
   }
 

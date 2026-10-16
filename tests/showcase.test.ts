@@ -104,15 +104,18 @@ describe('showcase/showcase.mdd — self-compiled capability showcase', () => {
     expect(html).toContain('WARNING');
   });
 
-  test('single mode renders all 9 diagram fences with return arcs', () => {
+  test('single mode renders all 10 diagram fences with return arcs and subgraphs', () => {
     const html = readSingle();
     const diagramCount = (html.match(/class="diagram-render">/g) || []).length;
 
-    expect(diagramCount).toBe(9);
+    expect(diagramCount).toBe(10);
     expect(html).toContain('data-direction="TB"');
     expect(html).toContain('data-direction="LR"');
     expect((html.match(/edge-path is-back-edge/g) || []).length).toBeGreaterThanOrEqual(2);
     expect(html).toContain('requeues failures');
+    expect(html).toContain('class="subgraph-body"');
+    expect(html).toContain('class="subgraph-hdr"');
+    expect(html).toContain('picasso-core (Config &amp; Engine)');
   });
 
   test('every rendered SVG is self-describing and fits the reading column', () => {

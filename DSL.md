@@ -34,7 +34,8 @@ NODE_B --- NODE_C
 ### 1.3 Grammar
 
 ```
-diagram      := "```diagram" [direction] [title_dir] [dir_spec] (node_def | edge_def | comment)* "```"
+diagram      := "```diagram" [direction] [title_dir] [dir_spec] (subgraph_def | node_def | edge_def | comment)* "```"
+subgraph_def := "subgraph" SUBGRAPH_ID ["[" label "]" | "(" label ")"] (subgraph_def | node_def | edge_def | comment)* "end"
 direction    := "TB" | "TD" | "BT" | "LR" | "RL" | "auto"
 title_dir    := "TITLE:" text
 dir_spec     := ("DIRECTION:"? direction) | (("flowchart"|"graph") direction?)
@@ -42,6 +43,7 @@ node_def     := NODE_ID ["[" label "]" | "(" label ")" | "{" label "}"]
 edge_def     := node_ref arrow node_ref [ "|" label "|" ] | node_ref "--" label "-->" node_ref
 arrow        := "-->" | "---"
 node_ref     := NODE_ID | node_def
+SUBGRAPH_ID  := [A-Za-z0-9_.\-]+
 NODE_ID      := [A-Za-z0-9_.\-]+
 label        := [^\n]+ (trimmed)
 comment      := "%%" [^\n]* (stripped, ignored)
@@ -175,6 +177,10 @@ TITLE: Diagram SVG Element Classes
 | edge-label | <g> | Groups an edge label's background + text, translated to position |
 | edge-label-bg | <rect> | Opaque label background (var(--surface-2)) |
 | edge-label-text | <text> | Label text |
+| subgraph | <g> | Groups a container's body, header, and title; carries data-label-ord |
+| subgraph-body | <rect> | Container background (var(--surface)) |
+| subgraph-hdr | <rect> | Header title bar (color-mix with surface) |
+| subgraph-title | <text> | Container label text (var(--muted), 12px weight 600) |
 | is-hit | modifier | Matched during document search |
 | is-current | modifier | Current active search selection |
 ```
@@ -210,6 +216,31 @@ PROC -->|feeds back| FEED
 ```
 
 The above compiles to a top-to-bottom layout with a return arc from PROC back to FEED, routed out to the side gutter, and emits a "1 cyclic edge" warning.
+
+### 1.14 Subgraphs & Compound Diagrams
+
+Subgraphs group nodes and edges into visual container boxes, and support **arbitrary multi-level nesting** (subgraphs inside subgraphs):
+
+````markdown
+```diagram TB
+TITLE: Architectural Blueprint with Nested Subgraphs
+subgraph Core ["Core Subsystem"]
+    subgraph Engine ["Engine Layer"]
+        Lexer["Lexer — Token Stream"] --> Parser["Parser — AST"]
+    end
+    Parser --> Dispatcher["Dispatcher"]
+end
+subgraph UI ["User Interface"]
+    Dispatcher --> Renderer["Renderer — DOM / SVG"]
+end
+```
+````
+
+- **Syntax**: `subgraph ID ["Label"]` ... `end`. The label may be enclosed in straight or curly quotes, or brackets. If omitted, the label defaults to the subgraph ID.
+- **Arbitrary Nesting**: Subgraphs may be nested inside other subgraphs to any depth. Outer containers enclose their inner child containers with proper header banners, titles, and padding.
+- **Hierarchical Layout**: Nested containers are laid out via two-tier compound decomposition. Child subgraphs are laid out bottom-up into bounded containers, and their parent containers sequence them based on induced dependencies. Sibling subgraphs in the same rank are top-aligned.
+- **Cross-Cluster Edges**: Edges between nodes in different subgraphs cleanly cross container boundaries, and are routed without piercing unrelated node hulls.
+- **Newlines**: Explicit `\n` linebreaks inside node or subgraph labels break onto separate lines before proportional word-wrapping.
 
 ---
 

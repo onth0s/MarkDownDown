@@ -217,6 +217,38 @@ RIGHT --> OUT
 
 Three in, one out — longest-path ranking plus median order within each rank keeps the SVG legible.
 
+### Subgraphs & Arbitrary Nesting
+
+Subgraphs group nodes into structured, searchable container boxes, with support for arbitrary multi-level nesting and cross-cluster edge routing:
+
+```diagram TB
+TITLE: Architectural Blueprint with Nested Subgraphs
+subgraph Core ["picasso-core (Config & Engine)"]
+    subgraph Config ["Configuration"]
+        Yaml["config.yaml\nstats_overlay: true"] --> AppConfig["AppConfig"]
+    end
+    AppConfig --> Engine["Runtime Engine"]
+end
+
+subgraph Viewer ["picasso-viewer (App Controller)"]
+    KeyTab["Keyboard Tab"] --> Dispatcher["Keymap::dispatch"]
+    Dispatcher --> Controller["ViewerApp::handle_action"]
+    Controller --> Decision{"enabled?"}
+    Decision -- No --> NoOp["Ignore"]
+    Decision -- Yes --> Animate["Reveal Animation"]
+end
+
+subgraph Pipeline ["picasso-render (GPU Pass)"]
+    Controller --> Layout["Compute Layout"]
+    Layout --> Render["WGSL Pipeline"]
+end
+```
+
+- **Container Boxes**: Subgraphs render with a themed background (`.subgraph-body`) and header banner (`.subgraph-hdr`).
+- **Arbitrary Nesting**: Notice `Config` nested inside `Core`. Containers size automatically to envelope their contents.
+- **Cross-Cluster Routing**: `Controller` in `Viewer` connects across cluster walls to `Layout` in `Pipeline`.
+- **Search Highlighting**: Container titles participate in document search with `.is-hit` / `.is-current` states.
+
 ---
 
 ## Table DSL

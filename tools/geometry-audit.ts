@@ -117,16 +117,16 @@ function trimEnds(pts: Pt[], distance: number): Pt[] {
     const d = segs[k - 1];
     const from = acc;
     acc += d;
-    const a = Math.max(target - from, 0);
-    const b = Math.min(target - from + d, total - target) - target;
-    if (b <= a || d === 0) continue;
+    const rangeStart = Math.max(from, target);
+    const rangeEnd = Math.min(from + d, total - target);
+    if (rangeEnd <= rangeStart || d === 0) continue;
     out.push({
-      x: pts[k - 1].x + (pts[k].x - pts[k - 1].x) * (a / d),
-      y: pts[k - 1].y + (pts[k].y - pts[k - 1].y) * (a / d),
+      x: pts[k - 1].x + (pts[k].x - pts[k - 1].x) * ((rangeStart - from) / d),
+      y: pts[k - 1].y + (pts[k].y - pts[k - 1].y) * ((rangeStart - from) / d),
     });
     out.push({
-      x: pts[k - 1].x + (pts[k].x - pts[k - 1].x) * (b / d),
-      y: pts[k - 1].y + (pts[k].y - pts[k - 1].y) * (b / d),
+      x: pts[k - 1].x + (pts[k].x - pts[k - 1].x) * ((rangeEnd - from) / d),
+      y: pts[k - 1].y + (pts[k].y - pts[k - 1].y) * ((rangeEnd - from) / d),
     });
   }
   return out;
@@ -213,8 +213,14 @@ function auditSvg(svg: string): Finding[] {
     const a = attrs(openTag);
     if (a.x === undefined) continue;
     const size = Number(a.fontSize ?? 12);
-    const baseX = Number(a.x);
-    const baseY = Number(a.y);
+    let baseX = Number(a.x);
+    let baseY = Number(a.y);
+    const g = svg.slice(Math.max(0, m.index - 220), m.index);
+    const tr = /translate\(([-\d.]+)[ ,]+([-\d.]+)\)/.exec(g);
+    if (tr) {
+      baseX += Number(tr[1]);
+      baseY += Number(tr[2]);
+    }
     const anchor = a['text-anchor'] ?? 'start';
 
     const spans: Array<{ x: number; y: number; text: string }> = [];

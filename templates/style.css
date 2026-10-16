@@ -508,8 +508,8 @@ html[data-theme="light"] .alert-title {
 }
 .diagram-svg .node-rect { fill:var(--surface-2); stroke:var(--border); }
 .diagram-svg polygon.node-diamond { stroke-linejoin:round; }
-.diagram-svg .node-title { fill:var(--accent); font-weight:700; }
-.diagram-svg .node-sub { fill:var(--muted); }
+.diagram-svg .node-title { fill:var(--text); font-weight:700; }
+.diagram-svg .node-sub { fill:color-mix(in srgb, var(--text) 72%, var(--muted)); }
 .diagram-svg .edge-path { fill:none; stroke:var(--accent); stroke-width:1.6; }
 /*
  * A return arc is the same colour as a forward edge but carries a lighter,
@@ -517,7 +517,12 @@ html[data-theme="light"] .alert-title {
  */
 .diagram-svg .edge-path.is-back-edge { stroke-dasharray:5 4; }
 .diagram-svg .edge-label-bg { fill:var(--surface-2); stroke:var(--border); stroke-width:.8; }
-.diagram-svg .edge-label-text { fill:var(--text); }
+.diagram-svg .edge-label-text { fill:var(--text); font-family:inherit; }
+.diagram-svg .subgraph-body { fill:var(--surface); stroke:var(--border); stroke-width:1; }
+.diagram-svg .subgraph-hdr { fill:color-mix(in srgb, var(--text) 5%, var(--surface)); stroke:var(--border); stroke-width:1; }
+.diagram-svg .subgraph-title { fill:color-mix(in srgb, var(--text) 78%, var(--muted)); font-family:inherit; font-size:12px; font-weight:600; letter-spacing:0.02em; }
+.diagram-svg .subgraph.is-hit .subgraph-body { stroke:var(--accent); stroke-width:1.5; }
+.diagram-svg .subgraph.is-hit .subgraph-title { fill:var(--accent); font-weight:700; }
 .diagram-svg .node.is-hit .node-rect {
   stroke:var(--accent); stroke-width:1.8;
   fill:color-mix(in srgb, var(--accent) 14%, var(--surface-2));
@@ -575,13 +580,20 @@ html[data-theme="light"] .alert-title {
 }
 
 /* Light mode: crisp text contrast, subtle shadows */
+html[data-theme="light"] .diagram-svg .subgraph-body { fill:#f8fafc; }
+html[data-theme="light"] .diagram-svg .subgraph-hdr { fill:#f1f5f9; }
+html[data-theme="light"] .diagram-svg .subgraph-title { fill:#64748b; }
 html[data-theme="light"] .diagram-svg .node-rect { fill:#ffffff; }
+html[data-theme="light"] .diagram-svg .node .node-title { fill:#0f172a; }
+html[data-theme="light"] .diagram-svg .node-title { fill:#0f172a; }
 html[data-theme="light"] .diagram-svg .node.is-hit .node-rect { fill:color-mix(in srgb, var(--accent) 14%, #ffffff); }
 html[data-theme="light"] .diagram-svg .node.is-current .node-rect {
   fill:color-mix(in srgb, var(--accent) 20%, #ffffff);
   filter:drop-shadow(0 2px 8px rgba(0,0,0,0.12));
 }
 html[data-theme="light"] .diagram-svg .node .node-sub { fill:#475569; }
+html[data-theme="light"] .diagram-svg .edge-label-bg { fill:#ffffff; }
+html[data-theme="light"] .diagram-svg .edge-label-text { fill:#1e293b; }
 html[data-theme="light"] .diagram-svg .node.is-hit .node-sub { fill:#1e293b; font-weight:600; }
 html[data-theme="light"] .diagram-svg .node.is-current .node-sub { fill:#0f172a; font-weight:700; }
 html[data-theme="light"] .diagram-svg .svg-mark.is-current {
@@ -612,11 +624,33 @@ html[data-theme="light"] .table-svg .tcell.is-current .tbl-cell-bg, html[data-th
   display:inline-flex; align-items:center; gap:5px; line-height:1; user-select:none;
 }
 .download-btn svg { flex-shrink:0; }
+.view-toggle-btn {
+  position:absolute; bottom:9px; left:9px; z-index:10; border:1px solid var(--border);
+  background:var(--surface-2); color:var(--text); border-radius:7px; padding:4px 8px;
+  cursor:pointer; font-size:11px; font-weight:500; transition:background-color .15s, color .15s, opacity .15s;
+  display:inline-flex; align-items:center; gap:5px; line-height:1; user-select:none;
+  opacity:0;
+}
+.view-toggle-btn svg { flex-shrink:0; }
 .code-wrap:hover .copy-btn { opacity:1; }
 .code-wrap:hover .code-actions { opacity:1; }
 .code-wrap:hover .download-btn { opacity:1; }
+.code-wrap:hover .view-toggle-btn,
+.code-wrap.show-raw .view-toggle-btn { opacity:1; }
 .copy-btn:hover { background:var(--surface-3); }
 .download-btn:hover { background:var(--surface-3); color:var(--accent); }
+.view-toggle-btn:hover { background:var(--surface-3); color:var(--accent); }
+
+.code-wrap.diagram.show-raw pre,
+.code-wrap.table.show-raw pre {
+  display:block !important;
+  padding:18px 18px 44px 18px;
+}
+.code-wrap.diagram.show-raw .diagram-render,
+.code-wrap.table.show-raw .table-render,
+.code-wrap.show-raw .code-actions {
+  display:none !important;
+}
 .code-wrap > table {
   margin:0; border:0; width:100%; border-collapse:collapse; display:table; overflow:visible;
 }

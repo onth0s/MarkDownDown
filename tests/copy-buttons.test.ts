@@ -15,6 +15,8 @@ describe('wrapCodeBlocksWithCopyButtons & validation', () => {
     expect(output).toContain('class="code-title-bar"');
     expect(output).toContain('My Diagram');
     expect(output).toContain('class="download-btn"');
+    expect(output).toContain('class="view-toggle-btn"');
+    expect(output).toContain('>Raw</span>');
   });
 
   test('validateNoNestedCodeWraps throws on illegally nested .code-wrap elements', () => {

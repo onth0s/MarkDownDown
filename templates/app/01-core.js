@@ -381,6 +381,32 @@ function setAccent(hex, isInitial = false) {
         }
       });
     }
+
+    // Dynamically recolor any embedded logo SVGs in the document to match active accent
+    document.querySelectorAll('img').forEach(img => {
+      const alt = img.getAttribute('alt') || '';
+      const src = img.getAttribute('src') || '';
+      if (src.includes('mdpp-logo') || alt.includes('mdpp-logo') || alt.includes('logo')) {
+        if (!img.dataset.origSvg) {
+          if (src.startsWith('data:image/svg+xml;base64,')) {
+            try {
+              img.dataset.origSvg = atob(src.slice(26));
+            } catch (_) {}
+          } else if (src.startsWith('data:image/svg+xml,')) {
+            try {
+              img.dataset.origSvg = decodeURIComponent(src.slice(19));
+            } catch (_) {}
+          }
+        }
+        if (img.dataset.origSvg) {
+          const recolored = img.dataset.origSvg.replace(/fill=["']#[0-9a-fA-F]{3,8}["']/gi, m => {
+            if (m.toLowerCase().includes('#fff')) return m;
+            return `fill="${hex}"`;
+          });
+          img.src = 'data:image/svg+xml;base64,' + btoa(recolored);
+        }
+      }
+    });
   }
 
   if (!isInitial) {

@@ -53,9 +53,29 @@ export interface DiagramEdge {
   isBackEdge?: boolean;
 }
 
+export interface DiagramSubgraph {
+  id: string;
+  label: string;
+  parentId?: string;
+  nodeIds: Set<string>;
+  subgraphIds: Set<string>;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  headerH: number;
+  labelOrd: number;
+  lrX?: number;
+  lrY?: number;
+  lrW?: number;
+  lrH?: number;
+}
+
 export interface DiagramModel {
   nodes: Map<string, DiagramNode>;
   edges: DiagramEdge[];
+  subgraphs: Map<string, DiagramSubgraph>;
+  nodeToSubgraph: Map<string, string>;
   labels: Array<{ text: string; offset: number; ord: number }>;
   direction: DiagramDirection;
   cx: Map<string, number>;
@@ -73,3 +93,4 @@ export interface DiagramModel {
   lrGap?: number;
   warnings?: string[];
 }
+

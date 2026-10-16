@@ -19,6 +19,7 @@ export type {
   PlacedEdge,
   PlacedLabel,
   PlacedNode,
+  PlacedSubgraph,
   EdgeNodeCollision,
 } from './geometry.js';
 export { diagramBuildSvg } from './svg.js';

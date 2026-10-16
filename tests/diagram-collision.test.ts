@@ -8,6 +8,7 @@ import {
   diagramBuildSvg,
   resolveGeometry,
   edgeNodeCollisions,
+  trimPolylineEnds,
   inscribeDiamond,
   type Orientation,
   type PlacedNode,
@@ -224,8 +225,56 @@ describe('diagram geometry: edges do not cross nodes', () => {
         diagramLayout(m);
         const geo = resolveGeometry(m, orientation);
         expect(geo.warnings.filter(w => /passes through node|could not be re-routed/.test(w))).toEqual([]);
+        expect(geo.warnings.filter(w => /edge crossing pair/.test(w))).toEqual([]);
       }
     }
+  });
+
+  test('trimPolylineEnds retains all interior points and trims only the endpoints', () => {
+    const pts: Point[] = [];
+    for (let y = 0; y <= 400; y += 10) pts.push({ x: 100, y });
+    const trimmed = trimPolylineEnds(pts, 12);
+    expect(trimmed.length).toBeGreaterThan(50);
+    expect(trimmed[0].y).toBeCloseTo(12, 1);
+    expect(trimmed[trimmed.length - 1].y).toBeCloseTo(388, 1);
+  });
+
+  test('subgraph target: edge terminates at the container boundary rather than spawning a node', () => {
+    const m = diagramParse(`diagram TB
+subgraph Pipeline ["GPU Pipeline"]
+    Layout --> Render
+end
+Controller --> Pipeline
+`);
+    diagramLayout(m);
+    const geo = resolveGeometry(m, 'TB');
+    expect(geo.nodes.some(n => n.node.id === 'Pipeline')).toBe(false);
+    expect(geo.subgraphs?.some(s => s.subgraph.id === 'Pipeline')).toBe(true);
+    const edge = geo.edges.find(e => e.edge.from === 'Controller' && e.edge.to === 'Pipeline');
+    expect(edge).toBeDefined();
+    const sg = geo.subgraphs!.find(s => s.subgraph.id === 'Pipeline')!;
+    const lastPt = edge!.route.points[edge!.route.points.length - 1];
+    expect(lastPt.y).toBeCloseTo(sg.box.minY, 1);
+  });
+
+  test('cross-cluster edge clears intermediate branch without crossing', () => {
+    const m = diagramParse(`diagram TB
+subgraph Viewer ["Viewer"]
+    Controller --> Decision
+    Decision -- No --> NoOp
+    Decision -- Yes --> Animate
+end
+subgraph Pipeline ["Pipeline"]
+    Controller --> Layout
+end
+`);
+    diagramLayout(m);
+    const geo = resolveGeometry(m, 'TB');
+    for (const placed of geo.edges) {
+      const hits = edgeNodeCollisions(placed.route, geo.nodes);
+      expect(hits).toEqual([]);
+    }
+    expect(geo.warnings.filter(w => /edge crossing pair/.test(w))).toEqual([]);
   });
 });
 

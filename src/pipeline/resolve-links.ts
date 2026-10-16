@@ -84,8 +84,17 @@ export function resolveLinks(
     for (const asset of targetAssets) {
       if (asset.kind === 'image' || asset.kind === 'video') {
         try {
-          const data = fs.readFileSync(asset.absolutePath);
+          let data = fs.readFileSync(asset.absolutePath);
           const ext = path.extname(asset.absolutePath).slice(1).toLowerCase();
+          if (ext === 'svg' && (asset.relativePath.includes('mdpp-logo') || asset.absolutePath.includes('mdpp-logo')) && options.accent) {
+            const hex = options.accent.toLowerCase();
+            let svgStr = data.toString('utf8');
+            svgStr = svgStr.replace(/fill=["']#[0-9a-fA-F]{3,8}["']/gi, (m) => {
+              if (m.toLowerCase().includes('#fff')) return m;
+              return `fill="${hex}"`;
+            });
+            data = Buffer.from(svgStr, 'utf8');
+          }
           const mime = getMime(ext);
           assetBase64Map.set(asset.absolutePath, `data:${mime};base64,${data.toString('base64')}`);
         } catch {

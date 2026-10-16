@@ -322,6 +322,28 @@ document.querySelectorAll('.copy-btn').forEach(btn => {
   });
 });
 
+// ── Raw / Rendered DSL view toggle ──────────────────────────────────────────
+const ICON_RAW_CODE = '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>';
+const ICON_RENDERED_DIAG = '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>';
+
+document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const wrap = btn.closest('.code-wrap');
+    if (!wrap) return;
+    const isRaw = wrap.classList.toggle('show-raw');
+    const textSpan = btn.querySelector('.view-toggle-text');
+    const iconSvg = btn.querySelector('.view-toggle-icon');
+    if (textSpan) {
+      textSpan.textContent = isRaw ? 'Rendered' : 'Raw';
+    }
+    if (iconSvg) {
+      iconSvg.innerHTML = isRaw ? ICON_RENDERED_DIAG : ICON_RAW_CODE;
+    }
+    btn.setAttribute('aria-label', isRaw ? 'Show rendered view' : 'Show raw DSL');
+    btn.setAttribute('title', isRaw ? 'Show rendered view' : 'Show raw DSL');
+  });
+});
+
 // ── SVG / JPG Download buttons ──────────────────────────────────────────────
 document.querySelectorAll('.download-btn').forEach(btn => {
   btn.addEventListener('click', () => {
