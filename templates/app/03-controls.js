@@ -69,7 +69,7 @@ const COLLAPSE_THRESHOLD = 130;
 function getStoredSidebarWidth() {
   try {
     const val = parseInt(localStorage.getItem('mdd_sidebar_w'), 10);
-    return (!isNaN(val) && val >= MIN_SIDEBAR_WIDTH && val <= 800) ? val : DEFAULT_SIDEBAR_WIDTH;
+    return (!isNaN(val) && val > MIN_SIDEBAR_WIDTH && val <= 800) ? val : DEFAULT_SIDEBAR_WIDTH;
   } catch (_) {
     return DEFAULT_SIDEBAR_WIDTH;
   }
@@ -205,7 +205,7 @@ if (sidebarResizer) {
     isDragging = true;
     startX = e.clientX;
     const currentW = parseInt(getComputedStyle(root).getPropertyValue('--sidebar-w'), 10) || DEFAULT_SIDEBAR_WIDTH;
-    startWidth = currentW;
+    startWidth = currentW > MIN_SIDEBAR_WIDTH ? currentW : DEFAULT_SIDEBAR_WIDTH;
     sidebarResizer.setPointerCapture(e.pointerId);
     body.classList.add('is-resizing');
     e.preventDefault();
@@ -219,7 +219,10 @@ if (sidebarResizer) {
     const maxW = Math.min(650, Math.round(window.innerWidth * 0.45));
 
     if (newWidth < COLLAPSE_THRESHOLD) {
-      setSidebarCollapsed(true);
+      if (!body.classList.contains('sidebar-collapsed')) {
+        setSidebarCollapsed(true);
+        setSidebarWidth(startWidth, true);
+      }
     } else {
       if (body.classList.contains('sidebar-collapsed')) {
         setSidebarCollapsed(false);
@@ -236,7 +239,9 @@ if (sidebarResizer) {
     if (sidebarResizer.hasPointerCapture(e.pointerId)) {
       sidebarResizer.releasePointerCapture(e.pointerId);
     }
-    if (!body.classList.contains('sidebar-collapsed')) {
+    if (body.classList.contains('sidebar-collapsed')) {
+      setSidebarWidth(startWidth, true);
+    } else {
       const currentW = parseInt(getComputedStyle(root).getPropertyValue('--sidebar-w'), 10) || DEFAULT_SIDEBAR_WIDTH;
       setSidebarWidth(currentW, true);
     }

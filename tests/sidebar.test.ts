@@ -71,6 +71,8 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
     expect(controlsJs).toContain('mdd_sidebar_pos');
     expect(controlsJs).toContain('mdd_sidebar_w');
     expect(controlsJs).toContain('mdd_sidebar_collapsed');
+    expect(controlsJs).toContain('val > MIN_SIDEBAR_WIDTH');
+    expect(controlsJs).toContain('setSidebarWidth(startWidth, true)');
   });
 
   test('01-core.js positions navigation history pill outside sidebar in all layout configurations', () => {
