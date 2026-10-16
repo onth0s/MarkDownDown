@@ -181,4 +181,14 @@ describe('showcase/showcase.mdd — self-compiled capability showcase', () => {
   test('embedded examples compile without unresolved-target errors', () => {
     expect(() => compile(options('single', tmpDir))).not.toThrowError(CompileError);
   });
+
+  test('embedded demo logo SVG in single mode matches document accent at compile time and on load', () => {
+    const html = readSingle();
+    const match = html.match(/<img[^>]*mdpp-logo[^>]*>/i);
+    expect(match).not.toBeNull();
+    const src = match![0].match(/src="([^"]+)"/)![1];
+    expect(src.startsWith('data:image/svg+xml;base64,')).toBe(true);
+    const decoded = Buffer.from(src.replace('data:image/svg+xml;base64,', ''), 'base64').toString('utf8');
+    expect(decoded).toContain('fill="#8b5cf6"');
+  });
 });

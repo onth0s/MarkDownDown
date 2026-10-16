@@ -47,13 +47,14 @@ export function compile(options: Options): CompileResult {
   const title = meta.title ?? (firstH1 ? firstH1.text : options.title);
 
   // 5. Resolve wikilinks + build base64 map
+  const resolvedOptions: Options = { ...options, accent };
   const { pendingLinks, assetBase64Map } = resolveLinks(
-    tokens, headings, assets, options, warnings,
+    tokens, headings, assets, resolvedOptions, warnings,
   );
 
   // 6. Render body HTML
   const { html: bodyHtml, mirrorStats } = renderBody(
-    md, markdownBody, pendingLinks, assetBase64Map, options, title, warnings,
+    md, markdownBody, pendingLinks, assetBase64Map, resolvedOptions, title, warnings,
   );
 
   // 6b. Source skeleton for the in-document download button: the same data
