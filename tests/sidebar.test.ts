@@ -26,6 +26,11 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
     expect(styleCss).toContain('cursor: col-resize');
     expect(styleCss).toContain('position: sticky');
     expect(styleCss).toContain('height: calc(100vh - 64px)');
+    expect(styleCss).toContain('flex: 0 0 14px');
+    expect(styleCss).toContain('margin-left: -7px');
+    expect(styleCss).toContain('margin-right: -7px');
+    expect(styleCss).toMatch(/\.sidebar\s*\{[^}]*background:\s*var\(--bg\)/);
+    expect(styleCss).toMatch(/\.sidebar\s*\{[^}]*z-index:\s*30/);
     expect(styleCss).toMatch(/z-index:\s*70/); // topbar strictly above content
     expect(styleCss).toMatch(/z-index:\s*40/); // resizer strictly below navbar
   });
