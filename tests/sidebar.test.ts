@@ -24,6 +24,10 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
     expect(styleCss).toContain('var(--sidebar-w, 280px)');
     expect(styleCss).toContain('.sidebar-resizer');
     expect(styleCss).toContain('cursor: col-resize');
+    expect(styleCss).toContain('position: sticky');
+    expect(styleCss).toContain('height: calc(100vh - 64px)');
+    expect(styleCss).toMatch(/z-index:\s*70/); // topbar strictly above content
+    expect(styleCss).toMatch(/z-index:\s*40/); // resizer strictly below navbar
   });
 
   test('style.css defines desktop collapse state, full layout width, and burger menu drawer', () => {
@@ -42,6 +46,7 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
   test('style.css defines sidebar-right positioning rules', () => {
     expect(styleCss).toContain('body.sidebar-right .sidebar');
     expect(styleCss).toContain('body.sidebar-right .sidebar-reopen-btn');
+    expect(styleCss).toContain('body.sidebar-right .sidebar-resizer');
   });
 
   test('03-controls.js wires up resize drag, dynamic Y-axis arrow tracking, and position toggle', () => {
