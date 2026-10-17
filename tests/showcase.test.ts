@@ -191,4 +191,12 @@ describe('showcase/showcase.mdd — self-compiled capability showcase', () => {
     const decoded = Buffer.from(src.replace('data:image/svg+xml;base64,', ''), 'base64').toString('utf8');
     expect(decoded).toContain('fill="#8b5cf6"');
   });
+
+  test('mirror count badge uses accent border and color', () => {
+    const styleCss = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'style.css'), 'utf8');
+    expect(styleCss).toContain('.mirror-count-badge');
+    expect(styleCss).toMatch(/\.mirror-count-badge\s*\{[^}]*border:\s*1px solid var\(--accent\)/);
+    expect(styleCss).toMatch(/\.mirror-count-badge\s*\{[^}]*color:\s*var\(--accent\)/);
+    expect(styleCss).toMatch(/\.mirror-count-badge\s*\{[^}]*border-radius:\s*999px/);
+  });
 });
