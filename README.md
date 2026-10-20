@@ -135,6 +135,7 @@ TITLE: Markdown++ CLI Options
 | -F, --force | flag | Force overwrite without confirmation prompt |
 | --check | flag | Verify the source can be recovered byte-for-byte from the artifact |
 | -v, --verbose | flag | Enable verbose compiler logging |
+| --debug | flag | Dump full error stack traces on failure |
 | --spec | flag | Print the full MD++ language specification and exit |
 | -V, --version | flag | Output the version number |
 | -h, --help | flag | Display CLI help and options |

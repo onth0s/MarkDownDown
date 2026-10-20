@@ -11,7 +11,7 @@ import type { Options, CliOptions } from './types.js';
 import { CompileError, toErrorMessage } from './util/error.js';
 import { SPEC } from './spec.js';
 import { createMarkdownParser } from './parser/markdown.js';
-import { checkRoundTrip } from './pipeline/check.js';
+import { checkRoundTrip, extractEmbeddedSkeleton } from './pipeline/check.js';
 
 async function confirmOverwrite(targetPath: string): Promise<boolean> {
   if (!process.stdin.isTTY) return true;
@@ -35,7 +35,8 @@ program
   .name('mdd')
   .description('Compile .mdd / .md files to interactive HTML documents')
   .version('0.1.0')
-  .argument('[input]', 'Input .mdd or .md file')
+  .argument('[input]', 'Input .mdd, .md, or compiled .html file')
+  .argument('[source]', 'Optional source .mdd or .md file when checking an .html artifact')
   .option('--spec', 'Print the full MD++ language specification and exit')
   .option('-o, --output <path>', 'Output file (single) or directory (split)')
   .option('--single', 'Single self-contained HTML (default)', true)
@@ -50,10 +51,15 @@ program
   .option('--check', 'Verify the .mdd can be recovered from the rendered HTML, then exit', false)
   .option('-v, --verbose', 'Verbose output', false)
   .option('--debug', 'Dump full error stack traces on failure', false)
-  .action(async (input: string | undefined, opts: CliOptions) => {
+  .action(async (input: string | undefined, sourceArg: string | undefined, opts: CliOptions) => {
     if (opts.spec) {
       process.stdout.write(SPEC);
       process.exit(0);
+    }
+
+    if (!opts.check && sourceArg) {
+      process.stderr.write('ERROR: Multiple input files are only supported with --check: mdd <artifact.html> <source.mdd> --check\n');
+      process.exit(1);
     }
 
     if (!input) {
@@ -71,35 +77,135 @@ program
     const parsedPath = path.parse(inputFile);
     const stem = parsedPath.name;
 
-    // --check compiles in memory, verifies the round-trip, and writes nothing.
-    if (opts.check) {
-      const rawSource = fs.readFileSync(inputFile, 'utf8');
-      const checkOptions: Options = {
-        title: stem,
-        assetsDir: path.join(inputDir, 'assets'),
-        accent: '#3b82f6',
-        inputFile,
-        outputPath: path.join(inputDir, `${stem}.html`),
-        outputMode: 'single',
-        noDiagrams: opts.noDiagrams,
-        noTables: opts.noTables,
-        verbose: false,
-        minify: opts.minify !== false,
-      };
-      try {
-        const compiled = compile(checkOptions);
-        for (const w of compiled.warnings) process.stderr.write(`WARN: ${w}\n`);
+    if (!opts.check && /\.(html|htm)$/i.test(inputFile)) {
+      process.stderr.write('ERROR: Input file is an HTML artifact. To compile, provide a .mdd or .md file. To verify roundtrip, run: mdd <artifact.html> --check\n');
+      process.exit(1);
+    }
 
+    // --check verifies that the original .mdd can be reconstructed from an HTML artifact byte-for-byte.
+    if (opts.check) {
+      const isHtml = (f: string) => /\.(html|htm)$/i.test(f);
+      let htmlFile: string | null = null;
+      let sourceFile: string | null = null;
+      let htmlContent: string | null = null;
+      let rawSource: string | null = null;
+
+      if (sourceArg) {
+        const file1 = path.resolve(process.cwd(), input);
+        const file2 = path.resolve(process.cwd(), sourceArg);
+        if (isHtml(file1) && !isHtml(file2)) {
+          htmlFile = file1;
+          sourceFile = file2;
+        } else if (!isHtml(file1) && isHtml(file2)) {
+          htmlFile = file2;
+          sourceFile = file1;
+        } else {
+          process.stderr.write('ERROR: When two files are provided for --check, one must be an HTML artifact (.html) and the other a Markdown source (.mdd / .md).\n');
+          process.exit(1);
+        }
+      } else if (isHtml(inputFile)) {
+        htmlFile = inputFile;
+        htmlContent = fs.readFileSync(htmlFile, 'utf8');
+        const skeleton = extractEmbeddedSkeleton(htmlContent);
+        if (!skeleton) {
+          process.stderr.write(`ERROR: HTML artifact does not contain an embedded #mdd-skeleton payload: ${htmlFile}\n`);
+          process.exit(1);
+        }
+        let sourceName: string | undefined;
+        try {
+          const m = htmlContent.match(/<script type="application\/json" id="mdd-skeleton">([\s\S]*?)<\/script>/i);
+          if (m) sourceName = (JSON.parse(m[1]) as { name?: string }).name;
+        } catch { /* malformed skeleton payload */ }
+
+        const candidates: string[] = [];
+        if (sourceName) {
+          candidates.push(path.resolve(path.dirname(htmlFile), sourceName));
+          candidates.push(path.resolve(path.dirname(htmlFile), sourceName.replace(/\.mdd$/i, '.md')));
+          candidates.push(path.resolve(path.dirname(htmlFile), sourceName.replace(/\.md$/i, '.mdd')));
+          candidates.push(path.resolve(process.cwd(), sourceName));
+        }
+        candidates.push(path.resolve(path.dirname(htmlFile), `${stem}.mdd`));
+        candidates.push(path.resolve(process.cwd(), `${stem}.mdd`));
+        candidates.push(path.resolve(path.dirname(htmlFile), `${stem}.md`));
+        candidates.push(path.resolve(process.cwd(), `${stem}.md`));
+
+        for (const c of candidates) {
+          if (fs.existsSync(c)) {
+            sourceFile = c;
+            break;
+          }
+        }
+        if (!sourceFile) {
+          process.stderr.write(`ERROR: Original source file not found to compare against.\nSearched candidates:\n  ${candidates.join('\n  ')}\nSpecify the source file explicitly: mdd ${input} <source.mdd> --check\n`);
+          process.exit(1);
+        }
+      } else {
+        sourceFile = inputFile;
+        // Check if an existing on-disk HTML artifact exists to check against
+        const candidates: string[] = [];
+        if (opts.output && isHtml(opts.output)) {
+          candidates.push(path.resolve(process.cwd(), opts.output));
+        }
+        candidates.push(path.resolve(inputDir, `${stem}.html`));
+        candidates.push(path.resolve(process.cwd(), `${stem}.html`));
+        for (const c of candidates) {
+          if (fs.existsSync(c)) {
+            htmlFile = c;
+            break;
+          }
+        }
+      }
+
+      if (sourceFile && !rawSource) {
+        if (!fs.existsSync(sourceFile)) {
+          process.stderr.write(`ERROR: Source file not found: ${sourceFile}\n`);
+          process.exit(1);
+        }
+        rawSource = fs.readFileSync(sourceFile, 'utf8');
+      }
+
+      if (htmlFile && !htmlContent) {
+        if (!fs.existsSync(htmlFile)) {
+          process.stderr.write(`ERROR: HTML artifact not found: ${htmlFile}\n`);
+          process.exit(1);
+        }
+        htmlContent = fs.readFileSync(htmlFile, 'utf8');
+      }
+
+      try {
+        if (!htmlContent) {
+          // If no artifact on disk, compile in memory
+          const checkOptions: Options = {
+            title: stem,
+            assetsDir: path.join(inputDir, 'assets'),
+            accent: '#3b82f6',
+            inputFile: sourceFile!,
+            outputPath: path.join(inputDir, `${stem}.html`),
+            outputMode: 'single',
+            noDiagrams: opts.noDiagrams,
+            noTables: opts.noTables,
+            verbose: false,
+            minify: opts.minify !== false,
+          };
+          const compiled = compile(checkOptions);
+          for (const w of compiled.warnings) process.stderr.write(`WARN: ${w}\n`);
+          htmlContent = compiled.html;
+        }
+
+        const skeleton = extractEmbeddedSkeleton(htmlContent);
         const result = checkRoundTrip({
           md: createMarkdownParser(),
-          html: compiled.html,
-          rawSource,
+          html: htmlContent,
+          rawSource: rawSource!,
+          skeletonText: skeleton ? JSON.stringify(skeleton) : undefined,
         });
 
-        const relInput = path.relative(process.cwd(), inputFile) || inputFile;
+        const relSource = sourceFile ? (path.relative(process.cwd(), sourceFile) || sourceFile) : inputFile;
+        const relHtml = htmlFile ? (path.relative(process.cwd(), htmlFile) || htmlFile) : '(in-memory compiled artifact)';
         process.stdout.write(`\n Markdown++ Round-Trip Check\n`);
         process.stdout.write(` --------------------------------\n`);
-        process.stdout.write(` Source:      ${relInput}\n`);
+        process.stdout.write(` Source:      ${relSource}\n`);
+        process.stdout.write(` Artifact:    ${relHtml}\n`);
         process.stdout.write(` ${result.message}\n`);
         if (!result.semanticEqual && result.firstDiff) {
           const d = result.firstDiff;
@@ -107,7 +213,6 @@ program
           if (opts.verbose) {
             process.stdout.write(`   source:  ${JSON.stringify(d.source)}\n`);
             process.stdout.write(`   rebuilt: ${JSON.stringify(d.rebuilt)}\n`);
-            // Show the first differing character position for precision.
             let i = 0;
             while (i < d.source.length && i < d.rebuilt.length && d.source[i] === d.rebuilt[i]) i++;
             process.stdout.write(`   diverges at char ${i}:\n`);

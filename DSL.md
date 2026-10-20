@@ -352,9 +352,13 @@ divergence   := ( "DIVERGENCE:" | "DIVERGE:" | "GAP:" ) divergence_text "\n"
 
 ## 4. Shared Rendering Rules
 
-### 4.1 Copy Button
+### 4.1 Interactive Block Controls
 
-Each `diagram` and `table` block includes a `<button class="copy-btn">` that copies the raw DSL source to the clipboard. The source code `<pre>` is hidden via CSS (`.code-wrap.diagram pre, .code-wrap.table pre { display:none; }`).
+Each `diagram` and `table` block includes interactive controls:
+
+- **Raw / Rendered Toggle (`.view-toggle-btn`)**: A toggle button at the bottom-left of each container allows switching between the rendered interactive SVG graphic and the underlying raw DSL source code.
+- **DSL Source Copy (`.copy-btn`)**: Copies the raw DSL source to the clipboard with visual feedback. The source code `<pre>` container is hidden by default (`.code-wrap.diagram pre, .code-wrap.table pre { display:none; }`).
+- **Vector & Raster Download (`.download-btn`)**: Exports the graphic directly as a standalone vector SVG or a high-resolution raster JPG rendered via an offscreen 2x HiDPI canvas.
 
 ### 4.2 Search Highlight Sync
 

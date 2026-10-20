@@ -222,6 +222,7 @@ TITLE: Markdown++ CLI Options
 | -F, --force | flag | false | Force overwrite without confirmation prompt |
 | -v, --verbose | flag | false | Verbose compiler logging |
 | --debug | flag | false | Dump full error stack traces on failure |
+| --check | flag | false | Verify that the .mdd source can be recovered from the rendered HTML, then exit |
 | --spec | flag | false | Print the full MD++ language specification and exit |
 | -V, --version | flag | false | Output the compiler version number |
 | -h, --help | flag | false | Show CLI help and options |
@@ -295,9 +296,17 @@ Blockquotes starting with `[!]` or `[!<tag>]` are rendered as accent-styled call
 
 ---
 
-## 12. In-Page Navigation History Stack
+## 12. Workspace Navigation & History Stack
 
-Markdown++ documents feature an in-page navigation manager for internal wikilink traversal:
+Markdown++ documents provide desktop and mobile reading ergonomics with synchronized workspace controls:
+
+### 12.1 Sidebar & Workspace Controls
+
+- **Resizable Sidebar**: Draggable split resizer with a sticky 14px hitbox and a 2px accent indicator bar. The resizer remembers the user's drag start width across collapse and expand states.
+- **Dynamic Edge Reopen Arrow**: When collapsed, tracking cursor Y-coordinates along the viewport edge displays an accent reopen arrow allowing instantaneous sidebar restoration.
+- **Sidebar Position Toggle**: The document sidebar can be dynamically placed on either the left or right screen edge via reader preferences.
+
+### 12.2 In-Page Navigation History Stack
 
 - **Bidirectional History Stack**: Preserves exact scroll position and origin wikilink tokens on forward and backward navigation (`Alt+Left` / `Alt+Right` / `Escape`).
 - **Floating Pill UI**: Fixed outside the sidebar to the right in the content column, displaying previous/next destination labels, a clear button (`×`), and bidirectional navigation controls.
@@ -354,3 +363,13 @@ TITLE: Key Architectural Design Decisions
 | D9 | Base64 inlining for --single mode | Zero external dependencies for standalone distribution |
 | D10 | Non-fatal warnings for missing file URIs | Preserves functional link markup in technical docs |
 ```
+
+---
+
+## 15. Source Reconstruction & Portability
+
+Markdown++ documents are self-contained artifacts designed for roundtrip portability and long-term preservation:
+
+- **Embedded Source Skeleton**: Standalone HTML documents contain a `#mdd-skeleton` JSON payload preserving source prose, heading structure, diagram/table DSL fences, and document frontmatter.
+- **CLI Verification (`--check`)**: Running `mdd <artifact.html> [source.mdd] --check` (or `mdd <source.mdd> [artifact.html] --check`) extracts and rebuilds the original source directly from the rendered HTML artifact using the embedded skeleton and DOM walker, verifying both semantic equivalence and SHA-256 byte identity against the actual source file.
+- **In-Browser Source Export**: The document reader menu includes an option to download the original MD++ source file directly from any standalone exported HTML document.
