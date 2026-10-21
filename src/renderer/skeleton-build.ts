@@ -352,7 +352,7 @@ function scanContainer(tokens: Token[], open: number): ContainerScan {
  * Build a source skeleton: frontmatter verbatim, body as a linear list of
  * literal segments and PROSE slots, dominant line ending captured.
  */
-export function buildSkeleton(md: MarkdownIt, rawSource: string): Skeleton {
+export function buildSkeleton(md: MarkdownIt, rawSource: string, parsedTokens?: Token[]): Skeleton {
   const eol = detectEol(rawSource);
   const src = rawSource.replace(/\r\n/g, '\n');
   const fm = extractFrontmatter(src);
@@ -362,7 +362,7 @@ export function buildSkeleton(md: MarkdownIt, rawSource: string): Skeleton {
   // never wrote — which is how a body ending in one newline came back with two.
   const endsWithNewline = body.endsWith('\n');
   const lines = (endsWithNewline ? body.slice(0, -1) : body).split('\n');
-  const tokens = md.parse(body, {});
+  const tokens = parsedTokens ?? md.parse(body, {});
 
   const segs: (string | number)[] = [];
   const spans: string[] = [];

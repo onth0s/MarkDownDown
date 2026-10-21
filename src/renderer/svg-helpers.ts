@@ -50,6 +50,26 @@ export function centeredBox(cx: number, cy: number, w: number, h: number): Box {
   return { minX: cx - w / 2, minY: cy - h / 2, maxX: cx + w / 2, maxY: cy + h / 2 };
 }
 
+/** Test if two boxes overlap within an optional tolerance. */
+export function boxOverlaps(a: Box, b: Box, tolerance = 0): boolean {
+  return (
+    a.minX < b.maxX - tolerance &&
+    a.maxX > b.minX + tolerance &&
+    a.minY < b.maxY - tolerance &&
+    a.maxY > b.minY + tolerance
+  );
+}
+
+/** Inflate (expand) a box by a margin in all directions. */
+export function inflateBox(b: Box, by: number): Box {
+  return {
+    minX: b.minX - by,
+    minY: b.minY - by,
+    maxX: b.maxX + by,
+    maxY: b.maxY + by,
+  };
+}
+
 /**
  * A resolved edge route: the exact path data that will be written to the `d`
  * attribute, kept alongside a polyline sampling of the real curve so the layout

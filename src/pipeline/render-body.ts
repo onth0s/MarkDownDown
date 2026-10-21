@@ -7,6 +7,7 @@
 import path from 'node:path';
 import type { Options, PendingWikilink } from '../types.js';
 import type MarkdownIt from 'markdown-it';
+import type Token from 'markdown-it/lib/token.mjs';
 import type { ResolvedLink } from '../resolver/wikilink.js';
 import { escHtml } from '../util/escape.js';
 import { injectDiagramSvgs } from './inject-diagrams.js';
@@ -65,6 +66,7 @@ export function renderBody(
   options: Options,
   docTitle: string,
   warnings: string[],
+  tokens?: Token[],
 ): RenderBodyResult {
   // Build link lookup map for fast render-time access
   const linkMap = new Map<string, PendingWikilink>();
@@ -89,7 +91,7 @@ export function renderBody(
   const inputDir = path.dirname(options.inputFile);
 
   // Render markdown to HTML, then inject SVGs, mirror blocks, and copy buttons
-  let bodyHtml = md.render(markdownBody, {
+  const renderEnv = {
     warnings,
     inputDir,
     options,
@@ -98,7 +100,10 @@ export function renderBody(
     outputMode: options.outputMode,
     assetBase64Map,
     md,
-  });
+  };
+  let bodyHtml = tokens
+    ? md.renderer.render(tokens, md.options, renderEnv)
+    : md.render(markdownBody, renderEnv);
   if (!options.noDiagrams) bodyHtml = injectDiagramSvgs(bodyHtml, docTitle, warnings);
   if (!options.noTables) bodyHtml = injectTableSvgs(bodyHtml, docTitle, warnings);
   const { html: mirrorHtml, stats: mirrorStats } = injectMirrorBlocks(bodyHtml, docTitle, warnings);

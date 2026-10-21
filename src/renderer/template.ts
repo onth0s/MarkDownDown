@@ -77,9 +77,7 @@ export function assembleHtml(opts: AssembleOptions): string {
   // minifier cannot alter it, and it must not sit in the DOM (minifyHtml strips
   // comments). Builds with no skeleton drop the tag entirely.
   const embedSkeleton = opts.skeleton !== undefined;
-  if (embedSkeleton) {
-    template = template.replace('{{mdd_skeleton}}', () => SKELETON_TOKEN);
-  } else {
+  if (!embedSkeleton) {
     template = template.replace(
       /<script type="application\/json" id="mdd-skeleton">MDD_SKELETON_PAYLOAD_TOKEN<\/script>/,
       '',

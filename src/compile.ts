@@ -54,14 +54,14 @@ export function compile(options: Options): CompileResult {
 
   // 6. Render body HTML
   const { html: bodyHtml, mirrorStats } = renderBody(
-    md, markdownBody, pendingLinks, assetBase64Map, resolvedOptions, title, warnings,
+    md, markdownBody, pendingLinks, assetBase64Map, resolvedOptions, title, warnings, tokens,
   );
 
   // 6b. Source skeleton for the in-document download button: the same data
   // `mdd --check` ratifies, so a browser can reconstruct the exact .mdd from
   // the artifact alone. The assembler prunes it to the slots the rendered DOM
   // cannot reproduce before serializing it into the page.
-  const skeleton = buildSkeleton(md, rawSource);
+  const skeleton = buildSkeleton(md, rawSource, tokens);
   const sourceName = path.basename(options.inputFile, path.extname(options.inputFile)) + '.mdd';
 
   // 7. Assemble and write

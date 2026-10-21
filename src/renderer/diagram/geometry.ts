@@ -22,6 +22,8 @@ import {
   routeBox,
   roundedPolylineRoute,
   unionBox,
+  boxOverlaps,
+  inflateBox as inflate,
   type Box,
   type EdgeRoute,
   type Point,
@@ -79,18 +81,6 @@ function rhombusHalfWidth(w: number, h: number, dy: number): number {
   return Math.max(0, halfW * (1 - Math.abs(dy) / halfH));
 }
 
-function boxOverlaps(a: Box, b: Box, tolerance = 0): boolean {
-  return (
-    a.minX < b.maxX - tolerance &&
-    a.maxX > b.minX + tolerance &&
-    a.minY < b.maxY - tolerance &&
-    a.maxY > b.minY + tolerance
-  );
-}
-
-function inflate(b: Box, by: number): Box {
-  return { minX: b.minX - by, minY: b.minY - by, maxX: b.maxX + by, maxY: b.maxY + by };
-}
 
 /** One node an edge runs through. */
 export interface EdgeNodeCollision {
