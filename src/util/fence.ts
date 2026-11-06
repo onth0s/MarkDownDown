@@ -28,3 +28,17 @@ export function parseTitleDirective(source: string): { title: string; body: stri
 
   return { title: '', body: source };
 }
+
+/** Extract a `data-*` attribute value from a raw HTML attribute string. */
+export function extractDataAttr(attrs: string, name: string): string {
+  const m = attrs.match(new RegExp(`data-${name}="([^"]*)"`));
+  return m ? m[1] : '';
+}
+
+/** Create a RegExp matching a code-wrap block for a given kind. */
+export function createCodeWrapRegex(kind: string): RegExp {
+  return new RegExp(
+    `<div class="code-wrap ${kind}"([^>]*)>\\s*<pre><code class="language-${kind}"[^>]*>([\\s\\S]*?)<\\/code><\\/pre>\\s*<div class="${kind}-render"><\\/div>\\s*<\\/div>`,
+    'g'
+  );
+}

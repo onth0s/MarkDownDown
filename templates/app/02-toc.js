@@ -157,21 +157,7 @@ article.addEventListener('click', async (event) => {
     }
   }
   if (!copied) {
-    try {
-      const ta = document.createElement('textarea');
-      ta.value = url;
-      ta.style.position = 'fixed';
-      ta.style.top = '-9999px';
-      ta.style.left = '-9999px';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      copied = document.execCommand('copy');
-      ta.remove();
-    } catch (_) {
-      copied = false;
-    }
+    copied = await copyToClipboard(url);
   }
 
   if (copied) {

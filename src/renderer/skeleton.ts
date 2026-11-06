@@ -23,6 +23,7 @@
  */
 
 import { SKELETON } from '../constants.js';
+import { FRONTMATTER_BLOCK_RE } from '../parser/frontmatter.js';
 
 /** Placeholder opcode: take the next prose run from the DOM, in document order. */
 export const PROSE = SKELETON.PROSE;
@@ -89,7 +90,7 @@ export function detectEol(src: string): '\n' | '\r\n' {
  * Returns '' when the document does not open with a frontmatter block.
  */
 export function extractFrontmatter(src: string): string {
-  const m = src.match(/^---\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/);
+  const m = src.match(FRONTMATTER_BLOCK_RE);
   return m ? m[0] : '';
 }
 

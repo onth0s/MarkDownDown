@@ -321,7 +321,7 @@ interface PortMaps {
   inIndex: Map<DiagramEdge, number>;
 }
 
-function buildPortMaps(model: DiagramModel, placed: PlacedNode[]): PortMaps {
+function buildPortMaps(model: DiagramModel, placed: PlacedNode[], orientation: 'TB' | 'LR'): PortMaps {
   const byCx = new Map(placed.map(p => [p.node.id, p.cx]));
   const byCy = new Map(placed.map(p => [p.node.id, p.cy]));
 
@@ -337,12 +337,21 @@ function buildPortMaps(model: DiagramModel, placed: PlacedNode[]): PortMaps {
     inc.push(e);
   }
   // Order ports by the perpendicular position of their partner so a fan-out
-  // leaves left-to-right instead of in declaration order.
+  // leaves left-to-right (TB) or top-to-bottom (LR) instead of in declaration order.
+  const isLR = orientation === 'LR';
   for (const list of outLists.values()) {
-    list.sort((a, b) => (byCx.get(a.to) ?? 0) - (byCx.get(b.to) ?? 0));
+    list.sort((a, b) =>
+      isLR
+        ? (byCy.get(a.to) ?? 0) - (byCy.get(b.to) ?? 0)
+        : (byCx.get(a.to) ?? 0) - (byCx.get(b.to) ?? 0),
+    );
   }
   for (const list of inLists.values()) {
-    list.sort((a, b) => (byCx.get(a.from) ?? 0) - (byCx.get(b.from) ?? 0));
+    list.sort((a, b) =>
+      isLR
+        ? (byCy.get(a.from) ?? 0) - (byCy.get(b.from) ?? 0)
+        : (byCx.get(a.from) ?? 0) - (byCx.get(b.from) ?? 0),
+    );
   }
 
   const outTotal = new Map<string, number>();
@@ -357,7 +366,6 @@ function buildPortMaps(model: DiagramModel, placed: PlacedNode[]): PortMaps {
     inTotal.set(id, list.length);
     list.forEach((e, i) => inIndex.set(e, i));
   }
-  void byCy;
   return { outTotal, outIndex, inTotal, inIndex };
 }
 
@@ -684,7 +692,7 @@ export function resolveGeometry(model: DiagramModel, orientation: Orientation): 
     ...subgraphNodes.map(p => [p.node.id, p] as const),
   ]);
   const bounds = graphBounds(nodes);
-  const ports = buildPortMaps(model, nodes);
+  const ports = buildPortMaps(model, nodes, orientation);
   const warnings: string[] = [];
 
   const isLR = orientation === 'LR';

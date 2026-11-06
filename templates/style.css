@@ -710,7 +710,6 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
 }
 .search-results { list-style:none; margin:0 0 18px; padding:0; }
 
-.search-count { color:var(--muted); font-size:12px; white-space:nowrap; }
 .settings {
   position:fixed; right:18px; top:72px; z-index:70; width:270px; padding:16px;
   background:var(--surface); border:1px solid var(--border); border-radius:14px;
@@ -753,11 +752,11 @@ mark.search-current { background:var(--accent); color:var(--accent-fg); box-shad
 .sidebar-pos-badge {
   font-size:11px; font-weight:600;
   padding:2px 7px; border-radius:6px;
-  background:var(--surface2); color:var(--text); border:1px solid var(--border);
+  background:var(--surface-2); color:var(--text); border:1px solid var(--border);
   flex:none; transition:background-color .15s, color .15s, border-color .15s;
 }
 .dropdown-item:hover .sidebar-pos-badge {
-  background:var(--surface3); color:var(--accent); border-color:var(--accent);
+  background:var(--surface-3); color:var(--accent); border-color:var(--accent);
 }
 .dropdown-toast {
   position:fixed; right:18px; top:130px; z-index:80;
@@ -1007,7 +1006,7 @@ button, a, input, label, .toc a, .search-result-item {
 .mode-switch {
   display: inline-flex;
   align-items: center;
-  background: var(--surface2);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px;
@@ -1031,7 +1030,7 @@ button, a, input, label, .toc a, .search-result-item {
   padding: 4px 11px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--muted);
   cursor: pointer;
   transition: all 180ms ease;
   line-height: 1.2;
@@ -1068,7 +1067,7 @@ button, a, input, label, .toc a, .search-result-item {
   border-top: 1px solid var(--border);
 }
 .btn-sidebar-pos {
-  background: var(--surface2);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 6px;
   color: var(--text);
@@ -1079,7 +1078,7 @@ button, a, input, label, .toc a, .search-result-item {
   transition: background-color .15s ease, color .15s ease, border-color .15s ease;
 }
 .btn-sidebar-pos:hover {
-  background: var(--surface3);
+  background: var(--surface-3);
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -1091,16 +1090,16 @@ button, a, input, label, .toc a, .search-result-item {
   border-top: 1px solid var(--border);
 }
 .btn-reset-mirror {
-  background: var(--surface2);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 6px;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 11px;
   padding: 4px 8px;
   cursor: pointer;
 }
 .btn-reset-mirror:hover {
-  background: var(--surface3);
+  background: var(--surface-3);
   color: var(--text);
 }
 
@@ -1112,7 +1111,7 @@ button, a, input, label, .toc a, .search-result-item {
   padding: 1px 6px;
   border-radius: 999px;
   margin-left: 6px;
-  background: var(--surface3);
+  background: var(--surface-3);
   color: var(--accent);
   vertical-align: middle;
 }
@@ -1139,13 +1138,13 @@ body:not([data-mode="mirror"]) .mirror-block .mirror-margin-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--surface2);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 4px 10px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--muted);
   cursor: pointer;
   transition: all 180ms ease;
   margin-bottom: 0.5em;
@@ -1153,7 +1152,7 @@ body:not([data-mode="mirror"]) .mirror-block .mirror-margin-pill {
 body:not([data-mode="mirror"]) .mirror-block .mirror-margin-pill:hover {
   border-color: var(--accent);
   color: var(--text);
-  background: var(--surface3);
+  background: var(--surface-3);
 }
 body:not([data-mode="mirror"]) .mirror-block .mirror-card {
   display: none;
@@ -1220,7 +1219,7 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
   letter-spacing: 0.05em;
   padding: 2px 8px;
   border-radius: 999px;
-  background: var(--surface2);
+  background: var(--surface-2);
   color: var(--accent);
   border: 1px solid var(--border);
 }
@@ -1233,20 +1232,20 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
   background: transparent;
   border: none;
   font-size: 18px;
-  color: var(--text-muted);
+  color: var(--muted);
   cursor: pointer;
   line-height: 1;
   padding: 2px 6px;
   border-radius: 4px;
 }
 .mirror-card-close-btn:hover {
-  background: var(--surface2);
+  background: var(--surface-2);
   color: var(--text);
 }
 
 /* Q&A Cards */
 .mirror-qa-card {
-  background: var(--surface2);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 14px;
@@ -1263,18 +1262,18 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
   margin-right: 2px;
 }
 .mirror-a {
-  color: var(--text-muted);
+  color: var(--muted);
   line-height: 1.55;
 }
 .mirror-a-prefix {
-  color: var(--text-muted);
+  color: var(--muted);
   font-weight: 700;
   margin-right: 2px;
 }
 
 /* Alignment Probes */
 .mirror-probe-card {
-  background: var(--surface2);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 16px;
@@ -1393,7 +1392,7 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
 .mirror-audit-prompt {
   font-size: 12.5px;
   font-style: italic;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-bottom: 8px;
 }
 .mirror-audit-actions {
@@ -1409,7 +1408,7 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
   padding: 5px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--muted);
   cursor: pointer;
   transition: all 160ms ease;
 }
@@ -1455,7 +1454,7 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
 .mirror-reader-title {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 .mirror-reader-toggle-btn {
   background: transparent;
@@ -1474,7 +1473,7 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
 .mirror-reader-input {
   width: 100%;
   box-sizing: border-box;
-  background: var(--surface2);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 8px 10px;
@@ -1493,7 +1492,7 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
   margin-top: 6px;
 }
 .mirror-reader-submit-btn {
-  background: var(--surface2);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 4px 10px;
@@ -1514,7 +1513,7 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
   gap: 6px;
 }
 .mirror-reader-note-item {
-  background: var(--surface2);
+  background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 10px;
@@ -1528,7 +1527,7 @@ body[data-mode="mirror"] .mirror-block .mirror-card-close-btn {
 .mirror-reader-note-del {
   background: transparent;
   border: none;
-  color: var(--text-muted);
+  color: var(--muted);
   cursor: pointer;
   font-size: 14px;
   line-height: 1;

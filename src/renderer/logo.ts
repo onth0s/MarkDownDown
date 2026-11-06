@@ -180,3 +180,41 @@ export function processLogo(logoPath?: string, accent = '#3b82f6', warnings?: st
     faviconHref: dataUri,
   };
 }
+
+/**
+ * Auto-detect a single logo SVG in cwd or inputDir when `-L` is passed without an argument.
+ */
+export function resolveCliLogoPath(
+  logoOpt: string | boolean | undefined,
+  inputDir: string
+): { logoPath?: string; error?: string } {
+  if (typeof logoOpt === 'string') {
+    return { logoPath: path.resolve(process.cwd(), logoOpt) };
+  }
+  if (logoOpt === true) {
+    const findSingleSvg = (dir: string): string | null => {
+      try {
+        const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.svg'));
+        if (files.length === 1) return path.join(dir, files[0]);
+      } catch {
+        // ignore
+      }
+      return null;
+    };
+    const cwdSvg = findSingleSvg(process.cwd());
+    const inputDirSvg = findSingleSvg(inputDir);
+    if (cwdSvg) return { logoPath: cwdSvg };
+    if (inputDirSvg) return { logoPath: inputDirSvg };
+
+    try {
+      const cwdSvgs = fs.readdirSync(process.cwd()).filter(f => f.toLowerCase().endsWith('.svg'));
+      if (cwdSvgs.length > 1) {
+        return { error: 'Multiple .svg files found in working directory. Please specify path: -L <path>' };
+      }
+    } catch {
+      // ignore
+    }
+    return { error: '-L flag passed with no argument, but no .svg file was found in working directory or input directory.' };
+  }
+  return {};
+}

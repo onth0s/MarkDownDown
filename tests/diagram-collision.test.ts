@@ -607,3 +607,21 @@ describe('text metrics: sanity of the calibrated model', () => {
       .toBeGreaterThan(measureText('process', 14));
   });
 });
+
+describe('diagram ports: LR orientation orders ports vertically', () => {
+  test('fan-out ports in LR orientation are ordered by target Y coordinate', () => {
+    const src = `
+A[Node A] --> B[Node B]
+A --> C[Node C]
+A --> D[Node D]
+`;
+    const model = diagramParse(src, 'LR');
+    diagramLayout(model);
+    const geom = resolveGeometry(model, 'LR');
+    const edgesFromA = geom.edges.filter(e => e.edge.from === 'A');
+    expect(edgesFromA.length).toBe(3);
+    for (let i = 0; i < edgesFromA.length - 1; i++) {
+      expect(edgesFromA[i].route.points[0].y).toBeLessThanOrEqual(edgesFromA[i + 1].route.points[0].y);
+    }
+  });
+});

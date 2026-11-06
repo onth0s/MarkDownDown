@@ -1,3 +1,4 @@
+import { htmlDecode } from '../util/escape.js';
 /**
  * Reads prose runs back out of rendered HTML, in the order the skeleton emitted
  * its PROSE placeholders.
@@ -41,16 +42,7 @@ function stripChrome(html: string): string {
 }
 
 /** Decode the HTML entities the compiler emits. */
-export function decodeEntities(s: string): string {
-  return s
-    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d: string) => String.fromCodePoint(parseInt(d, 10)))
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&');
-}
+export const decodeEntities = htmlDecode;
 
 /**
  * Extract the prose runs from the document `<article>` element, in order.

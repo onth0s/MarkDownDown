@@ -317,7 +317,16 @@ TITLE: NPM Build & Verification Scripts
 | npm run lint | Execute ESLint across entire codebase |
 | npm run build | Compile TypeScript CLI entry point into dist/cli.cjs via esbuild |
 | npm run dev | Run compiler directly in development mode via tsx |
+| .\build.ps1 | Complete sequential pipeline: build, lint, typecheck, tests, and index.html |
+| .\build.ps1 -lip | "Let It Rip" mode: high-speed build, parallel worker tests, and index.html |
 ```
+
+### PowerShell Build Runner (`build.ps1`)
+
+Windows workflows can leverage `build.ps1` for complete validation or rapid iterations:
+
+- **Standard Mode** (`.\build.ps1`): Sequentially compiles the project, runs ESLint, runs TypeScript typechecking (`tsc --noEmit`), runs all Jest suites, and regenerates `index.html`.
+- **Let It Rip Mode** (`.\build.ps1 -lip` or `.\build.ps1 -LetItRip`): High-speed development mode. Skips static linting and typecheck passes, runs test suites with optimized parallel workers (`--maxWorkers=50%`), regenerates `index.html`, and returns immediately without an interactive prompt.
 
 ---
 

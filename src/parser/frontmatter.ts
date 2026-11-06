@@ -21,7 +21,9 @@ export interface FrontmatterResult {
   warnings: string[];
 }
 
-const FENCE_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
+export const FRONTMATTER_BLOCK_RE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+export const FRONTMATTER_FENCE_RE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)([\s\S]*)$/;
+const FENCE_RE = FRONTMATTER_FENCE_RE;
 
 export function parseBgLum(raw: unknown): BgLum | undefined {
   if (raw == null) return undefined;

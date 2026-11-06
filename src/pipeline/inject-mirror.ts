@@ -4,9 +4,10 @@
  */
 import { mirrorParse, mirrorBuildHtml } from '../renderer/mirror/index.js';
 import { htmlDecode, escHtml } from '../util/escape.js';
+import { createCodeWrapRegex, extractDataAttr } from '../util/fence.js';
 import { toErrorMessage } from '../util/error.js';
 
-const MIRROR_BLOCK_RE = /<div class="code-wrap mirror"([^>]*)>\s*<pre><code class="language-mirror"[^>]*>([\s\S]*?)<\/code><\/pre>\s*<div class="mirror-render"><\/div>\s*<\/div>/g;
+const MIRROR_BLOCK_RE = createCodeWrapRegex('mirror');
 
 export interface MirrorStats {
   blocks: number;
@@ -28,12 +29,9 @@ export function injectMirrorBlocks(
     MIRROR_BLOCK_RE,
     (match, attrs, codeContent) => {
       try {
-        const titleMatch = attrs.match(/data-title="([^"]*)"/);
-        const subkindMatch = attrs.match(/data-subkind="([^"]*)"/);
-        const rawMatch = attrs.match(/data-raw="([^"]*)"/);
-        const titleAttr = titleMatch ? titleMatch[1] : '';
-        const subkindAttr = subkindMatch ? subkindMatch[1] : '';
-        const rawAttr = rawMatch ? rawMatch[1] : '';
+        const titleAttr = extractDataAttr(attrs, 'title');
+        const subkindAttr = extractDataAttr(attrs, 'subkind');
+        const rawAttr = extractDataAttr(attrs, 'raw');
 
         const rawCode = htmlDecode(codeContent);
         const model = mirrorParse(rawCode, subkindAttr, `mirror-${blocks + 1}`);

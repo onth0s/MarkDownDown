@@ -19,6 +19,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { measureText } from '../src/renderer/text-metrics.js';
+import { htmlDecode } from '../src/util/escape.js';
 
 const USABLE_WIDTH = 1044; // --max (1080) minus the 18px padding per side
 
@@ -145,16 +146,7 @@ interface Finding { kind: string; detail: string }
  * Must run *after* nested tags are stripped: decoding first would turn
  * `&lt;path&gt;` back into `<path>`, which the tag stripper would then eat.
  */
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&#x([0-9a-fA-F]+);/g, (_, h: string) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d: string) => String.fromCodePoint(Number(d)))
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, '&');
-}
+const decodeEntities = htmlDecode;
 
 /** Strip nested markup, then resolve entities, leaving the glyphs to measure. */
 function visibleText(fragment: string): string {

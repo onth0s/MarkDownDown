@@ -74,8 +74,9 @@ export function renderBody(
     linkMap.set(`${pw.target}|${pw.display}`, pw);
   }
 
-  // Custom renderer for wikilink tokens
-  md.renderer.rules['wikilink'] = (tokens, idx, _opt, env) => {
+  // Custom renderer for wikilink tokens (registered once)
+  if (!md.renderer.rules['wikilink']) {
+    md.renderer.rules['wikilink'] = (tokens, idx, _opt, env) => {
     const tok = tokens[idx];
     const target = tok.content;
     const display = tok.info || target;
@@ -86,7 +87,8 @@ export function renderBody(
     const b64Map = (env && env.assetBase64Map) || assetBase64Map;
     const parser = (env && env.md) || md;
     return renderWikilinkToken(target, display, pw.resolution, mode, b64Map, parser);
-  };
+    };
+  }
 
   const inputDir = path.dirname(options.inputFile);
 

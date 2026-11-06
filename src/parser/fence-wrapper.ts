@@ -42,11 +42,6 @@ export function createFenceRenderer(md: MarkdownIt, block: FenceBlock): void {
     const rawFence = `\`\`\`${token.info.trim()}\n${token.content.endsWith('\n') ? token.content : token.content + '\n'}\`\`\``;
     const safeRaw = escHtml(rawFence).replace(/\r?\n/g, '&#10;');
 
-
-
-
-
-
     return (
       `<div class="code-wrap ${block.kind}" data-title="${safeTitle}"${dirAttr}${subkindAttr} data-raw="${safeRaw}">` +
       `<pre><code class="language-${block.kind}">${safeContent}</code></pre>` +

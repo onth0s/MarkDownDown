@@ -11,7 +11,8 @@ import type { Options, CliOptions } from './types.js';
 import { CompileError, toErrorMessage } from './util/error.js';
 import { SPEC } from './spec.js';
 import { createMarkdownParser } from './parser/markdown.js';
-import { checkRoundTrip, extractEmbeddedSkeleton } from './pipeline/check.js';
+import { checkRoundTrip, resolveCheckTargets, extractEmbeddedSkeleton } from './pipeline/check.js';
+import { resolveCliLogoPath } from './renderer/logo.js';
 
 async function confirmOverwrite(targetPath: string): Promise<boolean> {
   if (!process.stdin.isTTY) return true;
@@ -84,79 +85,14 @@ program
 
     // --check verifies that the original .mdd can be reconstructed from an HTML artifact byte-for-byte.
     if (opts.check) {
-      const isHtml = (f: string) => /\.(html|htm)$/i.test(f);
-      let htmlFile: string | null = null;
-      let sourceFile: string | null = null;
+      const { htmlFile, sourceFile, error: targetErr } = resolveCheckTargets(input, sourceArg, opts.output);
+      if (targetErr) {
+        process.stderr.write(`ERROR: ${targetErr}\n`);
+        process.exit(1);
+      }
       let htmlContent: string | null = null;
       let rawSource: string | null = null;
-
-      if (sourceArg) {
-        const file1 = path.resolve(process.cwd(), input);
-        const file2 = path.resolve(process.cwd(), sourceArg);
-        if (isHtml(file1) && !isHtml(file2)) {
-          htmlFile = file1;
-          sourceFile = file2;
-        } else if (!isHtml(file1) && isHtml(file2)) {
-          htmlFile = file2;
-          sourceFile = file1;
-        } else {
-          process.stderr.write('ERROR: When two files are provided for --check, one must be an HTML artifact (.html) and the other a Markdown source (.mdd / .md).\n');
-          process.exit(1);
-        }
-      } else if (isHtml(inputFile)) {
-        htmlFile = inputFile;
-        htmlContent = fs.readFileSync(htmlFile, 'utf8');
-        const skeleton = extractEmbeddedSkeleton(htmlContent);
-        if (!skeleton) {
-          process.stderr.write(`ERROR: HTML artifact does not contain an embedded #mdd-skeleton payload: ${htmlFile}\n`);
-          process.exit(1);
-        }
-        let sourceName: string | undefined;
-        try {
-          const m = htmlContent.match(/<script type="application\/json" id="mdd-skeleton">([\s\S]*?)<\/script>/i);
-          if (m) sourceName = (JSON.parse(m[1]) as { name?: string }).name;
-        } catch { /* malformed skeleton payload */ }
-
-        const candidates: string[] = [];
-        if (sourceName) {
-          candidates.push(path.resolve(path.dirname(htmlFile), sourceName));
-          candidates.push(path.resolve(path.dirname(htmlFile), sourceName.replace(/\.mdd$/i, '.md')));
-          candidates.push(path.resolve(path.dirname(htmlFile), sourceName.replace(/\.md$/i, '.mdd')));
-          candidates.push(path.resolve(process.cwd(), sourceName));
-        }
-        candidates.push(path.resolve(path.dirname(htmlFile), `${stem}.mdd`));
-        candidates.push(path.resolve(process.cwd(), `${stem}.mdd`));
-        candidates.push(path.resolve(path.dirname(htmlFile), `${stem}.md`));
-        candidates.push(path.resolve(process.cwd(), `${stem}.md`));
-
-        for (const c of candidates) {
-          if (fs.existsSync(c)) {
-            sourceFile = c;
-            break;
-          }
-        }
-        if (!sourceFile) {
-          process.stderr.write(`ERROR: Original source file not found to compare against.\nSearched candidates:\n  ${candidates.join('\n  ')}\nSpecify the source file explicitly: mdd ${input} <source.mdd> --check\n`);
-          process.exit(1);
-        }
-      } else {
-        sourceFile = inputFile;
-        // Check if an existing on-disk HTML artifact exists to check against
-        const candidates: string[] = [];
-        if (opts.output && isHtml(opts.output)) {
-          candidates.push(path.resolve(process.cwd(), opts.output));
-        }
-        candidates.push(path.resolve(inputDir, `${stem}.html`));
-        candidates.push(path.resolve(process.cwd(), `${stem}.html`));
-        for (const c of candidates) {
-          if (fs.existsSync(c)) {
-            htmlFile = c;
-            break;
-          }
-        }
-      }
-
-      if (sourceFile && !rawSource) {
+        if (sourceFile && !rawSource) {
         if (!fs.existsSync(sourceFile)) {
           process.stderr.write(`ERROR: Source file not found: ${sourceFile}\n`);
           process.exit(1);
@@ -262,38 +198,10 @@ program
       ? path.resolve(process.cwd(), opts.assetsDir)
       : path.join(inputDir, 'assets');
 
-    let logoPath: string | undefined;
-    if (typeof opts.logo === 'string') {
-      logoPath = path.resolve(process.cwd(), opts.logo);
-    } else if (opts.logo === true) {
-      // Auto-detect single .svg in current working directory first, then input directory
-      const findSingleSvg = (dir: string): string | null => {
-        try {
-          const files = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith('.svg'));
-          if (files.length === 1) return path.join(dir, files[0]);
-        } catch {
-          // ignore
-        }
-        return null;
-      };
-
-      const cwdSvg = findSingleSvg(process.cwd());
-      const inputDirSvg = findSingleSvg(inputDir);
-
-      if (cwdSvg) {
-        logoPath = cwdSvg;
-      } else if (inputDirSvg) {
-        logoPath = inputDirSvg;
-      } else {
-        const cwdSvgs = fs.readdirSync(process.cwd()).filter(f => f.toLowerCase().endsWith('.svg'));
-        if (cwdSvgs.length > 1) {
-          process.stderr.write(`ERROR: Multiple .svg files found in working directory. Please specify path: -L <path>\n`);
-          process.exit(1);
-        } else {
-          process.stderr.write(`ERROR: -L flag passed with no argument, but no .svg file was found in working directory or input directory.\n`);
-          process.exit(1);
-        }
-      }
+    const { logoPath, error: logoErr } = resolveCliLogoPath(opts.logo, inputDir);
+    if (logoErr) {
+      process.stderr.write(`ERROR: ${logoErr}\n`);
+      process.exit(1);
     }
 
     const options: Options = {

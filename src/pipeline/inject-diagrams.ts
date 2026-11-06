@@ -4,8 +4,9 @@
  */
 import { diagramParse, diagramLayout, diagramBuildSvg, resolveGeometry } from '../renderer/diagram/index.js';
 import { escHtml, htmlDecode } from '../util/escape.js';
+import { createCodeWrapRegex, extractDataAttr } from '../util/fence.js';
 
-const DIAGRAM_SVG_RE = /<div class="code-wrap diagram"([^>]*)>\s*<pre><code class="language-diagram">([\s\S]*?)<\/code><\/pre>\s*<div class="diagram-render"><\/div>\s*<\/div>/g;
+const DIAGRAM_SVG_RE = createCodeWrapRegex('diagram');
 const HEADING_RE = /<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/g;
 const TAG_RE = /<[^>]+>/g;
 
@@ -34,12 +35,9 @@ export function injectDiagramSvgs(html: string, docTitle: string, warnings: stri
   return html.replace(
     DIAGRAM_SVG_RE,
     (match, attrs, codeContent, offset: number) => {
-      const titleMatch = attrs.match(/data-title="([^"]*)"/);
-      const dirMatch = attrs.match(/data-direction="([^"]*)"/);
-      const rawMatch = attrs.match(/data-raw="([^"]*)"/);
-      const titleAttr = titleMatch ? titleMatch[1] : '';
-      const dirAttr = dirMatch ? dirMatch[1] : '';
-      const rawAttr = rawMatch ? rawMatch[1] : '';
+      const titleAttr = extractDataAttr(attrs, 'title');
+      const dirAttr = extractDataAttr(attrs, 'direction');
+      const rawAttr = extractDataAttr(attrs, 'raw');
 
       const rawCode = htmlDecode(codeContent);
       const diagTitle = titleAttr || headingBefore(html, offset) || docTitle;

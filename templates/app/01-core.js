@@ -467,3 +467,29 @@ const initialMode = store.get(`mdd_mode_${location.pathname}`, 'read');
 setAccent(initialAccent, true);
 setTheme(initialTheme, true);
 setMode(initialMode, true);
+
+// ── Shared Clipboard Helper ────────────────────────────────────────────────
+async function copyToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (_) {}
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    ta.style.left = '-9999px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch (_) {
+    return false;
+  }
+}
