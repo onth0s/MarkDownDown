@@ -322,7 +322,7 @@ The `mirror` fence defines a document-native semantic audit layer. It accepts an
 ### 3.2 Metadata Directives
 
 - `TITLE: <string>`: Optional title displayed in the card header and in-margin pill.
-- `TARGET: <string>`: Optional anchor target attaching the mirror block to a specific section or heading.
+- `TARGET: <string>`: Optional anchor target attaching the mirror block to a specific passage, heading, or section. Supports wikilinks (`[[Heading Title]]`), anchor hashes (`#section-id`), or plain heading text. In Read Mode, target headings receive an interactive subtle gutter dot (`.mirror-anchor-dot`) linking directly to the mirror peek popover; in Mirror Mode, mirror cards display a target locator button linking back to the passage with an outline pulse.
 
 ### 3.3 Q&A Grammar
 
@@ -341,12 +341,18 @@ author_decl  := ( "AUTHOR:" | "MEANING:" | "DECLARED:" ) meaning_text "\n"
 divergence   := ( "DIVERGENCE:" | "DIVERGE:" | "GAP:" ) divergence_text "\n"
 ```
 
-- Exactly one option may be marked with `[x]` indicating alignment with the author's declared model.
-- `AUTHOR:` establishes the author's declared conceptual map.
-- `DIVERGENCE:` articulates why competing interpretations drift from the author's intended model.
-- **Self-Audit**: The interactive runtime presents the reader with a two-way alignment choice:
+- Exactly one option must be marked with `[x]` indicating alignment with the author's declared model.
+- `--> option_explanation`: Optional inline feedback revealed when the option is evaluated.
+- `AUTHOR:`: Establishes the author's declared conceptual map.
+- `DIVERGENCE:`: Articulates why competing interpretations drift from the author's intended model.
+- **Inline Markdown**: Full inline markdown formatting (`**bold**`, `*italic*`, `` `code` ``, `[[wikilinks]]`) is rendered inline across claims, options, explanations, and author statements.
+- **Three-Way Self-Audit**: The interactive runtime presents the reader with a 3-way alignment choice:
   - `✓ I understand the author's distinction`
+  - `↻ I misread it, now clear`
   - `⚡ I understand, but disagree with the premise`
+- **Reader Notes & Question Logging**: Readers can record persistent notes and reflections within each mirror block.
+- **Audit Export**: Readers can export recorded probe answers, alignment outcomes, self-audit decisions, and passage notes as a clean Markdown audit report.
+- **Keyboard Navigation**: In Mirror Mode, readers can use <kbd>J</kbd> / <kbd>K</kbd> to jump between mirror blocks and <kbd>1</kbd>–<kbd>9</kbd> to pick candidate options.
 
 ---
 

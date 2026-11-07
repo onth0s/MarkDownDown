@@ -58,13 +58,14 @@ Markdown++ produces a dual-mode interactive artifact:
 > [!NOTE]
 > **Mirror Mode** is a reader-side semantic audit in which the reader reconstructs the author's explicitly stated conceptual map, answers targeted probes about it, and exposes divergences between the reader's reconstruction and the author's declared meaning.
 
-1. **Read Mode**: Full publication reading experience with GFM markdown, native wikilinks, interactive SVG diagram DSL, SVG pipe tables, sidebar TOC, client-side search with SVG highlighting, and theme customization. Where mirror material exists, discrete margin pills (`🪞 Q&A 1 item`) allow the reader to peek at mirror material in context without cluttering the main flow.
+1. **Read Mode**: Full publication reading experience with GFM markdown, native wikilinks, interactive SVG diagram DSL, SVG pipe tables, sidebar TOC, client-side search with SVG highlighting, and theme customization. Where mirror material exists, discrete margin pills and subtle passage gutter dots (`.mirror-anchor-dot`) allow the reader to peek at mirror material in context without cluttering the main flow.
 2. **Mirror Mode**: A second document-native interaction layer over the document. It lets the author and reader explicitly interrogate the text and each other about meaning.
-   - **Semantic Alignment Probes**: Evaluates candidate interpretations against the author's declared distinction, revealing divergence analysis and offering self-auditing ("I understand the author's distinction" vs. "I understand, but disagree with the premise").
-   - **Contextual Q&A & FAQs**: Question-and-answer pairs attached to sections or passages.
-   - **Reader Question Logging**: Readers can record in-place reflections and queries directly within any mirror block.
-   - **Instant Mode Switching**: Switch between Read Mode and Mirror Mode using the topbar switch or the `Alt+M` keyboard shortcut.
-   - **Zero-Friction Privacy**: Probe responses and reader queries are persisted privately in the browser's `localStorage` and can be reset anytime from the settings panel.
+   - **Semantic Alignment Probes**: Evaluates candidate interpretations against the author's declared distinction, providing instant matched/diverged feedback, option explanations, and a three-way self-audit ("✓ I understand the author's distinction", "↻ I misread it, now clear", "⚡ I understand, but disagree with the premise").
+   - **Passage Anchoring (`TARGET:`)**: Binds probes directly to specific passages or headings with bidirectional navigation and highlight pulses.
+   - **Contextual Q&A & FAQs**: Question-and-answer pairs attached to sections or passages with full inline markdown support.
+   - **Reader Question Logging & Markdown Export**: Readers can record persistent notes and questions within each mirror block, and export their complete audit as a clean Markdown report.
+   - **Keyboard Navigation**: Switch modes with <kbd>Alt</kbd>+<kbd>M</kbd>, jump between mirror blocks in Mirror Mode with <kbd>J</kbd> / <kbd>K</kbd>, and pick options with <kbd>1</kbd>–<kbd>9</kbd>.
+   - **Zero-Friction Privacy**: Probe responses and reader queries persist privately in browser `localStorage` with instant reset available anytime in settings.
 
 ---
 
@@ -268,12 +269,13 @@ A: Yes, the 4-pass fuzzy resolver indexes all diagram node labels and heading an
 ````markdown
 ```mirror probe
 TITLE: Dual-Mode Artifact Conception
-PROBE: What constitutes a successful reader engagement in Mirror Mode?
+TARGET: [[Dual-Mode Experience: Read & Mirror]]
+PROBE: What constitutes a **successful reader engagement** in Mirror Mode?
 [ ] Achieving a 100% agreement score on all author propositions.
-[x] Accurate reconstruction of the author's declared distinction, regardless of whether the reader agrees with the underlying premise.
+[x] Accurate reconstruction of the author's declared distinction, regardless of whether the reader agrees with the underlying premise --> Mirror Mode cleanly distinguishes `comprehension` from `compliance`.
 [ ] Automatically converting author claims into machine-verifiable unit tests.
 
-AUTHOR: The author distinguishes understanding from agreement. A reader who accurately reconstructs the author's conceptual boundary has achieved a successful mirror, even if they disagree with the author's premise.
+AUTHOR: The author distinguishes *understanding* from *agreement*. A reader who accurately reconstructs the author's conceptual boundary has achieved a successful mirror, even if they disagree with the author's premise.
 DIVERGENCE: Treating Mirror Mode as an evaluation score collapses semantic auditing into a compliance test.
 ```
 ````

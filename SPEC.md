@@ -329,11 +329,12 @@ When mirror blocks exist, discrete in-margin pills (`🪞 Q&A 1 item`) indicate 
 
 Mirror Mode is a reader-side semantic audit in which the reader reconstructs the author's explicitly stated conceptual map, answers targeted probes about it, and exposes divergences between the reader's reconstruction and the author's declared meaning.
 
-- **Semantic Alignment Probes**: Present the reader with a claim, candidate interpretations, an author's declared meaning, divergence analysis, and self-audit confirmation ("✓ I understand the author's distinction" vs. "⚡ I understand, but disagree with the premise").
+- **Semantic Alignment Probes**: Present the reader with a claim, candidate interpretations, author declared meaning, divergence analysis, instant matched/diverged feedback with option explanations, and a three-way self-audit confirmation ("✓ I understand the author's distinction", "↻ I misread it, now clear", and "⚡ I understand, but disagree with the premise").
+- **Passage Anchoring (`TARGET:`)**: Mirror blocks anchor to specific passages or headings. In Read Mode, target headings display a subtle gutter dot (`.mirror-anchor-dot`); in Mirror Mode, mirror cards feature locator links with a target highlight pulse.
 - **Contextual Q&A**: Direct question-and-answer pairs attached to sections or passages.
 - **Reader Question Logging**: Readers can record persistent notes and questions within each mirror block.
-- **Client-Side Persistence**: All probe selections, audit states, and reader questions persist in `localStorage` under `mdd_mirror_<pathname>` and can be cleared via the Appearance settings modal.
-- **Keyboard Shortcut**: `Alt+M` toggles between Read Mode and Mirror Mode.
+- **Client-Side Persistence & Audit Export**: All probe selections, audit states, and reader questions persist in `localStorage` under `mdd_mirror_<pathname>` and can be exported as a clean Markdown audit report or cleared via settings.
+- **Keyboard Shortcuts**: `Alt+M` toggles between Read Mode and Mirror Mode; `J` / `K` navigate between mirror blocks in Mirror Mode; `1`–`9` select candidate probe options.
 
 ```table
 TITLE: Mirror Mode Primitives

@@ -8,14 +8,16 @@
  * Designed to be fault-tolerant to agent variations (bullets, casing, spacing)
  * while throwing clear CompileError on fatal structural violations.
  */
+import { createHash } from 'node:crypto';
 import { CompileError } from '../../util/error.js';
 import type { MirrorBlockModel, MirrorKind, MirrorOption, MirrorProbe, MirrorQAItem } from './types.js';
 
-let nextMirrorId = 1;
+/** Deprecated no-op: mirror IDs are now content-hashed deterministically. */
+export function resetMirrorIdCounter(): void {}
 
-/** Reset the mirror block ID counter (useful for unit testing reproducible IDs). */
-export function resetMirrorIdCounter(): void {
-  nextMirrorId = 1;
+/** Computes a deterministic 8-char hex content hash of mirror block source code. */
+export function computeMirrorContentHash(source: string): string {
+  return createHash('sha256').update(source.trim()).digest('hex').slice(0, 8);
 }
 
 /**
@@ -72,6 +74,18 @@ export function mirrorParse(source: string, subkindHint?: string, explicitId?: s
     if (currentProbe.options.length === 0) {
       throw new CompileError(
         `Mirror Mode DSL error: PROBE "${claim.slice(0, 40)}..." at line ${currentProbe.lineNum} must define at least one option (e.g. "[x] ..." or "[ ] ...").`,
+      );
+    }
+
+    const alignedCount = currentProbe.options.filter((o) => o.isAuthorAligned).length;
+    if (alignedCount === 0) {
+      throw new CompileError(
+        `Mirror Mode DSL error: PROBE "${claim.slice(0, 40)}..." at line ${currentProbe.lineNum} requires an author-aligned option marked with [x].`,
+      );
+    }
+    if (alignedCount > 1) {
+      throw new CompileError(
+        `Mirror Mode DSL error: PROBE "${claim.slice(0, 40)}..." at line ${currentProbe.lineNum} has ${alignedCount} author-aligned options. Exactly one option may be marked with [x].`,
       );
     }
 
@@ -234,7 +248,7 @@ export function mirrorParse(source: string, subkindHint?: string, explicitId?: s
     else if (items.length > 0) kind = 'qa';
   }
 
-  const id = explicitId ?? `mirror-${nextMirrorId++}`;
+  const id = explicitId ?? `mirror-${computeMirrorContentHash(source)}`;
 
   return {
     id,

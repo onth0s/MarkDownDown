@@ -54,7 +54,7 @@ export function compile(options: Options): CompileResult {
 
   // 6. Render body HTML
   const { html: bodyHtml, mirrorStats } = renderBody(
-    md, markdownBody, pendingLinks, assetBase64Map, resolvedOptions, title, warnings, tokens,
+    md, markdownBody, pendingLinks, assetBase64Map, resolvedOptions, title, warnings, tokens, headings,
   );
 
   // 6b. Source skeleton for the in-document download button: the same data

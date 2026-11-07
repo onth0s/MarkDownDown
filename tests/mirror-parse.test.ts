@@ -106,6 +106,25 @@ GAP: Divergence synonyms work reliably.
     expect(model.probes[0].authorDeclaredMeaning).toContain('Synonyms such as MEANING:');
     expect(model.probes[0].divergenceExplanation).toContain('Divergence synonyms work reliably.');
   });
+  test('throws CompileError when PROBE defines no author-aligned option', () => {
+    const source = `
+PROBE: Unaligned probe
+[ ] Option A
+[ ] Option B
+AUTHOR: Model
+`;
+    expect(() => mirrorParse(source, 'probe')).toThrow(/requires an author-aligned option marked with \[x\]/);
+  });
+
+  test('throws CompileError when PROBE defines multiple author-aligned options', () => {
+    const source = `
+PROBE: Over-aligned probe
+[x] Option A
+[x] Option B
+AUTHOR: Model
+`;
+    expect(() => mirrorParse(source, 'probe')).toThrow(/has 2 author-aligned options. Exactly one option may be marked with \[x\]/);
+  });
 });
 
 describe('mirrorParse: Resilience & Edge Cases', () => {
@@ -113,11 +132,18 @@ describe('mirrorParse: Resilience & Edge Cases', () => {
     resetMirrorIdCounter();
   });
 
-  test('generates sequential unique IDs across blocks', () => {
+  test('generates deterministic content-hash IDs across blocks', () => {
     const m1 = mirrorParse('Q: One?\nA: 1.', 'qa');
     const m2 = mirrorParse('Q: Two?\nA: 2.', 'qa');
-    expect(m1.id).toBe('mirror-1');
-    expect(m2.id).toBe('mirror-2');
+    expect(m1.id).toMatch(/^mirror-[0-9a-f]{8}$/);
+    expect(m2.id).toMatch(/^mirror-[0-9a-f]{8}$/);
+    expect(m1.id).not.toBe(m2.id);
+    expect(mirrorParse('Q: One?\nA: 1.', 'qa').id).toBe(m1.id);
+  });
+
+  test('respects explicitId override when provided', () => {
+    const model = mirrorParse('Q: Custom?\nA: Answer.', 'qa', 'custom-mirror-id');
+    expect(model.id).toBe('custom-mirror-id');
   });
 
   test('handles empty or whitespace-only input safely', () => {

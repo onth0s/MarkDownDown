@@ -301,28 +301,31 @@ Toggle modes using the topbar switch or with <kbd>Alt</kbd>+<kbd>M</kbd>.
 
 ```mirror qa
 TITLE: Markdown++ Dual-Mode Architecture
+TARGET: [[Mirror Mode & Dual-Mode Artifact]]
 Q: What is the difference between Read Mode and Mirror Mode?
-A: Read Mode preserves an undisturbed, publication-grade reading experience with in-margin peek pills. Mirror Mode fully expands all semantic probes, Q&A blocks, and reader audit tools across the document.
+A: Read Mode preserves an undisturbed, publication-grade reading experience with in-margin peek pills and subtle gutter indicators. Mirror Mode fully expands all semantic probes, Q&A blocks, and reader audit tools across the document.
 
 Q: How does client-side state persist?
-A: Probe selections, alignment statuses, and reader questions persist locally in browser localStorage. You can reset all saved state at any time via the Appearance settings modal.
+A: Probe selections, alignment statuses, and reader questions persist locally in browser localStorage. You can export an audit report as Markdown or reset saved state via the Appearance settings modal.
 ```
 
 ```mirror probe
 TITLE: Semantic Audit vs Compliance Test
-PROBE: What constitutes a successful reader engagement in Mirror Mode?
+TARGET: [[Mirror Mode & Dual-Mode Artifact]]
+PROBE: What constitutes a **successful reader engagement** in Mirror Mode?
 [ ] Achieving 100% agreement on all author claims.
-[x] Accurate reconstruction of the author's declared distinction, even if the reader contests the premise --> Mirror Mode separates understanding from agreement.
+[x] Accurate reconstruction of the author's declared distinction, even if the reader contests the premise --> Mirror Mode cleanly separates `understanding` from `assent`.
 [ ] Automatically compiling prose assertions into machine tests.
 
-AUTHOR: The author distinguishes conceptual comprehension from ideological agreement. A reader who accurately maps the author's declared distinction has successfully mirrored the document, regardless of whether they agree with the author's premise.
+AUTHOR: The author distinguishes *conceptual comprehension* from *ideological agreement*. A reader who accurately maps the author's declared distinction has successfully mirrored the document, regardless of whether they agree with the author's premise.
 DIVERGENCE: Confusing semantic understanding with compliance turns an intellectual audit into an ideological test.
 ```
 
 ```mirror clarification
 TITLE: Semantic Audit Clarification
+TARGET: [[Mirror Mode & Dual-Mode Artifact]]
 Q: Is a disagreement with the author considered a failure in Mirror Mode?
-A: No. A reader who demonstrates they understand the author's declared distinction, but chooses to contest the premise, is fully aligned in Mirror Mode ("I understand you. I disagree with you" is a successful mirror).
+A: No. A reader who demonstrates they understand the author's declared distinction, but chooses to contest the premise, is fully aligned in Mirror Mode (*"I understand you. I disagree with you"* is a successful mirror).
 ```
 
 ---

@@ -143,6 +143,7 @@ export interface MirrorBlockModel {
   kind: MirrorKind;
   title?: string;
   target?: string;
+  targetId?: string;
   items: MirrorQAItem[];
   probes: MirrorProbe[];
   rawSource: string;

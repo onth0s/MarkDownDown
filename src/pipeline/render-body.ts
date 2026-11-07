@@ -5,7 +5,8 @@
  * with copy buttons.
  */
 import path from 'node:path';
-import type { Options, PendingWikilink } from '../types.js';
+import type { Options, PendingWikilink, Heading } from '../types.js';
+import { extractHeadings } from '../resolver/heading.js';
 import type MarkdownIt from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';
 import type { ResolvedLink } from '../resolver/wikilink.js';
@@ -67,6 +68,7 @@ export function renderBody(
   docTitle: string,
   warnings: string[],
   tokens?: Token[],
+  headings?: Heading[],
 ): RenderBodyResult {
   // Build link lookup map for fast render-time access
   const linkMap = new Map<string, PendingWikilink>();
@@ -108,7 +110,14 @@ export function renderBody(
     : md.render(markdownBody, renderEnv);
   if (!options.noDiagrams) bodyHtml = injectDiagramSvgs(bodyHtml, docTitle, warnings);
   if (!options.noTables) bodyHtml = injectTableSvgs(bodyHtml, docTitle, warnings);
-  const { html: mirrorHtml, stats: mirrorStats } = injectMirrorBlocks(bodyHtml, docTitle, warnings);
+  const docHeadings = headings ?? (tokens ? extractHeadings(tokens) : []);
+  const { html: mirrorHtml, stats: mirrorStats } = injectMirrorBlocks(
+    bodyHtml,
+    docTitle,
+    warnings,
+    (text: string) => md.renderInline(text, renderEnv),
+    docHeadings,
+  );
   bodyHtml = wrapCodeBlocksWithCopyButtons(mirrorHtml);
 
   return { html: bodyHtml, mirrorStats };
