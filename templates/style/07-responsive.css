@@ -1,0 +1,86 @@
+@media (max-width:900px) {
+  .layout { display:block; }
+  body { padding-top:64px; }
+  .topbar { position:fixed; top:0; left:0; right:0; }
+  .sidebar {
+    position:fixed; left:-310px; top:64px; width:290px; z-index:45;
+    background:var(--bg); box-shadow:var(--shadow); transition:left .2s;
+  }
+  body.nav-open .sidebar { left:0; }
+  body.nav-open { overflow:hidden; }
+  .article { width:min(var(--max),calc(100% - 32px)); padding-top:42px; }
+  .mobile-nav { display:block !important; }
+  .topbar { gap:10px; }
+  .search-box { width:min(360px, 32vw); }
+  .search-count { display:none; }
+  .toolbar { flex:none; }
+}
+.mobile-nav { display:none; flex:none; }
+@media (max-width:640px) {
+  .search-toggle { display:inline-flex; margin-left:auto; }
+  body.search-mode .search-toggle { margin-left:0; }
+  .search-box { display:none; }
+  .search-count { display:none; }
+  body.search-mode .search-box { display:flex; flex:1 1 auto; width:auto; margin-left:0; }
+  body.search-mode .mobile-nav,
+  body.search-mode .brand,
+  body.search-mode .toolbar { display:none !important; }
+}
+@media (max-width:560px) {
+  .topbar { gap:8px; padding-left:max(12px, env(safe-area-inset-left)); padding-right:max(12px, env(safe-area-inset-right)); }
+  .brand span { display:none; }
+  .article h1 { font-size:1.8em; }
+  .settings { right:12px; width:min(270px, calc(100vw - 24px)); }
+}
+@media (max-width:480px) {
+  .article { width:min(var(--max),calc(100% - 24px)); }
+  .hero p { font-size:16.5px; }
+}
+
+html {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-x: none;
+  overflow-x: hidden;
+}
+button, a, input, label, .toc a, .search-result-item {
+  touch-action: manipulation;
+}
+
+
+.toc a {
+  transition:
+    color 180ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    transform 220ms ease;
+}
+.toc a.active {
+  transition:
+    color 220ms ease,
+    background-color 260ms ease,
+    border-color 260ms ease,
+    box-shadow 260ms ease,
+    transform 260ms ease;
+}
+
+
+.search-result-item {
+  transition:
+    color 180ms ease,
+    background-color 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: smooth !important; }
+  .toc a,
+  .toc a.active,
+  .search-result-item,
+  .heading-anchor {
+    transition: none !important;
+  }
+}

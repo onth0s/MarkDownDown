@@ -49,7 +49,9 @@ export function loadTemplate(filename: string): string {
       const files = fs.readdirSync(modDir).filter(f => !f.startsWith('.')).sort();
       if (files.length > 0) {
         const parts = files.map(f => fs.readFileSync(path.join(modDir, f), 'utf8'));
-        const content = `(() => {\n  'use strict';\n\n${parts.join('\n\n')}\n})();\n`;
+        const content = filename.endsWith('.js')
+          ? `(() => {\n  'use strict';\n\n${parts.join('\n\n')}\n})();\n`
+          : `${parts.join('\n\n')}\n`;
         templateCache.set(filename, content);
         return content;
       }

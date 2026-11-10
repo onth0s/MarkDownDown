@@ -1,6 +1,7 @@
 import { compile } from '../src/compile.js';
 import type { CompileResult, Options } from '../src/types.js';
 import { CompileError } from '../src/util/error.js';
+import { loadTemplate } from '../src/util/template-loader.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -193,7 +194,7 @@ describe('showcase/showcase.mdd — self-compiled capability showcase', () => {
   });
 
   test('mirror count badge uses accent border and color', () => {
-    const styleCss = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'style.css'), 'utf8');
+    const styleCss = loadTemplate('style.css');
     expect(styleCss).toContain('.mirror-count-badge');
     expect(styleCss).toMatch(/\.mirror-count-badge\s*\{[^}]*border:\s*1px solid var\(--accent\)/);
     expect(styleCss).toMatch(/\.mirror-count-badge\s*\{[^}]*color:\s*var\(--accent\)/);

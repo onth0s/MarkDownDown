@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { loadTemplate } from '../src/util/template-loader.js';
 
 describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
   const shellHtml = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'shell.html'), 'utf8');
-  const styleCss = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'style.css'), 'utf8');
+  const styleCss = loadTemplate('style.css');
   const controlsJs = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'app', '03b-sidebar.js'), 'utf8');
   const coreJs = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'app', '01-core.js'), 'utf8');
 
