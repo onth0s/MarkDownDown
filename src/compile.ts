@@ -12,12 +12,21 @@ import { extractHeadings } from './resolver/heading.js';
 import { scanAssets } from './resolver/asset.js';
 import { resolveLinks } from './pipeline/resolve-links.js';
 import { renderBody } from './pipeline/render-body.js';
-import { assembleAndWrite } from './pipeline/assemble.js';
+import { assembleDocument, writeOutput, type AssembledDocument } from './pipeline/assemble.js';
 import { buildSkeleton } from './renderer/skeleton-build.js';
 import { isValidHex, formatHexWithHash } from './util/color.js';
 import { CompileError } from './util/error.js';
 
-export function compile(options: Options): CompileResult {
+export interface BuildResult extends CompileResult {
+  assembled: AssembledDocument;
+  assetsDir: string;
+}
+
+/**
+ * Pure compilation pipeline: reads inputs, parses, resolves links, renders,
+ * and assembles the document in memory without writing anything to disk.
+ */
+export function build(options: Options): BuildResult {
   const warnings: string[] = [];
   const inputDir = path.dirname(options.inputFile);
 
@@ -64,12 +73,55 @@ export function compile(options: Options): CompileResult {
   const skeleton = buildSkeleton(md, rawSource, tokens);
   const sourceName = path.basename(options.inputFile, path.extname(options.inputFile)) + '.mdd';
 
-  // 7. Assemble and write
-  const result = assembleAndWrite(
-    options, meta, hero, title, accent, bodyHtml, assetsDir, headings, warnings, md, mirrorStats, skeleton, sourceName,
+  // 7. Assemble in-memory
+  const assembled = assembleDocument(
+    resolvedOptions, meta, hero, title, accent, bodyHtml, headings, md, warnings, skeleton, sourceName,
   );
-  if (result.stats) {
-    result.stats.wikilinks = pendingLinks.length;
+
+  const inMemorySize = resolvedOptions.outputMode === 'single'
+    ? Buffer.byteLength(assembled.html, 'utf8')
+    : Buffer.byteLength(assembled.html, 'utf8') + Buffer.byteLength(assembled.css, 'utf8') + Buffer.byteLength(assembled.js, 'utf8');
+
+  return {
+    html: assembled.html,
+    warnings,
+    assembled,
+    assetsDir,
+    stats: {
+      sections: headings.length,
+      wikilinks: pendingLinks.length,
+      frontmatterKeys: Object.keys(meta).length + (hero.kicker ? 1 : 0) + (hero.subtitle ? 1 : 0) + (hero.pills?.length ? 1 : 0),
+      title,
+      accent,
+      logo: assembled.effectiveLogoPath,
+      outputFile: assembled.finalOutputFile,
+      sizeBytes: inMemorySize,
+      mirrorBlocks: mirrorStats?.blocks ?? 0,
+      mirrorItems: mirrorStats?.items ?? 0,
+      mirrorProbes: mirrorStats?.probes ?? 0,
+    },
+  };
+}
+
+/**
+ * Builds the document and writes all outputs to disk.
+ */
+export function compileToDisk(options: Options): CompileResult {
+  const built = build(options);
+  const finalSize = writeOutput(options, built.assembled, built.assetsDir, built.warnings);
+  if (built.stats) {
+    built.stats.sizeBytes = finalSize;
   }
-  return result;
+  return {
+    html: built.html,
+    warnings: built.warnings,
+    stats: built.stats,
+  };
+}
+
+/**
+ * Default compile entry point, compiles and writes to disk.
+ */
+export function compile(options: Options): CompileResult {
+  return compileToDisk(options);
 }

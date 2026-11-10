@@ -6,7 +6,7 @@ import { Command } from 'commander';
 import path from 'node:path';
 import fs from 'node:fs';
 import readline from 'node:readline';
-import { compile } from './compile.js';
+import { compile, build } from './compile.js';
 import type { Options, CliOptions } from './types.js';
 import { CompileError, toErrorMessage } from './util/error.js';
 import { SPEC } from './spec.js';
@@ -123,7 +123,7 @@ program
             verbose: false,
             minify: opts.minify !== false,
           };
-          const compiled = compile(checkOptions);
+          const compiled = build(checkOptions);
           for (const w of compiled.warnings) process.stderr.write(`WARN: ${w}\n`);
           htmlContent = compiled.html;
         }

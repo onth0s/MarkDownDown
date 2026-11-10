@@ -223,6 +223,7 @@ export function assembleAndWrite(
   mirrorStats?: MirrorStats,
   mddSkeleton?: Skeleton,
   mddSourceName?: string,
+  wikilinksCount?: number,
 ): CompileResult {
   const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md, warnings, mddSkeleton, mddSourceName);
   const finalSize = writeOutput(options, assembled, assetsDir, warnings);
@@ -232,7 +233,7 @@ export function assembleAndWrite(
     warnings,
     stats: {
       sections: headings.length,
-      wikilinks: 0, // populated by compile
+      wikilinks: wikilinksCount ?? 0,
       frontmatterKeys: Object.keys(meta).length + (hero.kicker ? 1 : 0) + (hero.subtitle ? 1 : 0) + (hero.pills?.length ? 1 : 0),
       title,
       accent,
