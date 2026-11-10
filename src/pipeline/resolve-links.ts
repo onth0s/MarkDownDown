@@ -6,7 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Options, Heading, Asset, PendingWikilink } from '../types.js';
+import type { Options, Heading, Asset, PendingWikilink, CompileContext } from '../types.js';
 import { CompileError, toErrorMessage } from '../util/error.js';
 import { resolveWikilink } from '../resolver/wikilink.js';
 import { getMime } from '../util/mime.js';
@@ -19,11 +19,16 @@ export interface ResolveResult {
 
 export function resolveLinks(
   tokens: Token[],
-  headings: Heading[],
-  assets: Asset[],
-  options: Options,
-  warnings: string[],
+  headingsOrAssets: Heading[] | Asset[],
+  assetsOrCtx?: Asset[] | CompileContext,
+  options?: Options,
+  warnings?: string[],
 ): ResolveResult {
+  const isContext = assetsOrCtx && 'options' in assetsOrCtx && 'headings' in assetsOrCtx;
+  const headings: Heading[] = isContext ? assetsOrCtx.headings : (headingsOrAssets as Heading[]);
+  const assets: Asset[] = isContext ? (headingsOrAssets as Asset[]) : (assetsOrCtx as Asset[] ?? []);
+  const effectiveOptions: Options = isContext ? assetsOrCtx.options : options!;
+  const effectiveWarnings: string[] = isContext ? assetsOrCtx.warnings : (warnings ?? []);
   const pendingLinks: PendingWikilink[] = [];
   const errors: string[] = [];
 
@@ -54,7 +59,7 @@ export function resolveLinks(
 
   // Build asset base64 map (--single mode)
   const assetBase64Map = new Map<string, string>();
-  if (options.outputMode === 'single') {
+  if (effectiveOptions.outputMode === 'single') {
     const referencedPaths = new Set<string>();
     for (const pw of pendingLinks) {
       if (pw.resolution && (pw.resolution.kind === 'image' || pw.resolution.kind === 'video')) {
@@ -86,8 +91,8 @@ export function resolveLinks(
         try {
           let data = fs.readFileSync(asset.absolutePath);
           const ext = path.extname(asset.absolutePath).slice(1).toLowerCase();
-          if (ext === 'svg' && (asset.relativePath.includes('mdpp-logo') || asset.absolutePath.includes('mdpp-logo')) && options.accent) {
-            const hex = options.accent.toLowerCase();
+          if (ext === 'svg' && (asset.relativePath.includes('mdpp-logo') || asset.absolutePath.includes('mdpp-logo')) && effectiveOptions.accent) {
+            const hex = effectiveOptions.accent.toLowerCase();
             let svgStr = data.toString('utf8');
             svgStr = svgStr.replace(/fill=["']#[0-9a-fA-F]{3,8}["']/gi, (m) => {
               if (m.toLowerCase().includes('#fff')) return m;
@@ -98,7 +103,7 @@ export function resolveLinks(
           const mime = getMime(ext);
           assetBase64Map.set(asset.absolutePath, `data:${mime};base64,${data.toString('base64')}`);
         } catch {
-          warnings.push(`Could not read asset: ${asset.relativePath}`);
+          effectiveWarnings.push(`Could not read asset: ${asset.relativePath}`);
         }
       }
     }

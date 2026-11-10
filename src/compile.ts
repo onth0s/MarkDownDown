@@ -5,7 +5,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Options, CompileResult, Heading, Asset } from './types.js';
+import type { Options, CompileResult, Heading, Asset, CompileContext } from './types.js';
 import { parseFrontmatter } from './parser/frontmatter.js';
 import { createMarkdownParser } from './parser/markdown.js';
 import { extractHeadings } from './resolver/heading.js';
@@ -55,28 +55,46 @@ export function build(options: Options): BuildResult {
   const firstH1 = headings.find((h) => h.level === 1);
   const title = meta.title ?? (firstH1 ? firstH1.text : options.title);
 
-  // 5. Resolve wikilinks + build base64 map
+  // 5. Construct unified compile context
   const resolvedOptions: Options = { ...options, accent };
-  const { pendingLinks, assetBase64Map } = resolveLinks(
-    tokens, headings, assets, resolvedOptions, warnings,
-  );
+  const ctx: CompileContext = {
+    options: resolvedOptions,
+    meta,
+    hero,
+    title,
+    accent,
+    assetsDir,
+    headings,
+    warnings,
+    md,
+  };
 
-  // 6. Render body HTML
-  const { html: bodyHtml, mirrorStats } = renderBody(
-    md, markdownBody, pendingLinks, assetBase64Map, resolvedOptions, title, warnings, tokens, headings,
-  );
+  // 6. Resolve wikilinks + build base64 map
+  const { pendingLinks, assetBase64Map } = resolveLinks(tokens, assets, ctx);
 
-  // 6b. Source skeleton for the in-document download button: the same data
+  // 7. Render body HTML
+  const { html: bodyHtml, mirrorStats } = renderBody({
+    ctx,
+    markdownBody,
+    pendingLinks,
+    assetBase64Map,
+    tokens,
+  });
+
+  // 7b. Source skeleton for the in-document download button: the same data
   // `mdd --check` ratifies, so a browser can reconstruct the exact .mdd from
   // the artifact alone. The assembler prunes it to the slots the rendered DOM
   // cannot reproduce before serializing it into the page.
   const skeleton = buildSkeleton(md, rawSource, tokens);
   const sourceName = path.basename(options.inputFile, path.extname(options.inputFile)) + '.mdd';
 
-  // 7. Assemble in-memory
-  const assembled = assembleDocument(
-    resolvedOptions, meta, hero, title, accent, bodyHtml, headings, md, warnings, skeleton, sourceName,
-  );
+  // 8. Assemble in-memory
+  const assembled = assembleDocument({
+    ctx,
+    bodyHtml,
+    mddSkeleton: skeleton,
+    mddSourceName: sourceName,
+  });
 
   const inMemorySize = resolvedOptions.outputMode === 'single'
     ? Buffer.byteLength(assembled.html, 'utf8')

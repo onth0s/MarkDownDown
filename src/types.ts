@@ -1,3 +1,5 @@
+import type MarkdownIt from 'markdown-it';
+
 /** Background luminosity configuration for dark/light themes */
 export interface BgLum {
   /** Dark mode base luminosity (0.0 = pitch OLED black, 1.0 = light grey). Default: 0.12 */
@@ -180,4 +182,17 @@ export interface PendingWikilink {
   display: string;
   resolution: ResolvedLink | null;
   error?: string;
+}
+
+/** Unified compilation context passed across pipeline stages */
+export interface CompileContext {
+  options: Options;
+  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'theme' | 'customCss' | 'customJs' | 'logo' | 'bgLum'>> & Record<string, unknown>;
+  hero: HeroMeta;
+  title: string;
+  accent: string;
+  assetsDir: string;
+  headings: Heading[];
+  warnings: string[];
+  md: MarkdownIt;
 }

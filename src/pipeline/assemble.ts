@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type MarkdownIt from 'markdown-it';
-import type { Options, CompileResult, HeroMeta, Heading } from '../types.js';
+import type { Options, CompileResult, HeroMeta, Heading, CompileContext } from '../types.js';
 import type { FrontmatterResult } from '../parser/frontmatter.js';
 import type { MirrorStats } from './inject-mirror.js';
 import type { Skeleton } from '../renderer/skeleton.js';
@@ -18,6 +18,7 @@ import { escHtml } from '../util/escape.js';
 import { hexToRgb } from '../util/color.js';
 import { toErrorMessage } from '../util/error.js';
 import { processLogo } from '../renderer/logo.js';
+import { readOptionalTextFile } from '../util/optional-file.js';
 
 /** Recursively copy a directory, skipping dotfiles and symlinks. */
 function safeCopyDir(src: string, dest: string): void {
@@ -72,19 +73,39 @@ export interface AssembledDocument {
   effectiveLogoPath?: string;
 }
 
+export interface AssembleDocumentParams {
+  ctx: CompileContext;
+  bodyHtml: string;
+  mddSkeleton?: Skeleton;
+  mddSourceName?: string;
+}
+
 export function assembleDocument(
-  options: Options,
-  meta: FrontmatterResult['meta'],
-  hero: HeroMeta,
-  title: string,
-  accent: string,
-  bodyHtml: string,
-  headings: Heading[],
-  md?: MarkdownIt,
-  warnings: string[] = [],
-  mddSkeleton?: Skeleton,
-  mddSourceName?: string,
+  optionsOrParams: Options | AssembleDocumentParams,
+  metaArg?: FrontmatterResult['meta'],
+  heroArg?: HeroMeta,
+  titleArg?: string,
+  accentArg?: string,
+  bodyHtmlArg?: string,
+  headingsArg?: Heading[],
+  mdArg?: MarkdownIt,
+  warningsArg: string[] = [],
+  mddSkeletonArg?: Skeleton,
+  mddSourceNameArg?: string,
 ): AssembledDocument {
+  const isParams = 'ctx' in optionsOrParams;
+  const options = isParams ? optionsOrParams.ctx.options : optionsOrParams;
+  const meta = isParams ? (optionsOrParams.ctx.meta as FrontmatterResult['meta']) : metaArg!;
+  const hero = isParams ? optionsOrParams.ctx.hero : heroArg!;
+  const title = isParams ? optionsOrParams.ctx.title : titleArg!;
+  const accent = isParams ? optionsOrParams.ctx.accent : accentArg!;
+  const bodyHtml = isParams ? optionsOrParams.bodyHtml : bodyHtmlArg!;
+  const headings = isParams ? optionsOrParams.ctx.headings : headingsArg!;
+  const md = isParams ? optionsOrParams.ctx.md : mdArg;
+  const warnings = isParams ? optionsOrParams.ctx.warnings : warningsArg;
+  const mddSkeleton = isParams ? optionsOrParams.mddSkeleton : mddSkeletonArg;
+  const mddSourceName = isParams ? optionsOrParams.mddSourceName : mddSourceNameArg;
+
   const heroHtml = buildHeroHtml(hero, title, md);
   const accentRgb = hexToRgb(accent);
 
@@ -123,14 +144,8 @@ export function assembleDocument(
     theme: meta.theme ?? options.theme ?? 'dark',
   });
 
-  let customCssContent: string | undefined;
-  if (meta.customCss && fs.existsSync(meta.customCss)) {
-    customCssContent = fs.readFileSync(meta.customCss, 'utf8');
-  }
-  let customJsContent: string | undefined;
-  if (meta.customJs && fs.existsSync(meta.customJs)) {
-    customJsContent = fs.readFileSync(meta.customJs, 'utf8');
-  }
+  const customCssContent = readOptionalTextFile(meta.customCss, 'custom CSS file', warnings);
+  const customJsContent = readOptionalTextFile(meta.customJs, 'custom JS file', warnings);
 
   const effectiveTheme = meta.theme ?? options.theme ?? 'dark';
 
@@ -209,22 +224,47 @@ export function writeOutput(
   return finalSize;
 }
 
+export interface AssembleAndWriteParams {
+  ctx: CompileContext;
+  bodyHtml: string;
+  mirrorStats?: MirrorStats;
+  mddSkeleton?: Skeleton;
+  mddSourceName?: string;
+  wikilinksCount?: number;
+}
+
 export function assembleAndWrite(
-  options: Options,
-  meta: FrontmatterResult['meta'],
-  hero: HeroMeta,
-  title: string,
-  accent: string,
-  bodyHtml: string,
-  assetsDir: string,
-  headings: Heading[],
-  warnings: string[],
-  md?: MarkdownIt,
-  mirrorStats?: MirrorStats,
-  mddSkeleton?: Skeleton,
-  mddSourceName?: string,
-  wikilinksCount?: number,
+  optionsOrParams: Options | AssembleAndWriteParams,
+  metaArg?: FrontmatterResult['meta'],
+  heroArg?: HeroMeta,
+  titleArg?: string,
+  accentArg?: string,
+  bodyHtmlArg?: string,
+  assetsDirArg?: string,
+  headingsArg?: Heading[],
+  warningsArg?: string[],
+  mdArg?: MarkdownIt,
+  mirrorStatsArg?: MirrorStats,
+  mddSkeletonArg?: Skeleton,
+  mddSourceNameArg?: string,
+  wikilinksCountArg?: number,
 ): CompileResult {
+  const isParams = 'ctx' in optionsOrParams;
+  const options = isParams ? optionsOrParams.ctx.options : optionsOrParams;
+  const meta = isParams ? (optionsOrParams.ctx.meta as FrontmatterResult['meta']) : metaArg!;
+  const hero = isParams ? optionsOrParams.ctx.hero : heroArg!;
+  const title = isParams ? optionsOrParams.ctx.title : titleArg!;
+  const accent = isParams ? optionsOrParams.ctx.accent : accentArg!;
+  const bodyHtml = isParams ? optionsOrParams.bodyHtml : bodyHtmlArg!;
+  const assetsDir = isParams ? optionsOrParams.ctx.assetsDir : assetsDirArg!;
+  const headings = isParams ? optionsOrParams.ctx.headings : headingsArg!;
+  const warnings = isParams ? optionsOrParams.ctx.warnings : (warningsArg ?? []);
+  const md = isParams ? optionsOrParams.ctx.md : mdArg;
+  const mirrorStats = isParams ? optionsOrParams.mirrorStats : mirrorStatsArg;
+  const mddSkeleton = isParams ? optionsOrParams.mddSkeleton : mddSkeletonArg;
+  const mddSourceName = isParams ? optionsOrParams.mddSourceName : mddSourceNameArg;
+  const wikilinksCount = isParams ? optionsOrParams.wikilinksCount : wikilinksCountArg;
+
   const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md, warnings, mddSkeleton, mddSourceName);
   const finalSize = writeOutput(options, assembled, assetsDir, warnings);
 

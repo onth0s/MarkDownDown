@@ -5,7 +5,7 @@
  * with copy buttons.
  */
 import path from 'node:path';
-import type { Options, PendingWikilink, Heading } from '../types.js';
+import type { Options, PendingWikilink, Heading, CompileContext } from '../types.js';
 import { extractHeadings } from '../resolver/heading.js';
 import type MarkdownIt from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';
@@ -59,17 +59,35 @@ function renderWikilinkToken(
   }
 }
 
+export interface RenderBodyParams {
+  ctx: CompileContext;
+  markdownBody: string;
+  pendingLinks: PendingWikilink[];
+  assetBase64Map: Map<string, string>;
+  tokens?: Token[];
+}
+
 export function renderBody(
-  md: MarkdownIt,
-  markdownBody: string,
-  pendingLinks: PendingWikilink[],
-  assetBase64Map: Map<string, string>,
-  options: Options,
-  docTitle: string,
-  warnings: string[],
-  tokens?: Token[],
-  headings?: Heading[],
+  mdOrParams: MarkdownIt | RenderBodyParams,
+  markdownBodyArg?: string,
+  pendingLinksArg?: PendingWikilink[],
+  assetBase64MapArg?: Map<string, string>,
+  optionsArg?: Options,
+  docTitleArg?: string,
+  warningsArg?: string[],
+  tokensArg?: Token[],
+  headingsArg?: Heading[],
 ): RenderBodyResult {
+  const isParams = typeof mdOrParams === 'object' && 'ctx' in mdOrParams;
+  const md = isParams ? mdOrParams.ctx.md : mdOrParams;
+  const markdownBody = isParams ? mdOrParams.markdownBody : markdownBodyArg!;
+  const pendingLinks = isParams ? mdOrParams.pendingLinks : pendingLinksArg!;
+  const assetBase64Map = isParams ? mdOrParams.assetBase64Map : assetBase64MapArg!;
+  const options = isParams ? mdOrParams.ctx.options : optionsArg!;
+  const docTitle = isParams ? mdOrParams.ctx.title : docTitleArg!;
+  const warnings = isParams ? mdOrParams.ctx.warnings : warningsArg!;
+  const tokens = isParams ? mdOrParams.tokens : tokensArg;
+  const headings = isParams ? mdOrParams.ctx.headings : headingsArg;
   // Build link lookup map for fast render-time access
   const linkMap = new Map<string, PendingWikilink>();
   for (const pw of pendingLinks) {

@@ -65,4 +65,20 @@ describe('assembleDocument pure function', () => {
 
     expect(assembled.js).toContain('…');
   });
+
+  test('emits warning when specified customCss file is not found', () => {
+    const warnings: string[] = [];
+    assembleDocument(
+      baseOptions,
+      { customCss: 'nonexistent-custom.css' },
+      {},
+      'Title',
+      '#3b82f6',
+      '<p>Body</p>',
+      [],
+      undefined,
+      warnings,
+    );
+    expect(warnings.some((w) => w.includes('custom CSS file not found'))).toBe(true);
+  });
 });
