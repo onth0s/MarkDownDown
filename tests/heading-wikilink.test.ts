@@ -1,4 +1,4 @@
-import { compile } from '../src/compile.js';
+import { build } from '../src/compile.js';
 import { createMarkdownParser } from '../src/parser/markdown.js';
 import { extractHeadings } from '../src/resolver/heading.js';
 import type { Options } from '../src/types.js';
@@ -64,7 +64,7 @@ See [[Spite-Driven Development]] for details.
       verbose: false,
     };
 
-    const res = compile(options);
+    const res = build(options);
     expect(res.html).toContain('id="spite-driven-development"');
     expect(res.html).toContain('href="#spite-driven-development"');
     expect(res.stats?.sections).toBe(2);

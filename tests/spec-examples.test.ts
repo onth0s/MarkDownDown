@@ -5,7 +5,7 @@ import { diagramParse, diagramLayout, detectBackEdges } from '../src/renderer/di
 import { tableParse, tableBuildSvg } from '../src/renderer/table-svg.js';
 import { mirrorParse } from '../src/renderer/mirror/parse.js';
 import { mirrorBuildHtml } from '../src/renderer/mirror/html.js';
-import { compile } from '../src/compile.js';
+import { build } from '../src/compile.js';
 import { SPEC } from '../src/spec.js';
 
 const DIAGRAM_FENCE_RE = /(?:^|\n)```diagram[^\n]*\n([\s\S]*?)\n```/g;
@@ -114,7 +114,7 @@ describe('spec alignment and compilation', () => {
 
   test('SPEC.md compiles end-to-end through the compiler with zero errors', () => {
     const specPath = path.resolve(process.cwd(), 'SPEC.md');
-    const result = compile({
+    const result = build({
       title: 'SPEC',
       assetsDir: path.resolve(process.cwd(), 'assets'),
       accent: '#3b82f6',
@@ -132,7 +132,7 @@ describe('spec alignment and compilation', () => {
 
   test('DSL.md compiles end-to-end through the compiler with zero errors', () => {
     const dslPath = path.resolve(process.cwd(), 'DSL.md');
-    const result = compile({
+    const result = build({
       title: 'DSL',
       assetsDir: path.resolve(process.cwd(), 'assets'),
       accent: '#3b82f6',
@@ -149,7 +149,7 @@ describe('spec alignment and compilation', () => {
   });
 
   test('full combined `mdd --spec` compiles cleanly through compiler', () => {
-    const result = compile({
+    const result = build({
       title: 'Combined Spec',
       assetsDir: path.resolve(process.cwd(), 'assets'),
       accent: '#3b82f6',
@@ -174,7 +174,7 @@ describe('spec-embedded mirror blocks compile', () => {
 
   test('DSL.md compiles end-to-end through the compiler with mirror cards generated', () => {
     const dslPath = path.resolve(process.cwd(), 'DSL.md');
-    const result = compile({
+    const result = build({
       title: 'DSL',
       assetsDir: path.resolve(process.cwd(), 'assets'),
       accent: '#3b82f6',

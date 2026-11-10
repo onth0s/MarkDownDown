@@ -32,10 +32,7 @@ export interface DiagramNode {
   label: string;
   subtitle: string;
   shape: NodeShape;
-  rank: number;
   order: number;
-  x: number;
-  y: number;
   w: number;
   h: number;
   labelOrd: number;

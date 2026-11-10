@@ -181,14 +181,20 @@ export function tableParse(source: string): TableModel {
   const isSep = (cells: string[]): boolean =>
     cells.length > 0 && cells.every((c) => /^:?-+:?$/.test(c));
 
-  const lines = source.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const rawLines = source.split(/\r?\n/);
 
   // Skip TITLE: directive if present
-  for (const line of lines) {
-    const off = pos;
-    pos += line.length + 1;
-    if (line.toUpperCase().startsWith('TITLE:')) continue;
-    const split = splitCells(line);
+  for (const rawLine of rawLines) {
+    const trimmed = rawLine.trim();
+    const leadingWhitespaceLen = rawLine.search(/\S|$/);
+    const off = pos + leadingWhitespaceLen;
+    // Step forward by full raw line length plus newline character (or CRLF)
+    const lineEndMatch = source.slice(pos + rawLine.length).match(/^\r?\n/);
+    const newlineLen = lineEndMatch ? lineEndMatch[0].length : 0;
+    pos += rawLine.length + newlineLen;
+
+    if (!trimmed || trimmed.toUpperCase().startsWith('TITLE:')) continue;
+    const split = splitCells(trimmed);
     const cells = split.map((c) => c.text);
     if (!cells.length || isSep(cells)) continue;
 

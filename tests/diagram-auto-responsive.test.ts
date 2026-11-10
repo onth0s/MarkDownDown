@@ -1,4 +1,4 @@
-import { compile } from '../src/compile.js';
+import { build } from '../src/compile.js';
 import { buildCss } from '../src/renderer/css.js';
 import { diagramParse, diagramLayout, diagramBuildSvg } from '../src/renderer/diagram/index.js';
 import { measureInline, wrapToWidth } from '../src/renderer/text-metrics.js';
@@ -37,7 +37,7 @@ TACTICAL -->|VS| STRUCTURAL
 \`\`\`
 `;
 
-    const res = compile({ ...baseOptions, rawSource });
+    const res = build({ ...baseOptions, rawSource });
 
     // Assert wrapper has diagram-auto class
     expect(res.html).toContain('class="code-wrap diagram diagram-auto"');
@@ -233,7 +233,7 @@ TACTICAL ---|"VS."| STRUCTURAL
 \`\`\`
 `;
 
-    const res = compile({ ...baseOptions, rawSource });
+    const res = build({ ...baseOptions, rawSource });
 
     expect(res.html).toContain('class="code-wrap diagram diagram-auto"');
     expect(res.html).toContain('<div class="diagram-tb">');

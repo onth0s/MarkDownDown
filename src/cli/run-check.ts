@@ -5,7 +5,7 @@ import { build } from '../compile.js';
 import { createMarkdownParser } from '../parser/markdown.js';
 import { checkRoundTrip, resolveCheckTargets, extractEmbeddedSkeleton } from '../pipeline/check.js';
 import { printCheckReport, reportCliError } from './report.js';
-import { DEFAULT_ACCENT } from './constants.js';
+import { DEFAULT_ACCENT } from '../constants.js';
 
 export function executeCheck(
   input: string,
@@ -51,8 +51,9 @@ export function executeCheck(
       // In-memory compile without writing to disk
       const checkOptions: Options = {
         title: stem,
-        assetsDir: path.join(inputDir, 'assets'),
+        assetsDir: opts.assetsDir ? path.resolve(process.cwd(), opts.assetsDir) : path.join(inputDir, 'assets'),
         accent: DEFAULT_ACCENT,
+        logo: typeof opts.logo === 'string' ? opts.logo : undefined,
         inputFile: sourceFile,
         outputPath: path.join(inputDir, `${stem}.html`),
         outputMode: 'single',

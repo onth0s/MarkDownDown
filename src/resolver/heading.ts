@@ -39,7 +39,10 @@ export function extractHeadings(tokens: Token[]): Heading[] {
       headings.push({ text, id, level });
     } else if (tok.type === 'blockquote_open' && tok.tag === 'div' && tok.attrGet('class')?.includes('alert')) {
       const id = tok.attrGet('id');
-      if (id && tokens[i + 1]?.type === 'html_inline') {
+      const metaTitle = (tok.meta as { alertTitle?: string } | undefined)?.alertTitle;
+      if (id && metaTitle) {
+        headings.push({ text: metaTitle, id, level: 3 });
+      } else if (id && tokens[i + 1]?.type === 'html_inline') {
         const match = tokens[i + 1].content.match(/<span class="alert-label">([^<]+)<\/span>/);
         if (match) {
           headings.push({ text: match[1], id, level: 3 });

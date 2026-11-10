@@ -229,10 +229,10 @@ describe('mdpp-logo.svg (the showcase placeholder logo)', () => {
     // The two implementations are a matched pair; a constant changed in one and
     // not the other is the exact drift that would re-collide the tones.
     const ts = fs.readFileSync('src/renderer/logo.ts', 'utf8');
-    expect(ts).toMatch(/const MID_LO = 15;/);
-    expect(ts).toMatch(/const MID_HI = 85;/);
-    expect(ts).toMatch(/const KNOCKOUT_L = 97;/);
-    expect(ts).toMatch(/const SHADOW_L = 3;/);
+    expect(ts).toMatch(/const MID_LO = (?:15|LOGO\.MID_LO);/);
+    expect(ts).toMatch(/const MID_HI = (?:85|LOGO\.MID_HI);/);
+    expect(ts).toMatch(/const KNOCKOUT_L = (?:97|LOGO\.KNOCKOUT_L);/);
+    expect(ts).toMatch(/const SHADOW_L = (?:3|LOGO\.SHADOW_L);/);
   });
 
   test('the runtime rule is the JS we actually ship, and it is a fixed point', () => {

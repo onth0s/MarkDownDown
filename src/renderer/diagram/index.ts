@@ -12,7 +12,7 @@ export {
   resolveGeometry,
   edgeNodeCollisions,
   trimPolylineEnds,
-} from './geometry.js';
+} from './geometry/index.js';
 export type {
   DiagramGeometry,
   Orientation,
@@ -21,5 +21,5 @@ export type {
   PlacedNode,
   PlacedSubgraph,
   EdgeNodeCollision,
-} from './geometry.js';
+} from './geometry/index.js';
 export { diagramBuildSvg } from './svg.js';

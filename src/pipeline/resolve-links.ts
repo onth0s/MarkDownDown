@@ -19,16 +19,12 @@ export interface ResolveResult {
 
 export function resolveLinks(
   tokens: Token[],
-  headingsOrAssets: Heading[] | Asset[],
-  assetsOrCtx?: Asset[] | CompileContext,
-  options?: Options,
-  warnings?: string[],
+  assets: Asset[],
+  ctx: CompileContext,
 ): ResolveResult {
-  const isContext = assetsOrCtx && 'options' in assetsOrCtx && 'headings' in assetsOrCtx;
-  const headings: Heading[] = isContext ? assetsOrCtx.headings : (headingsOrAssets as Heading[]);
-  const assets: Asset[] = isContext ? (headingsOrAssets as Asset[]) : (assetsOrCtx as Asset[] ?? []);
-  const effectiveOptions: Options = isContext ? assetsOrCtx.options : options!;
-  const effectiveWarnings: string[] = isContext ? assetsOrCtx.warnings : (warnings ?? []);
+  const headings: Heading[] = ctx.headings;
+  const effectiveOptions: Options = ctx.options;
+  const effectiveWarnings: string[] = ctx.warnings;
   const pendingLinks: PendingWikilink[] = [];
   const errors: string[] = [];
 

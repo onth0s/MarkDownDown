@@ -1,5 +1,5 @@
 import { resolveLinks } from '../src/pipeline/resolve-links.js';
-import type { Options, Heading, Asset } from '../src/types.js';
+import type { Options, Heading, Asset, CompileContext } from '../src/types.js';
 
 function makeInlineToken(children: Array<{ type: string; content: string; info?: string }>) {
   return {
@@ -32,11 +32,25 @@ const assets: Asset[] = [
   { key: 'logo.png', absolutePath: '/tmp/assets/logo.png', relativePath: 'logo.png', kind: 'image' },
 ];
 
+function makeContext(options: Options = baseOptions, warnings: string[] = []): CompileContext {
+  return {
+    options,
+    meta: {},
+    hero: {},
+    title: options.title ?? 'Test',
+    accent: options.accent ?? '#3b82f6',
+    assetsDir: options.assetsDir ?? '/tmp/assets',
+    headings,
+    warnings,
+    md: {} as never,
+  };
+}
+
 describe('resolveLinks', () => {
   test('resolves wikilink to heading', () => {
     const tokens = [makeInlineToken([{ type: 'wikilink', content: 'Introduction', info: 'Introduction' }])];
     const warnings: string[] = [];
-    const result = resolveLinks(tokens as never[], headings, assets, baseOptions, warnings);
+    const result = resolveLinks(tokens as never[], assets, makeContext(baseOptions, warnings));
     expect(result.pendingLinks).toHaveLength(1);
     expect(result.pendingLinks[0].resolution).toBeDefined();
     expect(result.pendingLinks[0].resolution!.kind).toBe('heading');
@@ -45,7 +59,7 @@ describe('resolveLinks', () => {
   test('throws on unresolvable wikilink', () => {
     const tokens = [makeInlineToken([{ type: 'wikilink', content: 'Nonexistent', info: 'Nope' }])];
     const warnings: string[] = [];
-    expect(() => resolveLinks(tokens as never[], headings, assets, baseOptions, warnings)).toThrow(
+    expect(() => resolveLinks(tokens as never[], assets, makeContext(baseOptions, warnings))).toThrow(
       'Compilation failed'
     );
   });
@@ -56,25 +70,25 @@ describe('resolveLinks', () => {
       children: [{ type: 'text', content: 'just text', info: '' }],
     }];
     const warnings: string[] = [];
-    const result = resolveLinks(tokens as never[], headings, assets, baseOptions, warnings);
+    const result = resolveLinks(tokens as never[], assets, makeContext(baseOptions, warnings));
     expect(result.pendingLinks).toHaveLength(0);
   });
 
   test('builds base64 map in single mode', () => {
     const warnings: string[] = [];
-    resolveLinks([], headings, assets, {
+    resolveLinks([], assets, makeContext({
       ...baseOptions,
       outputMode: 'single',
-    }, warnings);
+    }, warnings));
     expect(warnings.some((w) => w.includes('Could not read asset'))).toBe(true);
   });
 
   test('skips base64 map in split mode', () => {
     const warnings: string[] = [];
-    const result = resolveLinks([], headings, assets, {
+    const result = resolveLinks([], assets, makeContext({
       ...baseOptions,
       outputMode: 'split',
-    }, warnings);
+    }, warnings));
     expect(result.assetBase64Map.size).toBe(0);
   });
 });

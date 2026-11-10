@@ -5,7 +5,7 @@ import type { Options, CliOptions } from '../types.js';
 import { compile } from '../compile.js';
 import { resolveCliLogoPath } from '../renderer/logo.js';
 import { printCompileSummary, reportCliError } from './report.js';
-import { DEFAULT_ACCENT } from './constants.js';
+import { DEFAULT_ACCENT } from '../constants.js';
 
 export async function confirmOverwrite(targetPath: string): Promise<boolean> {
   if (!process.stdin.isTTY) return true;

@@ -1,5 +1,5 @@
 import { assembleDocument } from '../src/pipeline/assemble.js';
-import type { Options, Heading, HeroMeta } from '../src/types.js';
+import type { Options, Heading, HeroMeta, CompileContext } from '../src/types.js';
 
 describe('assembleDocument pure function', () => {
   const baseOptions: Options = {
@@ -26,16 +26,26 @@ describe('assembleDocument pure function', () => {
     pills: ['Draft', 'v1.0'],
   };
 
-  test('assembles full document with hero, headings, and body HTML', () => {
-    const assembled = assembleDocument(
-      baseOptions,
-      { accent: '#3b82f6' },
+  function makeContext(overrides: Partial<CompileContext> = {}): CompileContext {
+    return {
+      options: baseOptions,
+      meta: {},
       hero,
-      'Test Doc',
-      '#3b82f6',
-      '<p>Body text here</p>',
+      title: 'Test Doc',
+      accent: '#3b82f6',
+      assetsDir: './assets',
       headings,
-    );
+      warnings: [],
+      md: undefined as unknown as CompileContext['md'],
+      ...overrides,
+    };
+  }
+
+  test('assembles full document with hero, headings, and body HTML', () => {
+    const assembled = assembleDocument({
+      ctx: makeContext({ meta: { accent: '#3b82f6' } }),
+      bodyHtml: '<p>Body text here</p>',
+    });
 
     expect(assembled.html).toContain('Test Doc');
     expect(assembled.html).toContain('Overview');
@@ -53,32 +63,25 @@ describe('assembleDocument pure function', () => {
       id: 'long-heading',
       level: 2,
     };
-    const assembled = assembleDocument(
-      baseOptions,
-      {},
-      {},
-      'Short Title',
-      '#3b82f6',
-      '<p>Content</p>',
-      [longHeading],
-    );
+    const assembled = assembleDocument({
+      ctx: makeContext({ title: 'Short Title', headings: [longHeading] }),
+      bodyHtml: '<p>Content</p>',
+    });
 
     expect(assembled.js).toContain('…');
   });
 
   test('emits warning when specified customCss file is not found', () => {
     const warnings: string[] = [];
-    assembleDocument(
-      baseOptions,
-      { customCss: 'nonexistent-custom.css' },
-      {},
-      'Title',
-      '#3b82f6',
-      '<p>Body</p>',
-      [],
-      undefined,
-      warnings,
-    );
+    assembleDocument({
+      ctx: makeContext({
+        meta: { customCss: 'nonexistent-custom.css' },
+        title: 'Title',
+        headings: [],
+        warnings,
+      }),
+      bodyHtml: '<p>Body</p>',
+    });
     expect(warnings.some((w) => w.includes('custom CSS file not found'))).toBe(true);
   });
 });

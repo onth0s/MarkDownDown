@@ -41,9 +41,9 @@ export function processLogo(logoPath?: string, accent = '#3b82f6', warnings?: st
       `</svg>`;
 
     const faviconSvg = DEFAULT_FAVICON_TEMPLATE
-      .replace(/\{accent\}/g, accent)
-      .replace(/\{accentDark\}/g, darkAccent)
-      .replace(/\{accentFg\}/g, fgAccent);
+      .replace(/\{accent\}/g, () => accent)
+      .replace(/\{accentDark\}/g, () => darkAccent)
+      .replace(/\{accentFg\}/g, () => fgAccent);
 
     return {
       navbarLogo: defaultNavLogo,

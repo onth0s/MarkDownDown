@@ -11,9 +11,58 @@
  */
 import type MarkdownIt from 'markdown-it';
 import type StateInline from 'markdown-it/lib/rules_inline/state_inline.mjs';
+import { escHtml } from '../util/escape.js';
+import type { PendingWikilink, ResolvedLink } from '../types.js';
 
 export function wikilinkPlugin(md: MarkdownIt): void {
   md.inline.ruler.before('link', 'wikilink', wikilinkRule);
+  md.renderer.rules['wikilink'] = (tokens, idx, _opt, env) => {
+    const tok = tokens[idx];
+    const target = tok.content;
+    const display = tok.info || target;
+    const linkMap = env?.linkMap as Map<string, PendingWikilink> | undefined;
+    const pw = linkMap?.get(`${target}|${display}`);
+    if (!pw?.resolution) return `[[${target}]]`;
+    const mode = (env?.outputMode || env?.options?.outputMode || 'single') as 'single' | 'split';
+    const b64Map = env?.assetBase64Map as Map<string, string> | undefined;
+    const parser = (env?.md || md) as MarkdownIt;
+    return renderWikilinkToken(target, display, pw.resolution, mode, b64Map, parser);
+  };
+}
+
+function renderWikilinkToken(
+  target: string,
+  display: string,
+  resolved: ResolvedLink,
+  outputMode: 'single' | 'split',
+  assetBase64Map?: Map<string, string>,
+  md?: MarkdownIt,
+): string {
+  const renderDisplay = (text: string) => (md ? md.renderInline(text) : escHtml(text));
+
+  switch (resolved.kind) {
+    case 'heading':
+      return `<a href="#${resolved.heading.id}">${renderDisplay(display)}</a>`;
+
+    case 'image': {
+      if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
+        const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
+        return `<img src="${b64}" alt="${escHtml(display)}">`;
+      }
+      return `<img src="${resolved.asset.relativePath}" alt="${escHtml(display)}">`;
+    }
+
+    case 'video': {
+      if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
+        const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
+        return `<video src="${b64}" controls></video>`;
+      }
+      return `<video src="${resolved.asset.relativePath}" controls></video>`;
+    }
+
+    case 'doc':
+      return `<a href="${resolved.asset.relativePath}">${renderDisplay(display)}</a>`;
+  }
 }
 
 function wikilinkRule(state: StateInline, silent: boolean): boolean {

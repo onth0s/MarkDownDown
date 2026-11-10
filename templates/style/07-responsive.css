@@ -122,7 +122,7 @@ button, a, input, label, .toc a, .search-result-item {
 
 
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: smooth !important; }
+  html { scroll-behavior: auto !important; }
   .toc a,
   .toc a.active,
   .search-result-item,

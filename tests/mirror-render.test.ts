@@ -1,11 +1,8 @@
-import { mirrorParse, resetMirrorIdCounter } from '../src/renderer/mirror/parse.js';
+import { mirrorParse } from '../src/renderer/mirror/parse.js';
 import { mirrorBuildHtml } from '../src/renderer/mirror/html.js';
 import { injectMirrorBlocks } from '../src/pipeline/inject-mirror.js';
 
 describe('mirrorBuildHtml', () => {
-  beforeEach(() => {
-    resetMirrorIdCounter();
-  });
 
   test('renders complete mirror block structure with pill and card', () => {
     const source = `
@@ -80,9 +77,6 @@ AUTHOR: Declared *meaning*.
 });
 
 describe('injectMirrorBlocks pipeline stage', () => {
-  beforeEach(() => {
-    resetMirrorIdCounter();
-  });
 
   test('replaces code-wrap mirror blocks and accumulates mirror stats with stable hash IDs', () => {
     const rawHtml = `

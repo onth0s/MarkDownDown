@@ -166,8 +166,14 @@ document.querySelectorAll('.download-btn').forEach(btn => {
     svgClone.querySelectorAll('style').forEach(s => s.remove());
 
     svgClone.querySelectorAll('marker path').forEach(p => {
-      p.setAttribute('fill', accent);
-      p.setAttribute('stroke', 'none');
+      const isStrokedMarker = p.getAttribute('fill') === 'none' || p.closest('marker')?.id?.includes('back');
+      if (isStrokedMarker) {
+        p.setAttribute('fill', 'none');
+        p.setAttribute('stroke', accent);
+      } else {
+        p.setAttribute('fill', accent);
+        p.setAttribute('stroke', 'none');
+      }
       p.removeAttribute('style');
     });
 

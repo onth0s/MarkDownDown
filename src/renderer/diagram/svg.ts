@@ -8,7 +8,7 @@ import {
   xyAttrs,
 } from '../svg-helpers.js';
 import { renderFormattedTspans, renderSpansTspans } from '../inline-markdown.js';
-import { resolveGeometry, type DiagramGeometry, type Orientation, type PlacedNode } from './geometry.js';
+import { resolveGeometry, type DiagramGeometry, type Orientation, type PlacedNode } from './geometry/index.js';
 import type { DiagramModel } from './types.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -37,10 +37,15 @@ function markerIdsFor(model: DiagramModel, title: string, orientation: Orientati
   return { main: `arrow-${digest}`, back: `arrowback-${digest}` };
 }
 
-export function diagramBuildSvg(model: DiagramModel, title: string, forceHorizontal?: boolean): string {
+export function diagramBuildSvg(
+  model: DiagramModel,
+  title: string,
+  forceHorizontal?: boolean,
+  precomputedGeometry?: DiagramGeometry,
+): string {
   const orientation: Orientation =
     forceHorizontal !== undefined ? (forceHorizontal ? 'LR' : 'TB') : model.horizontal ? 'LR' : 'TB';
-  const geometry = resolveGeometry(model, orientation);
+  const geometry = precomputedGeometry ?? resolveGeometry(model, orientation);
   return serialize(geometry, title, markerIdsFor(model, title, orientation), model);
 }
 

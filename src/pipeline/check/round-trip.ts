@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import type MarkdownIt from 'markdown-it';
 import { assembleFromSkeleton, parseSkeleton, spanAt, PROSE, SKIP_RUN, type Segment, type Skeleton } from '../../renderer/skeleton.js';
-import { buildSkeleton } from '../../renderer/skeleton-build.js';
+import { buildSkeleton } from '../../renderer/skeleton/index.js';
 import { extractFences, extractProse } from '../../renderer/html-extract.js';
 import { toErrorMessage } from '../../util/error.js';
 import { canonicalize, firstDifference } from './canonicalize.js';
@@ -39,18 +39,28 @@ export function sha256(s: string): string {
 export const MDD_SKELETON_RE = /<script type="application\/json" id="mdd-skeleton">([\s\S]*?)<\/script>/i;
 
 /**
- * Read the skeleton a compiled artifact embeds for its download button.
- * Returns null when the artifact carries none (or the payload is malformed).
+ * Read the embedded skeleton payload object from a compiled artifact.
  */
-export function extractEmbeddedSkeleton(html: string): Skeleton | null {
+export function extractEmbeddedSkeletonPayload(html: string): { name?: string; skeleton: Skeleton } | null {
   const m = html.match(MDD_SKELETON_RE);
   if (!m) return null;
   try {
     const payload = JSON.parse(m[1]) as { name?: string; skeleton?: Skeleton };
-    return payload?.skeleton && payload.skeleton.v === 1 ? payload.skeleton : null;
+    if (payload?.skeleton && payload.skeleton.v === 1) {
+      return { name: payload.name, skeleton: payload.skeleton };
+    }
+    return null;
   } catch {
     return null;
   }
+}
+
+/**
+ * Read the skeleton a compiled artifact embeds for its download button.
+ * Returns null when the artifact carries none (or the payload is malformed).
+ */
+export function extractEmbeddedSkeleton(html: string): Skeleton | null {
+  return extractEmbeddedSkeletonPayload(html)?.skeleton ?? null;
 }
 
 export function checkRoundTrip(opts: CheckOptions): CheckResult {

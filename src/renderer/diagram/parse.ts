@@ -112,9 +112,8 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
         label: cleanEscaped(parts[0]),
         subtitle: cleanEscaped(parts[1] ?? ''),
         shape: shape ?? 'rect',
-        rank: 0,
         order: model.nodes.size,
-        x: 0, y: 0, w: C.MIN_W, h: 36,
+        w: C.MIN_W, h: 36,
         labelOrd: pushLabel(raw, offset ?? charPos),
         titleLines: [],
         subLines: [],
@@ -225,9 +224,9 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
           ? mInline[4].endsWith('>')
           : mSimple![2].endsWith('>');
 
-      const parseInlineNode = (raw: string): string => {
+      const parseInlineNode = (raw: string, searchFromIndex = 0): string => {
         const parsed = parseNodeShape(raw);
-        const rawIdxInLine = rawLine.indexOf(raw);
+        const rawIdxInLine = rawLine.indexOf(raw, searchFromIndex);
         const nodeOffset = rawIdxInLine >= 0 ? lineStartPos + rawIdxInLine : lineStartPos;
         if (parsed) {
           ensureNode(parsed.id, parsed.label, parsed.shape, nodeOffset);
@@ -240,9 +239,12 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
         return raw;
       };
 
-      const fromId = parseInlineNode(fromRaw);
-      const toId = parseInlineNode(toRaw);
-      const labelIdx = rawLabel ? rawLine.indexOf(rawLabel) : -1;
+      const fromRawIdx = rawLine.indexOf(fromRaw);
+      const fromId = parseInlineNode(fromRaw, Math.max(0, fromRawIdx));
+      const afterFromIdx = fromRawIdx >= 0 ? fromRawIdx + fromRaw.length : 0;
+      const toRawIdx = rawLine.indexOf(toRaw, afterFromIdx);
+      const toId = parseInlineNode(toRaw, Math.max(0, toRawIdx));
+      const labelIdx = rawLabel ? rawLine.indexOf(rawLabel, afterFromIdx) : -1;
       const elOrd = edgeLabel ? pushLabel(edgeLabel, labelIdx >= 0 ? lineStartPos + labelIdx : lineStartPos) : -1;
       model.edges.push({ from: fromId, to: toId, label: edgeLabel, directed, labelOrd: elOrd });
       continue;

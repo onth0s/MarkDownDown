@@ -10,10 +10,7 @@
  */
 import { createHash } from 'node:crypto';
 import { CompileError } from '../../util/error.js';
-import type { MirrorBlockModel, MirrorKind, MirrorOption, MirrorProbe, MirrorQAItem } from './types.js';
-
-/** Deprecated no-op: mirror IDs are now content-hashed deterministically. */
-export function resetMirrorIdCounter(): void {}
+import type { MirrorBlockModel, MirrorKind, MirrorOption, MirrorProbe, MirrorQAItem } from '../../types.js';
 
 /** Computes a deterministic 8-char hex content hash of mirror block source code. */
 export function computeMirrorContentHash(source: string): string {
@@ -140,11 +137,11 @@ export function mirrorParse(source: string, subkindHint?: string, explicitId?: s
       continue;
     }
 
-    // 3. Option item within a probe: [ ], [x], ( ), (*), - [ ], etc.
-    const optionMatch = trimmed.match(/^(?:[-*+]\s+)?(?:\[([ xX*])\]|\(([ xX*])\)|([a-zA-Z0-9])[).])\s+(.+)$/);
+    // 3. Option item within a probe: [ ], [x], ( ), (*), a) [x], 1. [ ], etc.
+    const optionMatch = trimmed.match(/^(?:[-*+]|\d+[.)]|[a-zA-Z][.)])\s+(?:\[([ xX*])\]|\(([ xX*])\))\s+(.+)$|^(?:\[([ xX*])\]|\(([ xX*])\))\s+(.+)$/);
     if (currentProbe && optionMatch && currentProbe.inSection === 'options') {
-      const mark = (optionMatch[1] || optionMatch[2] || '').toLowerCase();
-      const rawText = (optionMatch[4] || '').trim();
+      const mark = (optionMatch[1] || optionMatch[2] || optionMatch[4] || optionMatch[5] || '').toLowerCase();
+      const rawText = (optionMatch[3] || optionMatch[6] || '').trim();
 
       // Check for inline explanation: "[ ] Option text --> Divergence note" or "— note" or "// note"
       const expMatch = rawText.match(/^(.*?)(?:\s+(?:-->|—|--|\/\/)\s*(.+))?$/);

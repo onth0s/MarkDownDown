@@ -1,3 +1,5 @@
+import { htmlDecode } from './escape.js';
+
 /**
  * Parse TITLE: directive from raw diagram/table source.
  * Returns { title, body } where body has the TITLE: line removed.
@@ -29,10 +31,16 @@ export function parseTitleDirective(source: string): { title: string; body: stri
   return { title: '', body: source };
 }
 
-/** Extract a `data-*` attribute value from a raw HTML attribute string. */
+/** Extract a `data-*` attribute value from a raw HTML attribute string (raw encoded form). */
 export function extractDataAttr(attrs: string, name: string): string {
   const m = attrs.match(new RegExp(`data-${name}="([^"]*)"`));
   return m ? m[1] : '';
+}
+
+/** Extract a `data-*` attribute value from a raw HTML attribute string and decode HTML entities. */
+export function extractDecodedDataAttr(attrs: string, name: string): string {
+  const raw = extractDataAttr(attrs, name);
+  return raw ? htmlDecode(raw) : '';
 }
 
 /** Create a RegExp matching a code-wrap block for a given kind. */

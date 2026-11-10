@@ -5,12 +5,9 @@
  * with copy buttons.
  */
 import path from 'node:path';
-import type { Options, PendingWikilink, Heading, CompileContext } from '../types.js';
+import type { PendingWikilink, CompileContext } from '../types.js';
 import { extractHeadings } from '../resolver/heading.js';
-import type MarkdownIt from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';
-import type { ResolvedLink } from '../resolver/wikilink.js';
-import { escHtml } from '../util/escape.js';
 import { injectDiagramSvgs } from './inject-diagrams.js';
 import { injectTableSvgs } from './inject-tables.js';
 import { injectMirrorBlocks, type MirrorStats } from './inject-mirror.js';
@@ -21,44 +18,6 @@ export interface RenderBodyResult {
   mirrorStats: MirrorStats;
 }
 
-/**
- * Render a resolved wikilink token to HTML.
- */
-function renderWikilinkToken(
-  target: string,
-  display: string,
-  resolved: ResolvedLink,
-  outputMode: 'single' | 'split',
-  assetBase64Map?: Map<string, string>,
-  md?: MarkdownIt,
-): string {
-  const renderDisplay = (text: string) => (md ? md.renderInline(text) : escHtml(text));
-
-  switch (resolved.kind) {
-    case 'heading':
-      return `<a href="#${resolved.heading.id}">${renderDisplay(display)}</a>`;
-
-    case 'image': {
-      if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
-        const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
-        return `<img src="${b64}" alt="${escHtml(display)}">`;
-      }
-      return `<img src="${resolved.asset.relativePath}" alt="${escHtml(display)}">`;
-    }
-
-    case 'video': {
-      if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
-        const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
-        return `<video src="${b64}" controls></video>`;
-      }
-      return `<video src="${resolved.asset.relativePath}" controls></video>`;
-    }
-
-    case 'doc':
-      return `<a href="${resolved.asset.relativePath}">${renderDisplay(display)}</a>`;
-  }
-}
-
 export interface RenderBodyParams {
   ctx: CompileContext;
   markdownBody: string;
@@ -67,47 +26,18 @@ export interface RenderBodyParams {
   tokens?: Token[];
 }
 
-export function renderBody(
-  mdOrParams: MarkdownIt | RenderBodyParams,
-  markdownBodyArg?: string,
-  pendingLinksArg?: PendingWikilink[],
-  assetBase64MapArg?: Map<string, string>,
-  optionsArg?: Options,
-  docTitleArg?: string,
-  warningsArg?: string[],
-  tokensArg?: Token[],
-  headingsArg?: Heading[],
-): RenderBodyResult {
-  const isParams = typeof mdOrParams === 'object' && 'ctx' in mdOrParams;
-  const md = isParams ? mdOrParams.ctx.md : mdOrParams;
-  const markdownBody = isParams ? mdOrParams.markdownBody : markdownBodyArg!;
-  const pendingLinks = isParams ? mdOrParams.pendingLinks : pendingLinksArg!;
-  const assetBase64Map = isParams ? mdOrParams.assetBase64Map : assetBase64MapArg!;
-  const options = isParams ? mdOrParams.ctx.options : optionsArg!;
-  const docTitle = isParams ? mdOrParams.ctx.title : docTitleArg!;
-  const warnings = isParams ? mdOrParams.ctx.warnings : warningsArg!;
-  const tokens = isParams ? mdOrParams.tokens : tokensArg;
-  const headings = isParams ? mdOrParams.ctx.headings : headingsArg;
+export function renderBody(params: RenderBodyParams): RenderBodyResult {
+  const { ctx, markdownBody, pendingLinks, assetBase64Map, tokens } = params;
+  const md = ctx.md;
+  const options = ctx.options;
+  const docTitle = ctx.title;
+  const warnings = ctx.warnings;
+  const headings = ctx.headings;
+
   // Build link lookup map for fast render-time access
   const linkMap = new Map<string, PendingWikilink>();
   for (const pw of pendingLinks) {
     linkMap.set(`${pw.target}|${pw.display}`, pw);
-  }
-
-  // Custom renderer for wikilink tokens (registered once)
-  if (!md.renderer.rules['wikilink']) {
-    md.renderer.rules['wikilink'] = (tokens, idx, _opt, env) => {
-    const tok = tokens[idx];
-    const target = tok.content;
-    const display = tok.info || target;
-    const currentLinkMap = (env && env.linkMap) || linkMap;
-    const pw = currentLinkMap.get(`${target}|${display}`);
-    if (!pw?.resolution) return `[[${target}]]`;
-    const mode = (env && env.outputMode) || options.outputMode;
-    const b64Map = (env && env.assetBase64Map) || assetBase64Map;
-    const parser = (env && env.md) || md;
-    return renderWikilinkToken(target, display, pw.resolution, mode, b64Map, parser);
-    };
   }
 
   const inputDir = path.dirname(options.inputFile);

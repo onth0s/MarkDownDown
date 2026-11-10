@@ -7,9 +7,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type MarkdownIt from 'markdown-it';
-import type { Options, CompileResult, HeroMeta, Heading, CompileContext } from '../types.js';
+import type { Options, HeroMeta, CompileContext } from '../types.js';
 import type { FrontmatterResult } from '../parser/frontmatter.js';
-import type { MirrorStats } from './inject-mirror.js';
 import type { Skeleton } from '../renderer/skeleton.js';
 import { buildCss, computeLuminosityParams } from '../renderer/css.js';
 import { buildJs } from '../renderer/js.js';
@@ -80,31 +79,16 @@ export interface AssembleDocumentParams {
   mddSourceName?: string;
 }
 
-export function assembleDocument(
-  optionsOrParams: Options | AssembleDocumentParams,
-  metaArg?: FrontmatterResult['meta'],
-  heroArg?: HeroMeta,
-  titleArg?: string,
-  accentArg?: string,
-  bodyHtmlArg?: string,
-  headingsArg?: Heading[],
-  mdArg?: MarkdownIt,
-  warningsArg: string[] = [],
-  mddSkeletonArg?: Skeleton,
-  mddSourceNameArg?: string,
-): AssembledDocument {
-  const isParams = 'ctx' in optionsOrParams;
-  const options = isParams ? optionsOrParams.ctx.options : optionsOrParams;
-  const meta = isParams ? (optionsOrParams.ctx.meta as FrontmatterResult['meta']) : metaArg!;
-  const hero = isParams ? optionsOrParams.ctx.hero : heroArg!;
-  const title = isParams ? optionsOrParams.ctx.title : titleArg!;
-  const accent = isParams ? optionsOrParams.ctx.accent : accentArg!;
-  const bodyHtml = isParams ? optionsOrParams.bodyHtml : bodyHtmlArg!;
-  const headings = isParams ? optionsOrParams.ctx.headings : headingsArg!;
-  const md = isParams ? optionsOrParams.ctx.md : mdArg;
-  const warnings = isParams ? optionsOrParams.ctx.warnings : warningsArg;
-  const mddSkeleton = isParams ? optionsOrParams.mddSkeleton : mddSkeletonArg;
-  const mddSourceName = isParams ? optionsOrParams.mddSourceName : mddSourceNameArg;
+export function assembleDocument(params: AssembleDocumentParams): AssembledDocument {
+  const { ctx, bodyHtml, mddSkeleton, mddSourceName } = params;
+  const options = ctx.options;
+  const meta = ctx.meta as FrontmatterResult['meta'];
+  const hero = ctx.hero;
+  const title = ctx.title;
+  const accent = ctx.accent;
+  const headings = ctx.headings;
+  const md = ctx.md;
+  const warnings = ctx.warnings;
 
   const heroHtml = buildHeroHtml(hero, title, md);
   const accentRgb = hexToRgb(accent);
@@ -208,7 +192,12 @@ export function writeOutput(
     fs.writeFileSync(htmlPath, assembled.html, 'utf8');
     fs.writeFileSync(cssPath, assembled.css + (assembled.customCssContent ?? ''), 'utf8');
     fs.writeFileSync(jsPath, assembled.js + (assembled.customJsContent ?? ''), 'utf8');
-    finalSize = Buffer.byteLength(assembled.html, 'utf8') + Buffer.byteLength(assembled.css, 'utf8') + Buffer.byteLength(assembled.js, 'utf8');
+    finalSize =
+      Buffer.byteLength(assembled.html, 'utf8') +
+      Buffer.byteLength(assembled.css, 'utf8') +
+      Buffer.byteLength(assembled.js, 'utf8') +
+      Buffer.byteLength(assembled.customCssContent ?? '', 'utf8') +
+      Buffer.byteLength(assembled.customJsContent ?? '', 'utf8');
 
     if (fs.existsSync(assetsDir)) {
       const destAssets = path.join(outDir, 'assets');
@@ -224,65 +213,4 @@ export function writeOutput(
   return finalSize;
 }
 
-export interface AssembleAndWriteParams {
-  ctx: CompileContext;
-  bodyHtml: string;
-  mirrorStats?: MirrorStats;
-  mddSkeleton?: Skeleton;
-  mddSourceName?: string;
-  wikilinksCount?: number;
-}
 
-export function assembleAndWrite(
-  optionsOrParams: Options | AssembleAndWriteParams,
-  metaArg?: FrontmatterResult['meta'],
-  heroArg?: HeroMeta,
-  titleArg?: string,
-  accentArg?: string,
-  bodyHtmlArg?: string,
-  assetsDirArg?: string,
-  headingsArg?: Heading[],
-  warningsArg?: string[],
-  mdArg?: MarkdownIt,
-  mirrorStatsArg?: MirrorStats,
-  mddSkeletonArg?: Skeleton,
-  mddSourceNameArg?: string,
-  wikilinksCountArg?: number,
-): CompileResult {
-  const isParams = 'ctx' in optionsOrParams;
-  const options = isParams ? optionsOrParams.ctx.options : optionsOrParams;
-  const meta = isParams ? (optionsOrParams.ctx.meta as FrontmatterResult['meta']) : metaArg!;
-  const hero = isParams ? optionsOrParams.ctx.hero : heroArg!;
-  const title = isParams ? optionsOrParams.ctx.title : titleArg!;
-  const accent = isParams ? optionsOrParams.ctx.accent : accentArg!;
-  const bodyHtml = isParams ? optionsOrParams.bodyHtml : bodyHtmlArg!;
-  const assetsDir = isParams ? optionsOrParams.ctx.assetsDir : assetsDirArg!;
-  const headings = isParams ? optionsOrParams.ctx.headings : headingsArg!;
-  const warnings = isParams ? optionsOrParams.ctx.warnings : (warningsArg ?? []);
-  const md = isParams ? optionsOrParams.ctx.md : mdArg;
-  const mirrorStats = isParams ? optionsOrParams.mirrorStats : mirrorStatsArg;
-  const mddSkeleton = isParams ? optionsOrParams.mddSkeleton : mddSkeletonArg;
-  const mddSourceName = isParams ? optionsOrParams.mddSourceName : mddSourceNameArg;
-  const wikilinksCount = isParams ? optionsOrParams.wikilinksCount : wikilinksCountArg;
-
-  const assembled = assembleDocument(options, meta, hero, title, accent, bodyHtml, headings, md, warnings, mddSkeleton, mddSourceName);
-  const finalSize = writeOutput(options, assembled, assetsDir, warnings);
-
-  return {
-    html: assembled.html,
-    warnings,
-    stats: {
-      sections: headings.length,
-      wikilinks: wikilinksCount ?? 0,
-      frontmatterKeys: Object.keys(meta).length + (hero.kicker ? 1 : 0) + (hero.subtitle ? 1 : 0) + (hero.pills?.length ? 1 : 0),
-      title,
-      accent,
-      logo: assembled.effectiveLogoPath,
-      outputFile: assembled.finalOutputFile,
-      sizeBytes: finalSize,
-      mirrorBlocks: mirrorStats?.blocks ?? 0,
-      mirrorItems: mirrorStats?.items ?? 0,
-      mirrorProbes: mirrorStats?.probes ?? 0,
-    },
-  };
-}

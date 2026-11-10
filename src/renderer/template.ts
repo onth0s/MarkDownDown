@@ -5,6 +5,7 @@
 import { loadTemplate } from '../util/template-loader.js';
 import { hexToHsl, hslToHex } from '../util/color.js';
 import { escHtml } from '../util/escape.js';
+import { DEFAULT_ACCENT } from '../constants.js';
 import { processLogo } from './logo.js';
 import { minifyCss, minifyJs, minifyHtml } from '../util/minify.js';
 import { extractProse } from './html-extract.js';
@@ -52,13 +53,13 @@ export function assembleHtml(opts: AssembleOptions): string {
   template = template.replace('data-theme="dark"', `data-theme="${initialTheme}"`);
 
   // Basic replacements
-  template = template.replace(/\{\{title\}\}/g, escHtml(opts.title));
-  template = template.replace(/\{\{meta_description\}\}/g, escHtml(opts.metaDescription));
+  template = template.replace(/\{\{title\}\}/g, () => escHtml(opts.title));
+  template = template.replace(/\{\{meta_description\}\}/g, () => escHtml(opts.metaDescription));
   template = template.replace('{{body}}', () => opts.body);
   template = template.replace('{{hero}}', () => opts.hero ?? '');
 
   // Logo and favicon injection
-  const effectiveAccent = opts.accent ?? '#3b82f6';
+  const effectiveAccent = opts.accent ?? DEFAULT_ACCENT;
   const defaultProcessed = opts.faviconHref && opts.logoSvg ? null : processLogo(undefined, effectiveAccent);
   const faviconHref = opts.faviconHref ?? defaultProcessed!.faviconHref;
   let logoMarkup = opts.logoSvg ?? defaultProcessed!.navbarLogo;

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { extractEmbeddedSkeleton } from './round-trip.js';
+import { extractEmbeddedSkeletonPayload } from './round-trip.js';
 
 export interface CheckTargetPair {
   htmlFile: string | null;
@@ -41,15 +41,11 @@ export function resolveCheckTargets(
     } catch {
       return { htmlFile, sourceFile: null, error: `HTML artifact not found: ${htmlFile}` };
     }
-    const skeleton = extractEmbeddedSkeleton(htmlContent);
-    if (!skeleton) {
+    const payload = extractEmbeddedSkeletonPayload(htmlContent);
+    if (!payload?.skeleton) {
       return { htmlFile, sourceFile: null, error: `HTML artifact does not contain an embedded #mdd-skeleton payload: ${htmlFile}` };
     }
-    let sourceName: string | undefined;
-    try {
-      const m = htmlContent.match(/<script type="application\/json" id="mdd-skeleton">([\s\S]*?)<\/script>/i);
-      if (m) sourceName = (JSON.parse(m[1]) as { name?: string }).name;
-    } catch { /* malformed skeleton payload */ }
+    const sourceName = payload.name;
 
     const candidates: string[] = [];
     if (sourceName) {

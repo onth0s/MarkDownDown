@@ -3,7 +3,7 @@
  * Produces accessible, reactive markup for Q&A, FAQ, and Semantic Alignment Probes.
  */
 import { escHtml } from '../../util/escape.js';
-import type { MirrorBlockModel, MirrorKind } from './types.js';
+import type { MirrorBlockModel, MirrorKind } from '../../types.js';
 
 function formatKindLabel(kind: MirrorKind): string {
   switch (kind) {

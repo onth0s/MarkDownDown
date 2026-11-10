@@ -13,7 +13,7 @@ import { scanAssets } from './resolver/asset.js';
 import { resolveLinks } from './pipeline/resolve-links.js';
 import { renderBody } from './pipeline/render-body.js';
 import { assembleDocument, writeOutput, type AssembledDocument } from './pipeline/assemble.js';
-import { buildSkeleton } from './renderer/skeleton-build.js';
+import { buildSkeleton } from './renderer/skeleton/index.js';
 import { isValidHex, formatHexWithHash } from './util/color.js';
 import { CompileError } from './util/error.js';
 
@@ -98,7 +98,11 @@ export function build(options: Options): BuildResult {
 
   const inMemorySize = resolvedOptions.outputMode === 'single'
     ? Buffer.byteLength(assembled.html, 'utf8')
-    : Buffer.byteLength(assembled.html, 'utf8') + Buffer.byteLength(assembled.css, 'utf8') + Buffer.byteLength(assembled.js, 'utf8');
+    : Buffer.byteLength(assembled.html, 'utf8') +
+      Buffer.byteLength(assembled.css, 'utf8') +
+      Buffer.byteLength(assembled.js, 'utf8') +
+      Buffer.byteLength(assembled.customCssContent ?? '', 'utf8') +
+      Buffer.byteLength(assembled.customJsContent ?? '', 'utf8');
 
   return {
     html: assembled.html,

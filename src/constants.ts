@@ -83,6 +83,8 @@ export const TABLE = {
   MIN_SCALE: 0.6,
 } as const;
 
+export const DEFAULT_ACCENT = '#3b82f6';
+
 /** Skeleton serialization protocol constants and opcodes. */
 export const SKELETON = {
   /** Placeholder opcode: take the next prose run from the DOM, in document order. */
@@ -95,6 +97,15 @@ export const SKELETON = {
   SKIP_RUN: -2,
   /** Tags whose subtrees are skipped during flat DOM prose extraction. */
   SKIPPED_TAGS: ['svg', 'pre', 'button', 'script', 'style', 'textarea'] as const,
+  /** CSS classes stripped as non-body chrome during prose extraction. */
+  SKIPPED_CLASSES: [
+    'heading-anchor',
+    'hero',
+    'mirror-block',
+    'code-title-bar',
+    'code-actions',
+    'alert-title',
+  ] as const,
 } as const;
 
 /** Brand logo lightness tone thresholds and extremes. */

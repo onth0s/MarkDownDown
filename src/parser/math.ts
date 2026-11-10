@@ -112,8 +112,8 @@ function mathBlockRule(state: StateBlock, startLine: number, endLine: number, si
 
   if (!firstLine.startsWith('$$')) return false;
 
-  // Single-line block: "$$ ... $$"
-  if (firstLine.length > 4 && firstLine.endsWith('$$')) {
+  // Single-line block: "$$ ... $$" (including empty "$$$$")
+  if (firstLine.length >= 4 && firstLine.endsWith('$$')) {
     if (!silent) {
       const token = state.push('math_block', 'div', 0);
       token.block = true;

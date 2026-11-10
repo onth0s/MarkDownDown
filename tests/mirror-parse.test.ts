@@ -1,9 +1,6 @@
-import { mirrorParse, resetMirrorIdCounter } from '../src/renderer/mirror/parse.js';
+import { mirrorParse } from '../src/renderer/mirror/parse.js';
 
 describe('mirrorParse: Q&A and FAQ', () => {
-  beforeEach(() => {
-    resetMirrorIdCounter();
-  });
 
   test('parses a basic Q&A block', () => {
     const source = `
@@ -47,9 +44,6 @@ A: Auto-inferred answer.
 });
 
 describe('mirrorParse: Alignment Probes', () => {
-  beforeEach(() => {
-    resetMirrorIdCounter();
-  });
 
   test('parses structured semantic alignment probe with options and divergence', () => {
     const source = `
@@ -128,9 +122,6 @@ AUTHOR: Model
 });
 
 describe('mirrorParse: Resilience & Edge Cases', () => {
-  beforeEach(() => {
-    resetMirrorIdCounter();
-  });
 
   test('generates deterministic content-hash IDs across blocks', () => {
     const m1 = mirrorParse('Q: One?\nA: 1.', 'qa');
