@@ -37,7 +37,7 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: 'back-edge gutter collapsed into the rank (R2)',
-    file: 'src/renderer/diagram/geometry.ts',
+    file: 'src/renderer/diagram/geometry/route.ts',
     find: /bounds\.maxX \+ C\.GUTTER/,
     // `+ 1` still clears the widest node, so the arc stays outside. Drive the
     // gutter *inside* the node band to force a genuine crossing.
@@ -67,7 +67,7 @@ const MUTATIONS: Mutation[] = [
   },
   {
     name: 'edge label placed blind at the midpoint (R2: label lands on a node)',
-    file: 'src/renderer/diagram/geometry.ts',
+    file: 'src/renderer/diagram/geometry/labels.ts',
     find: /if \(clear\) return candidate;/,
     mutate: () => 'if (clear || true) return candidate;',
     suites: 'tests/diagram-collision',
