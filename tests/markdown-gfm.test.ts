@@ -18,6 +18,12 @@ describe('GFM passthrough & LaTeX', () => {
     expect(html).toContain('&lt;sup&gt;');
     expect(html).not.toContain('<sup>a</sup>');
   });
+  test('safely parses semantic <kbd> tags while keeping other HTML escaped', () => {
+    const html = render('Use <kbd>Alt</kbd>+<kbd>M</kbd> or <script>alert(1)</script>');
+    expect(html).toContain('<kbd>Alt</kbd>+<kbd>M</kbd>');
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).not.toContain('<script>');
+  });
   test('standard GFM tables still render', () => {
     expect(render('| a | b |\n|---|---|\n| 1 | 2 |\n')).toContain('<table>');
   });

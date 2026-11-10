@@ -197,11 +197,14 @@ export function createMarkdownParser(): MarkdownIt {
     return defaultLinkOpen(tokens, idx, options, env, self);
   };
 
-  // Splice word/word slashes in plain text with <wbr> break opportunities for mobile responsive wrapping
+  // Splice word/word slashes in plain text with <wbr> break opportunities for mobile responsive wrapping,
+  // and permit safe semantic <kbd>...</kbd> keyboard shortcuts without opening arbitrary HTML injection.
   const defaultTextRender = md.renderer.rules.text || ((tokens, idx) => md.utils.escapeHtml(tokens[idx].content));
   md.renderer.rules.text = (tokens, idx, options, env, self) => {
     const rendered = defaultTextRender(tokens, idx, options, env, self);
-    return rendered.replace(/([a-zA-Z0-9_\u00C0-\u024F])\/([a-zA-Z0-9_\u00C0-\u024F])/g, '$1/<wbr>$2');
+    return rendered
+      .replace(/&lt;kbd&gt;([a-zA-Z0-9_+\- ]+?)&lt;\/kbd&gt;/gi, '<kbd>$1</kbd>')
+      .replace(/([a-zA-Z0-9_\u00C0-\u024F])\/([a-zA-Z0-9_\u00C0-\u024F])/g, '$1/<wbr>$2');
   };
 
   return md;

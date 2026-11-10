@@ -19,6 +19,12 @@ describe('wrapCodeBlocksWithCopyButtons & validation', () => {
     expect(output).toContain('>Raw</span>');
   });
 
+  test('does not add copy button to .code-wrap.mirror blocks', () => {
+    const input = '<div class="code-wrap mirror" data-kind="qa"><div class="mirror-block"></div></div>';
+    const output = wrapCodeBlocksWithCopyButtons(input);
+    expect(output).not.toContain('class="copy-btn"');
+  });
+
   test('validateNoNestedCodeWraps throws on illegally nested .code-wrap elements', () => {
     const invalidHtml = '<div class="code-wrap"><div class="code-wrap"><pre><code>test</code></pre></div></div>';
     expect(() => validateNoNestedCodeWraps(invalidHtml)).toThrow('illegally nested .code-wrap');

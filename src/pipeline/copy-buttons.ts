@@ -76,6 +76,7 @@ export function wrapCodeBlocksWithCopyButtons(html: string): string {
 
       const wrapBody = html.slice(match.index + openWrapTag.length, closeDivStart);
       const isGraphic = openWrapTag.includes('diagram') || openWrapTag.includes('table');
+      const isMirror = openWrapTag.includes('mirror');
       const hasCopy = wrapBody.includes('class="copy-btn"');
       const hasDl = wrapBody.includes('class="download-btn"');
       const hasToggle = wrapBody.includes('class="view-toggle-btn"');
@@ -90,7 +91,7 @@ export function wrapCodeBlocksWithCopyButtons(html: string): string {
 
       if (isGraphic && titleText) {
         headerHtml = `<div class="code-title-bar"><span class="code-title-text">${titleText}</span>${!hasCopy ? '<button class="copy-btn in-title-bar" type="button">Copy</button>' : ''}</div>`;
-      } else if (!hasCopy) {
+      } else if (!hasCopy && !isMirror) {
         prefix += '<button class="copy-btn" type="button">Copy</button>';
       }
 
