@@ -19,4 +19,17 @@ export default {
     ],
   },
   testMatch: ['**/tests/**/*.test.ts'],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+  ],
+  coverageReporters: ['text', 'text-summary', 'lcov'],
+  coverageThreshold: {
+    global: {
+      branches: 70,
+      functions: 90,
+      lines: 85,
+      statements: 85,
+    },
+  },
 };

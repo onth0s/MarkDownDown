@@ -1,4 +1,5 @@
 import { scanAssets, resolveAsset } from '../src/resolver/asset.js';
+import { CompileError } from '../src/util/error.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -90,5 +91,21 @@ describe('resolveAsset', () => {
 
   test('returns null for empty assets', () => {
     expect(resolveAsset('anything', [])).toBeNull();
+  });
+
+  test('throws CompileError when exact basename matches multiple assets', () => {
+    const assets = [
+      { key: 'dir1/logo.png', absolutePath: '/x/dir1/logo.png', relativePath: 'dir1/logo.png', kind: 'image' as const },
+      { key: 'dir2/logo.png', absolutePath: '/x/dir2/logo.png', relativePath: 'dir2/logo.png', kind: 'image' as const },
+    ];
+    expect(() => resolveAsset('logo.png', assets)).toThrow(CompileError);
+  });
+
+  test('throws CompileError when unextended name matches multiple assets of same probe extension', () => {
+    const assets = [
+      { key: 'sub1/banner.png', absolutePath: '/x/sub1/banner.png', relativePath: 'sub1/banner.png', kind: 'image' as const },
+      { key: 'sub2/banner.png', absolutePath: '/x/sub2/banner.png', relativePath: 'sub2/banner.png', kind: 'image' as const },
+    ];
+    expect(() => resolveAsset('banner', assets)).toThrow(CompileError);
   });
 });

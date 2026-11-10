@@ -1,4 +1,5 @@
 import { loadTemplate, clearTemplateCache, substituteTokens } from '../src/util/template-loader.js';
+import { CompileError } from '../src/util/error.js';
 
 describe('Template Loader & Caching', () => {
   beforeEach(() => {
@@ -39,5 +40,16 @@ describe('Template Loader & Caching', () => {
       __STATUS__: 'Active',
     });
     expect(res).toBe('Hello Alice, your score is 100 and status is Active!');
+  });
+
+  test('loads style.css modular template without IIFE wrapper', () => {
+    const css = loadTemplate('style.css');
+    expect(css).toContain(':root');
+    expect(css).not.toContain('use strict');
+    expect(css).not.toContain('(() => {');
+  });
+
+  test('throws CompileError when template cannot be found', () => {
+    expect(() => loadTemplate('completely_non_existent_file_xyz.html')).toThrow(CompileError);
   });
 });

@@ -20,7 +20,9 @@
     "typecheck": "tsc --noEmit",
     "typecheck:all": "tsc -p tsconfig.check.json",
     "pretest": "npm run build",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=\"tests/\""
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=\"tests/\"",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=\"tests/\" --coverage",
+    "verify": "npm run typecheck:all && npm run lint && npm test && npm run audit:geometry && npm run audit:mutations && npm run audit:tests"
   },
   "dependencies": {
     "commander": "^12.1.0",
