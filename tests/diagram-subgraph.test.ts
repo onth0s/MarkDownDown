@@ -159,8 +159,8 @@ end
     expect(idxL2).toBeLessThan(idxL3);
   });
 
-  it('inlines explicit presentation attributes on subgraph elements in 03-controls.js to prevent pitch-black rasterization', () => {
-    const controlsJs = fs.readFileSync(path.resolve(process.cwd(), 'templates/app/03-controls.js'), 'utf8');
+  it('inlines explicit presentation attributes on subgraph elements in 03d-diagram-controls.js to prevent pitch-black rasterization', () => {
+    const controlsJs = fs.readFileSync(path.resolve(process.cwd(), 'templates/app/03d-diagram-controls.js'), 'utf8');
 
     // Ensure computed style sampling is registered for subgraphs
     expect(controlsJs).toContain("sampleSubgraphBody");

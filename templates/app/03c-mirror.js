@@ -470,7 +470,7 @@ function generateMirrorAuditMarkdown() {
       const blockTitle = parentBlock?.querySelector('.mirror-card-heading')?.textContent?.trim() || `Probe #${idx + 1}`;
 
       lines.push(`### ${idx + 1}. ${blockTitle}`);
-      if (targetRef) lines.push(`- **Target Passage**: ` + `` + `#${targetRef}` + ```);
+      if (targetRef) lines.push(`- **Target Passage**: \`#${targetRef}\``);
       lines.push(`- **Claim**: ${claim}`);
 
       if (typeof pState.selectedOption === 'number' && pState.selectedOption >= 0) {

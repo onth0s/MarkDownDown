@@ -42,7 +42,7 @@ function syncDiagramHighlights() {
         // Restore original HTML in text nodes if modified
         g.querySelectorAll('text').forEach(t => {
           if (t.dataset.origHtml !== undefined) {
-            t.innerHTML = t.dataset.origHtml;
+            setTrustedSvg(t, t.dataset.origHtml);
             delete t.dataset.origHtml;
           }
         });
@@ -85,13 +85,18 @@ function syncDiagramHighlights() {
               const haystack = caseSensitive ? plain : plain.toLowerCase();
               const idx = haystack.indexOf(needle);
               if (idx >= 0) {
-                // If text node has no child tags, simple replacement is safe
+                // If text node has no child tags, simple DOM replacement is safe
                 if (!t.firstElementChild) {
                   const before = plain.slice(0, idx);
                   const hit = plain.slice(idx, idx + needle.length);
                   const after = plain.slice(idx + needle.length);
-                  const hitClass = isCurrent ? 'svg-mark is-current' : 'svg-mark is-hit';
-                  t.innerHTML = `${before}<tspan class="${hitClass}">${hit}</tspan>${after}`;
+                  const span = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                  span.setAttribute('class', isCurrent ? 'svg-mark is-current' : 'svg-mark is-hit');
+                  span.textContent = hit;
+                  t.replaceChildren();
+                  if (before) t.appendChild(document.createTextNode(before));
+                  t.appendChild(span);
+                  if (after) t.appendChild(document.createTextNode(after));
                 } else {
                   // For rich formatted tspans, highlight inside child text nodes to preserve styling
                   const walker = document.createTreeWalker(t, NodeFilter.SHOW_TEXT);
@@ -155,7 +160,7 @@ function escapeRegex(s) {
 
 function restoreSearchDOM() {
   searchableNodes.forEach(node => {
-    node.innerHTML = decodeURIComponent(node.dataset.originalHtml);
+    restoreOriginalHtml(node, node.dataset.originalHtml);
     node.hidden = false;
   });
 }

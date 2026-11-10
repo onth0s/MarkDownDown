@@ -24,6 +24,15 @@ const navForwardLabel = document.getElementById('navForwardLabel');
 
 const MDD_ROUTES = __ROUTES__;
 
+// Trusted DOM markup helpers (restricted to internal SVG icon templates and original DOM restore)
+function setTrustedSvg(el, svgMarkup) {
+  el.innerHTML = svgMarkup;
+}
+
+function restoreOriginalHtml(el, encodedHtml) {
+  el.innerHTML = decodeURIComponent(encodedHtml);
+}
+
 // ── Bidirectional Navigation Stack ──────────────────────────────────────────
 const backStack = [];
 const forwardStack = [];

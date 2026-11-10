@@ -4,7 +4,7 @@ import path from 'node:path';
 describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
   const shellHtml = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'shell.html'), 'utf8');
   const styleCss = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'style.css'), 'utf8');
-  const controlsJs = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'app', '03-controls.js'), 'utf8');
+  const controlsJs = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'app', '03b-sidebar.js'), 'utf8');
   const coreJs = fs.readFileSync(path.resolve(process.cwd(), 'templates', 'app', '01-core.js'), 'utf8');
 
   test('shell includes resizer handle, edge reopen button, and position toggle button', () => {
@@ -54,7 +54,7 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
     expect(styleCss).toContain('body.sidebar-right .sidebar-resizer');
   });
 
-  test('03-controls.js wires up resize drag, dynamic Y-axis arrow tracking, and position toggle', () => {
+  test('03b-sidebar.js wires up resize drag, dynamic Y-axis arrow tracking, and position toggle', () => {
     expect(controlsJs).toContain('sidebarResizer');
     expect(controlsJs).toContain('sidebarReopenBtn');
     expect(controlsJs).toContain('sidebarPosBtn');
