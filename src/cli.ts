@@ -5,37 +5,20 @@
 import { Command } from 'commander';
 import path from 'node:path';
 import fs from 'node:fs';
-import readline from 'node:readline';
-import { compile, build } from './compile.js';
-import type { Options, CliOptions } from './types.js';
-import { CompileError, toErrorMessage } from './util/error.js';
+import type { CliOptions } from './types.js';
 import { SPEC } from './spec.js';
-import { createMarkdownParser } from './parser/markdown.js';
-import { checkRoundTrip, resolveCheckTargets, extractEmbeddedSkeleton } from './pipeline/check.js';
-import { resolveCliLogoPath } from './renderer/logo.js';
+import { executeCheck } from './cli/run-check.js';
+import { executeCompile } from './cli/run-compile.js';
 
-async function confirmOverwrite(targetPath: string): Promise<boolean> {
-  if (!process.stdin.isTTY) return true;
-
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question(`File '${targetPath}' already exists. Overwrite? (y/N) `, (answer) => {
-      rl.close();
-      resolve(answer.trim().toLowerCase() === 'y');
-    });
-  });
-}
+declare const __VERSION__: string | undefined;
+const CLI_VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : '0.1.0';
 
 const program = new Command();
 
 program
   .name('mdd')
   .description('Compile .mdd / .md files to interactive HTML documents')
-  .version('0.1.0')
+  .version(CLI_VERSION)
   .argument('[input]', 'Input .mdd, .md, or compiled .html file')
   .argument('[source]', 'Optional source .mdd or .md file when checking an .html artifact')
   .option('--spec', 'Print the full MD++ language specification and exit')
@@ -74,197 +57,16 @@ program
       process.exit(1);
     }
 
-    const inputDir = path.dirname(inputFile);
-    const parsedPath = path.parse(inputFile);
-    const stem = parsedPath.name;
-
     if (!opts.check && /\.(html|htm)$/i.test(inputFile)) {
       process.stderr.write('ERROR: Input file is an HTML artifact. To compile, provide a .mdd or .md file. To verify roundtrip, run: mdd <artifact.html> --check\n');
       process.exit(1);
     }
 
-    // --check verifies that the original .mdd can be reconstructed from an HTML artifact byte-for-byte.
-    if (opts.check) {
-      const { htmlFile, sourceFile, error: targetErr } = resolveCheckTargets(input, sourceArg, opts.output);
-      if (targetErr) {
-        process.stderr.write(`ERROR: ${targetErr}\n`);
-        process.exit(1);
-      }
-      let htmlContent: string | null = null;
-      let rawSource: string | null = null;
-        if (sourceFile && !rawSource) {
-        if (!fs.existsSync(sourceFile)) {
-          process.stderr.write(`ERROR: Source file not found: ${sourceFile}\n`);
-          process.exit(1);
-        }
-        rawSource = fs.readFileSync(sourceFile, 'utf8');
-      }
+    const exitCode = opts.check
+      ? executeCheck(input, sourceArg, opts)
+      : await executeCompile(input, opts);
 
-      if (htmlFile && !htmlContent) {
-        if (!fs.existsSync(htmlFile)) {
-          process.stderr.write(`ERROR: HTML artifact not found: ${htmlFile}\n`);
-          process.exit(1);
-        }
-        htmlContent = fs.readFileSync(htmlFile, 'utf8');
-      }
-
-      try {
-        if (!htmlContent) {
-          // If no artifact on disk, compile in memory
-          const checkOptions: Options = {
-            title: stem,
-            assetsDir: path.join(inputDir, 'assets'),
-            accent: '#3b82f6',
-            inputFile: sourceFile!,
-            outputPath: path.join(inputDir, `${stem}.html`),
-            outputMode: 'single',
-            noDiagrams: opts.noDiagrams,
-            noTables: opts.noTables,
-            verbose: false,
-            minify: opts.minify !== false,
-          };
-          const compiled = build(checkOptions);
-          for (const w of compiled.warnings) process.stderr.write(`WARN: ${w}\n`);
-          htmlContent = compiled.html;
-        }
-
-        const skeleton = extractEmbeddedSkeleton(htmlContent);
-        const result = checkRoundTrip({
-          md: createMarkdownParser(),
-          html: htmlContent,
-          rawSource: rawSource!,
-          skeletonText: skeleton ? JSON.stringify(skeleton) : undefined,
-        });
-
-        const relSource = sourceFile ? (path.relative(process.cwd(), sourceFile) || sourceFile) : inputFile;
-        const relHtml = htmlFile ? (path.relative(process.cwd(), htmlFile) || htmlFile) : '(in-memory compiled artifact)';
-        process.stdout.write(`\n Markdown++ Round-Trip Check\n`);
-        process.stdout.write(` --------------------------------\n`);
-        process.stdout.write(` Source:      ${relSource}\n`);
-        process.stdout.write(` Artifact:    ${relHtml}\n`);
-        process.stdout.write(` ${result.message}\n`);
-        if (!result.semanticEqual && result.firstDiff) {
-          const d = result.firstDiff;
-          process.stdout.write(`\n First semantic difference at line ${d.line}:\n`);
-          if (opts.verbose) {
-            process.stdout.write(`   source:  ${JSON.stringify(d.source)}\n`);
-            process.stdout.write(`   rebuilt: ${JSON.stringify(d.rebuilt)}\n`);
-            let i = 0;
-            while (i < d.source.length && i < d.rebuilt.length && d.source[i] === d.rebuilt[i]) i++;
-            process.stdout.write(`   diverges at char ${i}:\n`);
-            process.stdout.write(`     source  ...${JSON.stringify(d.source.slice(Math.max(0, i - 40), i + 40))}\n`);
-            process.stdout.write(`     rebuilt ...${JSON.stringify(d.rebuilt.slice(Math.max(0, i - 40), i + 40))}\n`);
-          } else {
-            process.stdout.write(`   source:  ${JSON.stringify(d.source.slice(0, 160))}\n`);
-            process.stdout.write(`   rebuilt: ${JSON.stringify(d.rebuilt.slice(0, 160))}\n`);
-            process.stdout.write(`   (re-run with -v for the exact divergence)\n`);
-          }
-        }
-        process.stdout.write(`\n Result:     ${result.ok ? 'PASS' : 'FAIL'}\n\n`);
-        process.exit(result.ok ? 0 : 1);
-      } catch (err) {
-        if (err instanceof CompileError) {
-          process.stderr.write(`ERROR: ${err.message}\n`);
-          if (opts.debug) process.stderr.write(`${err.stack}\n`);
-        } else {
-          process.stderr.write(`ERROR: ${toErrorMessage(err)}\n`);
-          if (opts.debug && err instanceof Error) process.stderr.write(`${err.stack}\n`);
-        }
-        process.exit(1);
-      }
-    }
-
-    const isSplit = opts.split === true;
-    const outputMode = isSplit ? 'split' : 'single';
-
-    let outputPath: string;
-    if (opts.output) {
-      outputPath = path.resolve(process.cwd(), opts.output);
-    } else if (isSplit) {
-      outputPath = path.join(inputDir, stem);
-    } else {
-      outputPath = path.join(inputDir, `${stem}.html`);
-    }
-
-    if (fs.existsSync(outputPath) && !opts.force) {
-      const allowed = await confirmOverwrite(outputPath);
-      if (!allowed) {
-        process.stderr.write('Aborted.\n');
-        process.exit(0);
-      }
-    }
-
-    const assetsDir = opts.assetsDir
-      ? path.resolve(process.cwd(), opts.assetsDir)
-      : path.join(inputDir, 'assets');
-
-    const { logoPath, error: logoErr } = resolveCliLogoPath(opts.logo, inputDir);
-    if (logoErr) {
-      process.stderr.write(`ERROR: ${logoErr}\n`);
-      process.exit(1);
-    }
-
-    const options: Options = {
-      title: stem,
-      assetsDir,
-      accent: '#3b82f6',
-      logo: logoPath,
-      inputFile,
-      outputPath,
-      outputMode,
-      noDiagrams: opts.noDiagrams,
-      noTables: opts.noTables,
-      verbose: opts.verbose,
-      minify: opts.minify !== false,
-    };
-
-    try {
-      const startTime = performance.now();
-      const result = compile(options);
-      const elapsedMs = Math.round(performance.now() - startTime);
-
-      for (const w of result.warnings) {
-        process.stderr.write(`WARN: ${w}\n`);
-      }
-
-      if (result.stats) {
-        const { sections, wikilinks, frontmatterKeys, title, accent, outputFile, sizeBytes } = result.stats;
-        const relOutput = path.relative(process.cwd(), outputFile) || outputFile;
-        const sizeFormatted = sizeBytes >= 1024 * 1024
-          ? `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`
-          : `${(sizeBytes / 1024).toFixed(1)} KB`;
-
-        process.stdout.write(`\n Markdown++ Compile Summary\n`);
-        process.stdout.write(` ---------------------------\n`);
-        process.stdout.write(` Title:       ${title}\n`);
-        process.stdout.write(` Accent:      ${accent}\n`);
-        if (result.stats.logo) {
-          const relLogo = path.relative(process.cwd(), result.stats.logo) || result.stats.logo;
-          process.stdout.write(` Logo:        ${relLogo}\n`);
-        }
-        process.stdout.write(` Sections:    ${sections}\n`);
-        process.stdout.write(` Wikilinks:   ${wikilinks}\n`);
-        if (result.stats.mirrorBlocks && result.stats.mirrorBlocks > 0) {
-          process.stdout.write(` Mirror:      ${result.stats.mirrorBlocks} blocks (${result.stats.mirrorItems ?? 0} items, ${result.stats.mirrorProbes ?? 0} probes)\n`);
-        }
-        process.stdout.write(` Frontmatter: ${frontmatterKeys} entries\n`);
-        process.stdout.write(` Mode:        ${outputMode} (${options.minify ? 'minified' : 'unminified'})\n`);
-        process.stdout.write(` Output:      ${relOutput} (${sizeFormatted})\n`);
-        process.stdout.write(` Time:        ${elapsedMs}ms\n\n`);
-      }
-
-      process.exit(0);
-    } catch (err) {
-      if (err instanceof CompileError) {
-        process.stderr.write(`ERROR: ${err.message}\n`);
-        if (opts.debug) process.stderr.write(`${err.stack}\n`);
-      } else {
-        process.stderr.write(`ERROR: ${toErrorMessage(err)}\n`);
-        if (opts.debug && err instanceof Error) process.stderr.write(`${err.stack}\n`);
-      }
-      process.exit(1);
-    }
+    process.exit(exitCode);
   });
 
 program.parse(process.argv);
-
