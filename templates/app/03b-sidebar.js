@@ -79,6 +79,9 @@ if (sidebarPosBtn) {
   sidebarPosBtn.addEventListener('click', () => {
     const currentIsRight = body.classList.contains('sidebar-right');
     setSidebarPosition(currentIsRight ? 'left' : 'right');
+    if (body.classList.contains('sidebar-collapsed')) {
+      setSidebarCollapsed(false);
+    }
   });
 }
 
@@ -87,6 +90,9 @@ if (dropdownSidebarPosBtn) {
     event.stopPropagation();
     const currentIsRight = body.classList.contains('sidebar-right');
     setSidebarPosition(currentIsRight ? 'left' : 'right');
+    if (body.classList.contains('sidebar-collapsed')) {
+      setSidebarCollapsed(false);
+    }
     closeDropdownMenu();
   });
 }

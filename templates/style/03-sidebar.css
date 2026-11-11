@@ -87,6 +87,8 @@ body.sidebar-animating .sidebar {
     flex-basis: 0;
     padding-left: 0;
     padding-right: 0;
+    border-right-width: 0;
+    border-left-width: 0;
     border-right-color: transparent;
     border-left-color: transparent;
     opacity: 0;
@@ -94,6 +96,10 @@ body.sidebar-animating .sidebar {
     overflow: hidden;
   }
   body.sidebar-collapsed .sidebar-resizer {
+    width: 0;
+    flex: 0 0 0;
+    margin-left: 0;
+    margin-right: 0;
     opacity: 0;
     pointer-events: none;
   }
@@ -105,15 +111,22 @@ body.sidebar-animating .sidebar {
     width: var(--sidebar-w, 280px);
     flex-basis: var(--sidebar-w, 280px);
     padding: 24px 16px 24px 22px;
+    border-right-width: 1px;
     border-right-color: var(--border);
     opacity: 1;
     pointer-events: auto;
   }
   body.sidebar-collapsed.sidebar-right.nav-open .sidebar {
+    border-right-width: 0;
+    border-left-width: 1px;
     border-right-color: transparent;
     border-left-color: var(--border);
   }
   body.sidebar-collapsed.nav-open .sidebar-resizer {
+    width: 14px;
+    flex: 0 0 14px;
+    margin-left: -7px;
+    margin-right: -7px;
     opacity: 1;
     pointer-events: auto;
   }
