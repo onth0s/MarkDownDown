@@ -67,15 +67,17 @@ describe('Download .mdd: embedded skeleton + byte-identical recovery', () => {
     expect(payload.name).toBe('download.mdd');
   });
 
-  test('renders menu button and dropdown menu with original file download button and stubs', () => {
+  test('renders menu button and dropdown menu with original file download button and stats/pdf buttons', () => {
     const result = compile(options(path.join(tmpDir, 'out.html'), 'single', true));
     expect(result.html).toContain('id="menuBtn"');
     expect(result.html).toContain('id="dropdownMenu"');
     expect(result.html).toContain('id="downloadMddBtn"');
     expect(result.html).toContain('Download original MD++ file');
-    expect(result.html).toContain('id="exportPdfStubBtn"');
-    expect(result.html).toContain('id="docStatsStubBtn"');
-    expect(result.html).toContain('Stub');
+    expect(result.html).toContain('id="exportPdfBtn"');
+    expect(result.html).not.toContain('id="exportPdfStubBtn"');
+    expect(result.html).toContain('id="docStatsBtn"');
+    expect(result.html).not.toContain('id="docStatsStubBtn"');
+    expect(result.html).not.toContain('Stub');
   });
 
   test('the embedded payload is the built skeleton, pruned to lossy slots', () => {

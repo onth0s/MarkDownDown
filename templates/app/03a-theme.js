@@ -28,6 +28,11 @@ if (settingsBtn) {
   settingsBtn.addEventListener('click', (event) => {
     event.stopPropagation();
     closeDropdownMenu();
+    const docStatsPanel = document.getElementById('docStats');
+    if (docStatsPanel) {
+      docStatsPanel.hidden = true;
+      docStatsPanel.classList.remove('open');
+    }
     if (settings) settings.classList.toggle('open');
   });
 }
@@ -36,6 +41,11 @@ if (menuBtn && dropdownMenu) {
   menuBtn.addEventListener('click', (event) => {
     event.stopPropagation();
     if (settings) settings.classList.remove('open');
+    const docStatsPanel = document.getElementById('docStats');
+    if (docStatsPanel) {
+      docStatsPanel.hidden = true;
+      docStatsPanel.classList.remove('open');
+    }
     const isOpen = dropdownMenu.classList.toggle('open');
     menuBtn.setAttribute('aria-expanded', String(isOpen));
   });

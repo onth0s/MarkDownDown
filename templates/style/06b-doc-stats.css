@@ -1,0 +1,94 @@
+/* ── Document Statistics Popover Panel ───────────────────────── */
+.doc-stats {
+  position: fixed;
+  right: 18px;
+  top: 72px;
+  z-index: 70;
+  width: 280px;
+  max-width: calc(100vw - 36px);
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.doc-stats.open {
+  display: flex;
+}
+
+.doc-stats-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.doc-stats-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.doc-stats-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: color .15s, background .15s;
+}
+
+.doc-stats-close-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.doc-stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.doc-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dashed color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.doc-stats-row:last-child {
+  border-bottom: none;
+}
+
+.doc-stats-row dt {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.doc-stats-row dd {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}

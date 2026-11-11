@@ -62,6 +62,8 @@ export interface CliOptions {
   force?: boolean;
   spec?: boolean;
   debug?: boolean;
+  pdf?: string | boolean;
+  pdfTheme?: 'dark' | 'light';
 }
 
 /** A heading extracted from the document */

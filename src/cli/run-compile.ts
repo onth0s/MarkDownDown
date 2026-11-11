@@ -5,6 +5,7 @@ import type { Options, CliOptions } from '../types.js';
 import { compile } from '../compile.js';
 import { resolveCliLogoPath } from '../renderer/logo.js';
 import { printCompileSummary, reportCliError } from './report.js';
+import { exportToPdf } from './pdf-runner.js';
 import { DEFAULT_ACCENT } from '../constants.js';
 
 export async function confirmOverwrite(targetPath: string): Promise<boolean> {
@@ -87,6 +88,33 @@ export async function executeCompile(
 
     if (result.stats) {
       printCompileSummary(result.stats, elapsedMs, outputMode, options.minify);
+    }
+
+    if (opts.pdf) {
+      const pdfTarget = typeof opts.pdf === 'string' && opts.pdf.trim().length > 0
+        ? path.resolve(process.cwd(), opts.pdf)
+        : path.join(inputDir, `${stem}.pdf`);
+
+      if (fs.existsSync(pdfTarget) && !opts.force) {
+        const allowed = await confirmOverwrite(pdfTarget);
+        if (!allowed) {
+          process.stderr.write('PDF generation aborted.\n');
+          return 0;
+        }
+      }
+
+      process.stdout.write(`Exporting PDF to: ${pdfTarget} ...\n`);
+      const pdfRes = exportToPdf({
+        htmlPath: outputPath,
+        pdfPath: pdfTarget,
+        theme: opts.pdfTheme,
+      });
+
+      if (!pdfRes.success) {
+        process.stderr.write(`ERROR: ${pdfRes.error}\n`);
+        return 1;
+      }
+      process.stdout.write(`PDF successfully generated: ${pdfRes.outputPath}\n`);
     }
 
     return 0;

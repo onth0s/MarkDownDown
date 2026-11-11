@@ -130,7 +130,7 @@
     </span>
     <span class="sidebar-pos-badge" id="dropdownSidebarPosBadge">Left</span>
   </button>
-  <button type="button" class="dropdown-item is-stub" id="exportPdfStubBtn" role="menuitem" title="Feature coming soon">
+  <button type="button" class="dropdown-item" id="exportPdfBtn" role="menuitem" title="Print or export document as PDF">
     <span class="dropdown-item-left">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -141,9 +141,8 @@
       </svg>
       <span>Export as PDF</span>
     </span>
-    <span class="stub-badge">Stub</span>
   </button>
-  <button type="button" class="dropdown-item is-stub" id="docStatsStubBtn" role="menuitem" title="Feature coming soon">
+  <button type="button" class="dropdown-item" id="docStatsBtn" role="menuitem" title="Show word count and structure of this document">
     <span class="dropdown-item-left">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <line x1="18" y1="20" x2="18" y2="10"/>
@@ -152,8 +151,15 @@
       </svg>
       <span>Document statistics</span>
     </span>
-    <span class="stub-badge">Stub</span>
   </button>
+</div>
+
+<div class="doc-stats" id="docStats" role="dialog" aria-label="Document statistics" aria-modal="false" hidden>
+  <div class="doc-stats-header">
+    <h3>Document statistics</h3>
+    <button type="button" class="doc-stats-close-btn" id="docStatsCloseBtn" aria-label="Close document statistics" title="Close (Escape)">×</button>
+  </div>
+  <dl class="doc-stats-grid" id="docStatsGrid"></dl>
 </div>
 
 <div class="layout">

@@ -154,13 +154,20 @@ Resolves `[[str]]` against all `h1`–`h6` document headings in 4 sequential pas
 
 ---
 
-## 5. Escaping
+## 5. Escaping & HTML Invariants
 
 - `\[[str]]` → literal `[[str]]`
 - `\$` → literal `$` (escapes math delimiters)
 - Inside `` `inline code` `` → literal
 - Inside fenced code blocks → literal
 - Standard GFM backslash escapes apply for all standard markdown syntax.
+
+### 5.1 HTML & Comment Invariants
+
+Markdown++ enforces a pure, document-native semantic model and strict XSS safety:
+- **Raw HTML Disabled (`html: false`)**: Raw HTML tags (e.g. `<div>`, `<span>`, `<br>`) are not parsed or passed through to the DOM; they are escaped as literal text.
+- **No HTML Comments (`<!-- ... -->`)**: HTML comments are **not** treated as comments. They are escaped to `&lt;!-- ... --&gt;` and rendered visibly as literal text. Never use HTML comments for section demarcations or author notes.
+- **Scoped Wikilink Resolution**: Wikilinks (`[[target]]`) resolve strictly within the current document against local headings or `./assets/` files. Cross-file documentation links must use standard Markdown links (`[text](file.mdd)`), not wikilinks.
 
 ---
 

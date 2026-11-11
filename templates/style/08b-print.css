@@ -1,0 +1,218 @@
+/* ==========================================================================
+   08b-print.css
+   Print & PDF export media rules.
+   Ensures atomic blocks do not break awkwardly across pages, wide SVG diagrams
+   and tables scale gracefully to printable height budgets, non-printable UI is
+   hidden, and the user's active theme (dark or light) is beautifully preserved.
+   ========================================================================== */
+
+@media print {
+  /* Page geometry */
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm 14mm 12mm;
+  }
+  @page :first {
+    margin-top: 10mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Base print typography & canvas reset */
+  html, body {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 10pt !important;
+    line-height: 1.55 !important;
+  }
+
+  /* -------------------------------------------------------------------------
+     Theme Synchronization
+     ------------------------------------------------------------------------- */
+  /* Dark Theme */
+  html[data-theme="dark"],
+  html[data-theme="dark"] body {
+    color-scheme: dark !important;
+    background-color: var(--bg) !important;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+  }
+
+  html[data-theme="dark"] .code-wrap,
+  html[data-theme="dark"] .code-inner,
+  html[data-theme="dark"] .mirror-card {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+  }
+
+  html[data-theme="dark"] .alert {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+  }
+
+  /* Light Theme */
+  html[data-theme="light"],
+  html[data-theme="light"] body {
+    color-scheme: light !important;
+    background-color: var(--bg) !important;
+    background: var(--bg) !important;
+    color: var(--text) !important;
+  }
+
+  html[data-theme="light"] .code-wrap,
+  html[data-theme="light"] .code-inner,
+  html[data-theme="light"] .mirror-card {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+  }
+
+  html[data-theme="light"] .alert {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text) !important;
+  }
+
+  /* Reset layout wrapper to full page width */
+  .layout,
+  .main,
+  .article,
+  .content {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Eliminate web chrome and interactive UI controls */
+  .topbar,
+  .sidebar,
+  .sidebar-resizer,
+  .sidebar-reopen-btn,
+  .progress,
+  #settings,
+  #dropdownMenu,
+  #docStats,
+  .nav-history-bar,
+  #backtop,
+  .copy-btn,
+  .code-actions,
+  .view-toggle-btn,
+  .search-count,
+  .search-highlight-active,
+  .mode-switch-btn,
+  .theme-toggle-btn {
+    display: none !important;
+  }
+
+  /* Tighter, elegant vertical rhythm for print */
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 1rem !important;
+    margin-bottom: 0.4rem !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  hr {
+    margin: 0.8rem 0 !important;
+    border: 0 !important;
+    border-top: 1px solid var(--border) !important;
+  }
+
+  p, ul, ol, blockquote, .alert {
+    margin-top: 0 !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .hero {
+    padding: 1.25rem 0 0.8rem 0 !important;
+    margin-bottom: 1.2rem !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+
+  /* Page break hygiene: keep atomic components intact */
+  .code-wrap,
+  .diagram-card,
+  .table-wrap,
+  .alert,
+  blockquote,
+  .mirror-card,
+  .mirror-block,
+  tr,
+  figure {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Allow pre-wrapped long code blocks to break cleanly between lines */
+  pre {
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    margin: 0 !important;
+  }
+
+  /* Responsive dual diagram handling: force Top-to-Bottom, hide Left-to-Right */
+  .diagram-auto .diagram-tb {
+    display: block !important;
+  }
+  .diagram-auto .diagram-lr {
+    display: none !important;
+  }
+
+  /* Diagram & Table Containment & Height Budgeting:
+     Setting max-height allows tall diagrams (like 901px subgraphs) to scale down
+     gracefully to fit printable page budgets instead of triggering massive blank skips. */
+  .diagram-render,
+  .table-render {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    max-height: 480pt !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0.7rem 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .diagram-svg,
+  .table-svg {
+    max-width: 100% !important;
+    max-height: 460pt !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+
+  /* Dual-mode Mirror formatting for print */
+  body.mode-mirror .mirror-block {
+    display: block !important;
+    border: 1px solid var(--border) !important;
+    background: var(--surface) !important;
+    margin: 1rem 0 !important;
+  }
+
+  body.mode-mirror .mirror-reveal-content {
+    display: block !important;
+  }
+
+  body.mode-mirror .mirror-input-group,
+  body.mode-mirror .mirror-vote-btn,
+  body.mode-mirror .mirror-probe-btn {
+    display: none !important;
+  }
+
+  body:not(.mode-mirror) .mirror-block {
+    border-left: 3px solid var(--accent) !important;
+    background: var(--surface) !important;
+  }
+}

@@ -31,6 +31,8 @@ program
   .option('--minify', 'Minify CSS/JS/HTML in monolithic export (default)', true)
   .option('--no-minify', 'Disable minification in monolithic export')
   .option('-L, --logo [path]', 'Custom SVG or image brand logo and favicon (auto-detects if single .svg exists in working dir)')
+  .option('--pdf [path]', 'Export directly to PDF via headless Chrome/Edge')
+  .option('--pdf-theme <theme>', 'Theme for PDF export (dark or light)')
   .option('-F, --force', 'Force overwrite without confirmation prompt', false)
   .option('--check', 'Verify the .mdd can be recovered from the rendered HTML, then exit', false)
   .option('-v, --verbose', 'Verbose output', false)
