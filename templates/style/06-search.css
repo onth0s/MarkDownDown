@@ -244,6 +244,10 @@
   background:var(--surface); color:var(--text); width:42px;height:42px;border-radius:50%;
   cursor:pointer; opacity:0; pointer-events:auto; transition:opacity .2s; box-shadow:var(--shadow);
 }
+body.sidebar-right .backtop {
+  right:auto;
+  left:max(20px, env(safe-area-inset-left));
+}
 .backtop::before {
   content:""; position:absolute; inset:-20px;
 }
