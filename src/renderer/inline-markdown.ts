@@ -12,22 +12,30 @@ export interface FormattedSpan {
   italic?: boolean;
   code?: boolean;
   strike?: boolean;
+  href?: string;
+  isWikilink?: boolean;
 }
 
 // Match inline markdown tokens:
 // 1. Code: `code`
-// 2. Bold + Italic: ***text*** or ___text___
-// 3. Bold: **text** or __text__
-// 4. Italic: *text* or _text_
-// 5. Strikethrough: ~~text~~
+// 2. Escaped wikilinks: \[[target]] (rendered literally as [[target]])
+// 3. Wikilinks: [[target|display]] or [[target]]
+// 4. Bold + Italic: ***text*** or ___text___
+// 5. Bold: **text** or __text__
+// 6. Italic: *text* or _text_
+// 7. Strikethrough: ~~text~~
 // Delimiters can also enclose backtick code, e.g. **`Alt+1`**
 // Underscore delimiters require non-alphanumeric boundaries to avoid mangling snake_case identifiers
-const TOKEN_PATTERN = '(`[^`]+`|\\*\\*\\*[^*]+\\*\\*\\*|(?<![a-zA-Z0-9])___[^_]+___(?![a-zA-Z0-9])|\\*\\*(?:.+?)\\*\\*|(?<![a-zA-Z0-9])__(?:.+?)__(?![a-zA-Z0-9])|~~[^~]+~~|\\*[^*]+\\*|(?<![a-zA-Z0-9])_[^_]+_(?![a-zA-Z0-9]))';
+const TOKEN_PATTERN = '(`[^`]+`|\\\\\\[\\[[^\\]\\n]+\\]\\]|\\[\\[[^\\]\\n|]+(?:\\|[^\\]\\n]+)?\\]\\]|\\*\\*\\*[^*]+\\*\\*\\*|(?<![a-zA-Z0-9])___[^_]+___(?![a-zA-Z0-9])|\\*\\*(?:.+?)\\*\\*|(?<![a-zA-Z0-9])__(?:.+?)__(?![a-zA-Z0-9])|~~[^~]+~~|\\*[^*]+\\*|(?<![a-zA-Z0-9])_[^_]+_(?![a-zA-Z0-9]))';
+
+export interface InlineMarkdownOptions {
+  linkResolver?: (target: string, display: string) => { href: string } | null;
+}
 
 /**
  * Tokenize a plain string with inline Markdown into an array of FormattedSpans.
  */
-export function parseInlineMarkdown(input: string): FormattedSpan[] {
+export function parseInlineMarkdown(input: string, options?: InlineMarkdownOptions): FormattedSpan[] {
   if (!input) return [];
 
   const tokenRe = new RegExp(TOKEN_PATTERN, 'g');
@@ -43,33 +51,47 @@ export function parseInlineMarkdown(input: string): FormattedSpan[] {
     const raw = match[0];
     if (raw.startsWith('`') && raw.endsWith('`')) {
       spans.push({ text: raw.slice(1, -1), code: true });
+    } else if (raw.startsWith('\\[[') && raw.endsWith(']]')) {
+      // Escaped wikilink renders literally as [[...]]
+      spans.push({ text: raw.slice(1) });
+    } else if (raw.startsWith('[[') && raw.endsWith(']]')) {
+      const inner = raw.slice(2, -2);
+      const pipeIdx = inner.indexOf('|');
+      const target = (pipeIdx === -1 ? inner : inner.slice(0, pipeIdx)).trim();
+      const display = (pipeIdx === -1 ? inner : inner.slice(pipeIdx + 1)).trim() || target;
+      const resolved = options?.linkResolver ? options.linkResolver(target, display) : null;
+      spans.push({
+        text: display,
+        href: resolved?.href,
+        isWikilink: true,
+      });
     } else if (raw.startsWith('***') && raw.endsWith('***')) {
       const inner = raw.slice(3, -3);
-      const innerSpans = parseInlineMarkdown(inner);
+      const innerSpans = parseInlineMarkdown(inner, options);
       for (const s of innerSpans) {
         spans.push({ ...s, bold: true, italic: true });
       }
     } else if (raw.startsWith('___') && raw.endsWith('___')) {
       const inner = raw.slice(3, -3);
-      const innerSpans = parseInlineMarkdown(inner);
+      const innerSpans = parseInlineMarkdown(inner, options);
       for (const s of innerSpans) {
         spans.push({ ...s, bold: true, italic: true });
       }
     } else if ((raw.startsWith('**') && raw.endsWith('**')) || (raw.startsWith('__') && raw.endsWith('__'))) {
       const inner = raw.slice(2, -2);
-      const innerSpans = parseInlineMarkdown(inner);
+      const innerSpans = parseInlineMarkdown(inner, options);
       for (const s of innerSpans) {
         spans.push({ ...s, bold: true });
       }
     } else if (raw.startsWith('~~') && raw.endsWith('~~')) {
       const inner = raw.slice(2, -2);
-      const innerSpans = parseInlineMarkdown(inner);
+      const innerSpans = parseInlineMarkdown(inner, options);
       for (const s of innerSpans) {
         spans.push({ ...s, strike: true });
       }
     } else if ((raw.startsWith('*') && raw.endsWith('*')) || (raw.startsWith('_') && raw.endsWith('_'))) {
       const inner = raw.slice(1, -1);
-      const innerSpans = parseInlineMarkdown(inner);
+      const innerSpans = parseInlineMarkdown(inner, options);
       for (const s of innerSpans) {
         spans.push({ ...s, italic: true });
       }
@@ -129,7 +151,7 @@ export function renderSpansTspans(
     parentItalic?: boolean;
   } = {}
 ): string {
-  const hasFormatting = spans.some(s => s.bold || s.italic || s.code || s.strike);
+  const hasFormatting = spans.some(s => s.bold || s.italic || s.code || s.strike || s.href);
 
   if (!hasFormatting) {
     return escHtml(spans.map(s => s.text).join(''));
@@ -159,9 +181,10 @@ export function renderSpansTspans(
     }
 
     const content = escHtml(s.text);
-    if (attrs.length > 0) {
-      return `<tspan ${attrs.join(' ')}>${content}</tspan>`;
+    const inner = attrs.length > 0 ? `<tspan ${attrs.join(' ')}>${content}</tspan>` : content;
+    if (s.href) {
+      return `<a href="${escHtml(s.href)}">${inner}</a>`;
     }
-    return content;
+    return inner;
   }).join('');
 }

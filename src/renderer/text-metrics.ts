@@ -249,6 +249,8 @@ interface StyledChar {
   italic: boolean;
   code: boolean;
   strike: boolean;
+  href?: string;
+  isWikilink?: boolean;
 }
 
 /**
@@ -270,7 +272,15 @@ export function wrapSpansToWidth(
   const chars: StyledChar[] = [];
   for (const s of spans) {
     for (const ch of s.text) {
-      chars.push({ ch, bold: !!s.bold, italic: !!s.italic, code: !!s.code, strike: !!s.strike });
+      chars.push({
+        ch,
+        bold: !!s.bold,
+        italic: !!s.italic,
+        code: !!s.code,
+        strike: !!s.strike,
+        href: s.href,
+        isWikilink: s.isWikilink,
+      });
     }
   }
 
@@ -315,7 +325,9 @@ export function wrapSpansToWidth(
         !!last.bold === c.bold &&
         !!last.italic === c.italic &&
         !!last.code === c.code &&
-        !!last.strike === c.strike
+        !!last.strike === c.strike &&
+        last.href === c.href &&
+        last.isWikilink === c.isWikilink
       ) {
         last.text += c.ch;
       } else {
@@ -324,6 +336,8 @@ export function wrapSpansToWidth(
         if (c.italic) span.italic = true;
         if (c.code) span.code = true;
         if (c.strike) span.strike = true;
+        if (c.href) span.href = c.href;
+        if (c.isWikilink) span.isWikilink = true;
         out.push(span);
       }
     }
@@ -347,7 +361,15 @@ export function wrapSpansToWidth(
       const sep = prev ? sepWidth(prev) : 0;
       if (!prev || currentW + sep + wW <= limit) {
         if (prev) {
-          current.push({ ch: ' ', bold: prev.bold, italic: prev.italic, code: prev.code, strike: prev.strike });
+          current.push({
+            ch: ' ',
+            bold: prev.bold,
+            italic: prev.italic,
+            code: prev.code,
+            strike: prev.strike,
+            href: prev.href,
+            isWikilink: prev.isWikilink,
+          });
           currentW += sep;
         }
         current.push(...w);

@@ -17,6 +17,26 @@ export interface ResolveResult {
   assetBase64Map: Map<string, string>;
 }
 
+/**
+ * Extract wikilink strings from raw table block content, ignoring inline code spans and backslash escapes.
+ */
+function extractWikilinksFromTable(content: string): Array<{ target: string; display: string }> {
+  const links: Array<{ target: string; display: string }> = [];
+  // Strip code spans `...` first so code containing `[[...]]` is not treated as a wikilink
+  const stripped = content.replace(/`+[^`]*`+/g, '');
+  // Match [[target]] or [[target|display]], but NOT \[[target]] (escaped)
+  const re = /(^|[^\\])\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(stripped)) !== null) {
+    const target = match[2].trim();
+    const display = match[3] ? match[3].trim() : target;
+    if (target) {
+      links.push({ target, display });
+    }
+  }
+  return links;
+}
+
 export function resolveLinks(
   tokens: Token[],
   assets: Asset[],
@@ -42,6 +62,18 @@ export function resolveLinks(
             pendingLinks.push({ target, display, resolution: null, error: msg });
             errors.push(msg);
           }
+        }
+      }
+    } else if (token.type === 'fence' && token.info.trim().split(/\s+/)[0]?.toLowerCase() === 'table') {
+      const tableLinks = extractWikilinksFromTable(token.content);
+      for (const { target, display } of tableLinks) {
+        try {
+          const resolved = resolveWikilink(target, display, headings, assets);
+          pendingLinks.push({ target, display, resolution: resolved });
+        } catch (err) {
+          const msg = toErrorMessage(err);
+          pendingLinks.push({ target, display, resolution: null, error: msg });
+          errors.push(msg);
         }
       }
     }

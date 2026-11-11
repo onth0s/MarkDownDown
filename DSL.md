@@ -275,9 +275,9 @@ escape          := "\|" | "\\" | "\`"
 code_span       := "`"+ [^`]* "`"+
 ```
 
-Standard GFM pipe-table syntax. Separator-row alignment markers (`:---`, `:---:`, `---:`) are parsed but ignored — all cells render left-aligned.
+Standard GFM pipe-table syntax. Separator-row alignment markers (`:---`, `:---:`, `---:`) are parsed but ignored — all cells render left-aligned. Table cells support full inline Markdown formatting (`**bold**`, `*italic*`, `` `code` ``, `~~strike~~`) as well as interactive `[[wikilinks]]` (`[[Target]]` or `[[Target|Custom Display]]`) which resolve against local document headings or file assets and render as clickable SVG hyperlinks.
 
-A `|` starts a new cell only when it is **neither backslash-escaped nor inside a backtick code span**. Outside code spans, `\|` yields a literal `|`, `\\` a literal `\`, and `` \` `` a literal backtick; a `\\` immediately before a `|` is a literal backslash followed by a real delimiter. Inside a code span everything is literal, so model tokens such as `<|image|>` stay in one cell when wrapped in backticks. This is deliberately friendlier than strict GFM, which requires escaping pipes even inside code spans.
+A `|` starts a new cell only when it is **neither backslash-escaped nor inside a backtick code span nor inside a wikilink** (`[[...]]`). Outside code spans, `\|` yields a literal `|`, `\\` a literal `\`, and `` \` `` a literal backtick; a `\\` immediately before a `|` is a literal backslash followed by a real delimiter. Inside a code span everything is literal, so model tokens such as `<|image|>` stay in one cell when wrapped in backticks. This is deliberately friendlier than strict GFM, which requires escaping pipes even inside code spans.
 
 ```table
 TITLE: Pipe Handling in Cells

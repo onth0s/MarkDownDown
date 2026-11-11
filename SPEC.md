@@ -107,12 +107,12 @@ pills: ["guide", "example"]
 ```table
 TITLE: Wikilink Syntax Forms
 | Form | Meaning |
-| [[str]] | Self-referencing link. Display text = str. |
-| [[str\|display]] | Aliased link. Resolves str, displays display. |
-| \[[str]] | Escaped. Renders as literal [[str]]. |
+| `[[str]]` | Self-referencing link. Display text = str. |
+| `[[str\|display]]` | Aliased link. Resolves str, displays display. |
+| `\[[str]]` | Escaped. Renders as literal `[[str]]`. |
 ```
 
-Inside fenced code blocks and inline code, `[[str]]` is always literal.
+Inside verbatim code blocks (e.g. ````markdown```` or ````ts````) and inline code, `[[str]]` is always literal. Inside ````table```` blocks, wikilinks resolve to document headings or file assets just like in prose.
 
 ### 3.2 Resolution Order (first match wins)
 
@@ -159,7 +159,8 @@ Resolves `[[str]]` against all `h1`–`h6` document headings in 4 sequential pas
 - `\[[str]]` → literal `[[str]]`
 - `\$` → literal `$` (escapes math delimiters)
 - Inside `` `inline code` `` → literal
-- Inside fenced code blocks → literal
+- Inside verbatim code blocks (e.g. ````ts````, ````markdown````) → literal
+- Inside ````table```` code blocks → wikilinks resolve to document headings and assets
 - Standard GFM backslash escapes apply for all standard markdown syntax.
 
 ### 5.1 HTML & Comment Invariants

@@ -2,14 +2,19 @@
  * Inject table SVGs into rendered HTML.
  * Finds ```table code blocks and renders them to SVG.
  */
-import { tableParse, tableBuildSvg } from '../renderer/table-svg.js';
+import { tableParse, tableBuildSvg, type LinkResolver } from '../renderer/table-svg.js';
 import { escHtml, htmlDecode } from '../util/escape.js';
 import { createCodeWrapRegex, extractDataAttr } from '../util/fence.js';
 import { toErrorMessage } from '../util/error.js';
 
 const TABLE_SVG_RE = createCodeWrapRegex('table');
 
-export function injectTableSvgs(html: string, docTitle: string, warnings: string[]): string {
+export function injectTableSvgs(
+  html: string,
+  docTitle: string,
+  warnings: string[],
+  linkResolver?: LinkResolver,
+): string {
   TABLE_SVG_RE.lastIndex = 0;
   return html.replace(
     TABLE_SVG_RE,
@@ -25,7 +30,7 @@ export function injectTableSvgs(html: string, docTitle: string, warnings: string
           warnings.push(`table: no headers found, skipped render`);
           return match;
         }
-        const svg = tableBuildSvg(model, tblTitle);
+        const svg = tableBuildSvg(model, tblTitle, linkResolver);
         const safeContent = escHtml(rawCode);
         const labelsJson = escHtml(JSON.stringify(model.labels));
         const rawOutAttr = rawAttr ? ` data-raw="${rawAttr}"` : '';

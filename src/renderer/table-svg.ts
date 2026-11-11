@@ -22,6 +22,8 @@ interface CellLayout {
   lineH: number;
 }
 
+export type LinkResolver = (target: string, display: string) => { href: string } | null;
+
 /**
  * Wrap a cell's text to the bounded column width.
  *
@@ -29,13 +31,13 @@ interface CellLayout {
  * wrapped, so a single long cell set the width of the whole table and pushed the
  * SVG past the reading column.
  */
-function layoutCell(text: string, bold: boolean): CellLayout {
+function layoutCell(text: string, bold: boolean, linkResolver?: LinkResolver): CellLayout {
   const size = bold ? C.HEAD_FONT_SIZE : C.FONT_SIZE;
   const lineH = bold ? C.HEAD_LINE_H : C.LINE_H;
   const maxTextW = Math.max(24, C.MAX_COL_TEXT_W - C.PADX * 2);
   // Parse before wrapping: a span split across lines keeps its formatting on
   // every fragment instead of being re-parsed (and lost) per line.
-  const lines = wrapSpansToWidth(parseInlineMarkdown(text), size, maxTextW, { bold });
+  const lines = wrapSpansToWidth(parseInlineMarkdown(text, { linkResolver }), size, maxTextW, { bold });
   let width = 0;
   for (const line of lines) {
     const w = measureSpans(line, size, { bold });
@@ -117,6 +119,7 @@ export function tableParse(source: string): TableModel {
     let cooked = '';
     let segStart = 0;
     let codeLen = 0; // 0 = outside code; otherwise the opening backtick run length
+    let inWikilink = false; // true while inside [[...]]
     let i = 0;
     const pushSeg = (end: number): void => {
       segs.push({ cooked, start: segStart, end });
@@ -138,7 +141,7 @@ export function tableParse(source: string): TableModel {
         i++;
         continue;
       }
-      if (ch === '\\' && i + 1 < line.length && (line[i + 1] === '|' || line[i + 1] === '\\' || line[i + 1] === '`')) {
+      if (ch === '\\' && i + 1 < line.length && (line[i + 1] === '|' || line[i + 1] === '\\' || line[i + 1] === '`' || line[i + 1] === '[')) {
         cooked += line[i + 1];
         i += 2;
         continue;
@@ -151,7 +154,19 @@ export function tableParse(source: string): TableModel {
         i = j;
         continue;
       }
-      if (ch === '|') {
+      if (ch === '[' && i + 1 < line.length && line[i + 1] === '[') {
+        inWikilink = true;
+        cooked += '[[';
+        i += 2;
+        continue;
+      }
+      if (inWikilink && ch === ']' && i + 1 < line.length && line[i + 1] === ']') {
+        inWikilink = false;
+        cooked += ']]';
+        i += 2;
+        continue;
+      }
+      if (ch === '|' && !inWikilink) {
         pushSeg(i);
         i++;
         continue;
@@ -215,7 +230,7 @@ export function tableParse(source: string): TableModel {
 
 // ── SVG Builder ───────────────────────────────────────────────────────────────
 
-export function tableBuildSvg(model: TableModel, title: string): string {
+export function tableBuildSvg(model: TableModel, title: string, linkResolver?: LinkResolver): string {
   const colCount = Math.max(model.headers.length, ...model.rows.map((r) => r.length));
 
   // Lay every cell out first, so column widths and row heights both derive from
@@ -224,7 +239,7 @@ export function tableBuildSvg(model: TableModel, title: string): string {
   for (let c = 0; c < colCount; c++) {
     headLayouts.push(
       model.headers[c]
-        ? layoutCell(model.headers[c], true)
+        ? layoutCell(model.headers[c], true, linkResolver)
         : { lines: [], width: 0, lineH: C.HEAD_LINE_H }
     );
   }
@@ -232,7 +247,7 @@ export function tableBuildSvg(model: TableModel, title: string): string {
     const line: CellLayout[] = [];
     for (let c = 0; c < colCount; c++) {
       line.push(
-        row[c] ? layoutCell(row[c], false) : { lines: [], width: 0, lineH: C.LINE_H }
+        row[c] ? layoutCell(row[c], false, linkResolver) : { lines: [], width: 0, lineH: C.LINE_H }
       );
     }
     return line;

@@ -113,6 +113,15 @@
 .table-svg .tbl-strike-span, .diagram-svg .diag-strike-span {
   text-decoration:line-through;
 }
+.table-svg a {
+  fill:var(--accent);
+  text-decoration:underline;
+  text-decoration-thickness:1px;
+  cursor:pointer;
+}
+.table-svg a:hover {
+  filter:brightness(1.2);
+}
 
 /* Light mode: crisp text contrast, subtle shadows */
 html[data-theme="light"] .diagram-svg .subgraph-body { fill:#f8fafc; }

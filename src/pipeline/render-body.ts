@@ -56,8 +56,27 @@ export function renderBody(params: RenderBodyParams): RenderBodyResult {
   let bodyHtml = tokens
     ? md.renderer.render(tokens, md.options, renderEnv)
     : md.render(markdownBody, renderEnv);
+  // Create table wikilink resolver
+  const tableLinkResolver = (target: string, display: string): { href: string } | null => {
+    const pw = linkMap.get(`${target}|${display}`) ?? linkMap.get(`${target}|${target}`);
+    if (!pw || !pw.resolution) return null;
+    const resolved = pw.resolution;
+    switch (resolved.kind) {
+      case 'heading':
+        return { href: `#${resolved.heading.id}` };
+      case 'image':
+      case 'video':
+      case 'doc': {
+        if (options.outputMode === 'single' && assetBase64Map.has(resolved.asset.absolutePath)) {
+          return { href: assetBase64Map.get(resolved.asset.absolutePath)! };
+        }
+        return { href: resolved.asset.relativePath };
+      }
+    }
+  };
+
   if (!options.noDiagrams) bodyHtml = injectDiagramSvgs(bodyHtml, docTitle, warnings);
-  if (!options.noTables) bodyHtml = injectTableSvgs(bodyHtml, docTitle, warnings);
+  if (!options.noTables) bodyHtml = injectTableSvgs(bodyHtml, docTitle, warnings, tableLinkResolver);
   const docHeadings = headings ?? (tokens ? extractHeadings(tokens) : []);
   const { html: mirrorHtml, stats: mirrorStats } = injectMirrorBlocks(
     bodyHtml,
