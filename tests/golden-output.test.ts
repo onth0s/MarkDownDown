@@ -21,7 +21,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'showcase', 'assets'),
     title: 'Markdown++',
     accent: '#3b82f6',
-    expectedHash: '5de34cc5ed3d7d562fe76525e10f768d73c5247604b0093b10cd3561d7f7415d',
+    expectedHash: 'bdaf79ad97b6d08e64f4f5ee85b50c8edbb72cf63baa97a726e6db29e500550f',
   },
   {
     name: 'showcase/showcase.mdd',
@@ -29,7 +29,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'showcase', 'assets'),
     title: 'Capability Showcase',
     accent: '#8b5cf6',
-    expectedHash: '7e98c4d8f45f77592124e98704649a664c6f5d63248d39b08dfabc8d3deed4ee',
+    expectedHash: '9dcd9d5a62ca6cb941dfb5273d52c9f772ce6461e8751162479c64fa9e998649',
   },
   {
     name: 'tests/fixtures/sample.mdd',
@@ -37,7 +37,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'tests', 'fixtures'),
     title: 'Sample Document',
     accent: '#3b82f6',
-    expectedHash: '2acd8dd0513d9ff653d0e8040156d4eb4e3488c41c421ff8cc9735f0d3c34501',
+    expectedHash: '6d8f034fb9ac4971475d4c8c49ff64b3297d95d05ca5f7b03c18d1c3da87ea75',
   },
   {
     name: 'tests/fixtures/download.mdd',
@@ -45,7 +45,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'tests', 'fixtures'),
     title: 'Download Test',
     accent: '#3b82f6',
-    expectedHash: '1f527e593545592e92bc1db3a1da2921364642801c875f9fe36289717678d7af',
+    expectedHash: 'c6db65d8bdc9761add71e702909a083254fbf9fdf5c25744ca99e363140d1b05',
   },
 ];
 

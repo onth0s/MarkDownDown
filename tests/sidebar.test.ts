@@ -53,7 +53,7 @@ describe('Sidebar slide-able, collapse, reopen, and position switching', () => {
     expect(styleCss).toContain('body.sidebar-right .sidebar');
     expect(styleCss).toContain('body.sidebar-right .sidebar-reopen-btn');
     expect(styleCss).toContain('body.sidebar-right .sidebar-resizer');
-    expect(styleCss).toContain('body.sidebar-right .backtop');
+    expect(styleCss).toContain('body.sidebar-right:not(.sidebar-collapsed) .backtop');
   });
 
   test('03b-sidebar.js wires up resize drag, dynamic Y-axis arrow tracking, and position toggle', () => {
