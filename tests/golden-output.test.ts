@@ -21,7 +21,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'showcase', 'assets'),
     title: 'Markdown++',
     accent: '#3b82f6',
-    expectedHash: 'bdaf79ad97b6d08e64f4f5ee85b50c8edbb72cf63baa97a726e6db29e500550f',
+    expectedHash: 'e4fa73f1fcf6997fa4bfa1ad541369acc3966f6f00fbcbdea1af7a06a83ea6fb',
   },
   {
     name: 'showcase/showcase.mdd',
@@ -29,7 +29,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'showcase', 'assets'),
     title: 'Capability Showcase',
     accent: '#8b5cf6',
-    expectedHash: '9dcd9d5a62ca6cb941dfb5273d52c9f772ce6461e8751162479c64fa9e998649',
+    expectedHash: 'c1dec58e150b0afd443741976dbc7e9da600c3061bdc4b3cbdb572fbdc030657',
   },
   {
     name: 'tests/fixtures/sample.mdd',

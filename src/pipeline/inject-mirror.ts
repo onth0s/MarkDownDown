@@ -5,7 +5,7 @@
 import { mirrorParse, mirrorBuildHtml, computeMirrorContentHash } from '../renderer/mirror/index.js';
 import { resolveHeading } from '../resolver/heading.js';
 import { htmlDecode, escHtml } from '../util/escape.js';
-import { createCodeWrapRegex, extractDataAttr } from '../util/fence.js';
+import { createCodeWrapRegex, extractDecodedDataAttr, extractDataAttr } from '../util/fence.js';
 import { toErrorMessage } from '../util/error.js';
 import type { Heading } from '../types.js';
 
@@ -58,7 +58,7 @@ export function injectMirrorBlocks(
     MIRROR_BLOCK_RE,
     (match, attrs, codeContent) => {
       try {
-        const titleAttr = extractDataAttr(attrs, 'title');
+        const titleAttr = extractDecodedDataAttr(attrs, 'title');
         const subkindAttr = extractDataAttr(attrs, 'subkind');
         const rawAttr = extractDataAttr(attrs, 'raw');
 

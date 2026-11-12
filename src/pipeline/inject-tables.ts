@@ -4,7 +4,7 @@
  */
 import { tableParse, tableBuildSvg, type LinkResolver } from '../renderer/table-svg.js';
 import { escHtml, htmlDecode } from '../util/escape.js';
-import { createCodeWrapRegex, extractDataAttr } from '../util/fence.js';
+import { createCodeWrapRegex, extractDecodedDataAttr, extractDataAttr } from '../util/fence.js';
 import { toErrorMessage } from '../util/error.js';
 
 const TABLE_SVG_RE = createCodeWrapRegex('table');
@@ -20,7 +20,7 @@ export function injectTableSvgs(
     TABLE_SVG_RE,
     (match, attrs, codeContent) => {
       try {
-        const titleAttr = extractDataAttr(attrs, 'title');
+        const titleAttr = extractDecodedDataAttr(attrs, 'title');
         const rawAttr = extractDataAttr(attrs, 'raw');
 
         const rawCode = htmlDecode(codeContent);

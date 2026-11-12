@@ -4,7 +4,7 @@
  */
 import { diagramParse, diagramLayout, diagramBuildSvg, resolveGeometry } from '../renderer/diagram/index.js';
 import { escHtml, htmlDecode } from '../util/escape.js';
-import { createCodeWrapRegex, extractDataAttr } from '../util/fence.js';
+import { createCodeWrapRegex, extractDecodedDataAttr, extractDataAttr } from '../util/fence.js';
 
 const DIAGRAM_SVG_RE = createCodeWrapRegex('diagram');
 const HEADING_RE = /<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/g;
@@ -35,7 +35,7 @@ export function injectDiagramSvgs(html: string, docTitle: string, warnings: stri
   return html.replace(
     DIAGRAM_SVG_RE,
     (match, attrs, codeContent, offset: number) => {
-      const titleAttr = extractDataAttr(attrs, 'title');
+      const titleAttr = extractDecodedDataAttr(attrs, 'title');
       const dirAttr = extractDataAttr(attrs, 'direction');
       const rawAttr = extractDataAttr(attrs, 'raw');
 
