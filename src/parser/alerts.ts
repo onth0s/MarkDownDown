@@ -1,5 +1,6 @@
 import type MarkdownIt from 'markdown-it';
 import { uniqueSlug } from './headings.js';
+import { escHtml } from '../util/escape.js';
 
 // Support callout alerts with optional string identifier: [!] or [!STRING]
 const ALERT_RE = /^\[!(?:([a-zA-Z0-9_\u00C0-\u024F\s-]+))?\](?:\r?\n|\s+|$)/i;
@@ -15,9 +16,14 @@ export function alertsPlugin(md: MarkdownIt): void {
       if (tokens[i].type !== 'blockquote_open') continue;
 
       let firstInlineIdx = -1;
+      let searchDepth = 1;
       for (let j = i + 1; j < tokens.length; j++) {
-        if (tokens[j].type === 'blockquote_close') break;
-        if (tokens[j].type === 'inline') {
+        if (tokens[j].type === 'blockquote_open') {
+          searchDepth++;
+        } else if (tokens[j].type === 'blockquote_close') {
+          searchDepth--;
+          if (searchDepth === 0) break;
+        } else if (searchDepth === 1 && tokens[j].type === 'inline') {
           firstInlineIdx = j;
           break;
         }
@@ -32,12 +38,6 @@ export function alertsPlugin(md: MarkdownIt): void {
       const title = rawType ? (rawType.charAt(0).toUpperCase() + rawType.slice(1)) : '';
 
       inlineTok.content = inlineTok.content.slice(match[0].length).trim();
-      if (inlineTok.children && inlineTok.children.length > 0) {
-        const firstChild = inlineTok.children[0];
-        if (firstChild.type === 'text') {
-          firstChild.content = firstChild.content.replace(/^\[!(?:[a-zA-Z0-9_\u00C0-\u024F\s-]+)?\](?:\r?\n|\s+)?/i, '').trim();
-        }
-      }
 
       // If the inline token is now empty and wrapped in paragraph_open/close, remove the paragraph wrapper
       if (!inlineTok.content && tokens[firstInlineIdx - 1]?.type === 'paragraph_open' && tokens[firstInlineIdx + 1]?.type === 'paragraph_close') {
@@ -54,12 +54,12 @@ export function alertsPlugin(md: MarkdownIt): void {
 
       if (title) {
         const titleTok = new state.Token('html_inline', '', 0);
-        titleTok.content = `<div class="alert-title"><span class="alert-label">${title}</span></div>\n`;
+        titleTok.content = `<div class="alert-title"><span class="alert-label">${escHtml(title)}</span></div>\n`;
         tokens.splice(i + 1, 0, titleTok);
       }
 
       let depth = 1;
-      for (let k = i + 2; k < tokens.length; k++) {
+      for (let k = i + (title ? 2 : 1); k < tokens.length; k++) {
         if (tokens[k].type === 'blockquote_open') depth++;
         else if (tokens[k].type === 'blockquote_close') {
           depth--;
@@ -98,11 +98,9 @@ export function alertsPlugin(md: MarkdownIt): void {
             const children: typeof inline.children = [];
             for (const child of inline.children) {
               if (child.type === 'softbreak') {
-                const brOpen = new state.Token('br_open', 'br', 0);
-                children.push(brOpen);
-                const brClose = new state.Token('br_close', 'br', -1);
-                brClose.hidden = true;
-                children.push(brClose);
+                const brTok = new state.Token('html_inline', '', 0);
+                brTok.content = '<br>';
+                children.push(brTok);
               } else {
                 children.push(child);
               }

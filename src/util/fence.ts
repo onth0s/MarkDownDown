@@ -33,7 +33,8 @@ export function parseTitleDirective(source: string): { title: string; body: stri
 
 /** Extract a `data-*` attribute value from a raw HTML attribute string (raw encoded form). */
 export function extractDataAttr(attrs: string, name: string): string {
-  const m = attrs.match(new RegExp(`data-${name}="([^"]*)"`));
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const m = attrs.match(new RegExp(`(?:^|\\s)data-${escaped}="([^"]*)"`));
   return m ? m[1] : '';
 }
 

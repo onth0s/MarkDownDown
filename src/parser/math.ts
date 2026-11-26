@@ -69,7 +69,7 @@ function mathInlineRule(state: StateInline, silent: boolean): boolean {
   }
 
   let end = src.indexOf(delimiter, start);
-  while (end !== -1) {
+  while (end !== -1 && end + delimiter.length <= max) {
     let backslashes = 0;
     let p = end - 1;
     while (p >= start && src.charCodeAt(p) === 0x5c /* \\ */) {
@@ -79,15 +79,15 @@ function mathInlineRule(state: StateInline, silent: boolean): boolean {
     if (backslashes % 2 === 0) {
       // Closing delimiter must not be preceded by whitespace (for inline)
       if (!isDisplay && (src[end - 1] === ' ' || src[end - 1] === '\t' || src[end - 1] === '\n')) {
-        end = src.indexOf(delimiter, end + 1);
+        end = src.indexOf(delimiter, end + delimiter.length);
         continue;
       }
       break;
     }
-    end = src.indexOf(delimiter, end + 1);
+    end = src.indexOf(delimiter, end + delimiter.length);
   }
 
-  if (end === -1) return false;
+  if (end === -1 || end + delimiter.length > max) return false;
 
   const content = src.slice(start, end);
   if (!content) return false;
@@ -102,6 +102,8 @@ function mathInlineRule(state: StateInline, silent: boolean): boolean {
 }
 
 function mathBlockRule(state: StateBlock, startLine: number, endLine: number, silent: boolean): boolean {
+  if (state.sCount[startLine] - state.blkIndent >= 4) return false;
+
   const bMarks = state.bMarks;
   const tShift = state.tShift;
   const eMarks = state.eMarks;
@@ -151,7 +153,7 @@ function mathBlockRule(state: StateBlock, startLine: number, endLine: number, si
     if (restOfFirst) lines.push(restOfFirst);
 
     for (let l = startLine + 1; l < nextLine; l++) {
-      lines.push(state.src.slice(bMarks[l], eMarks[l]));
+      lines.push(state.src.slice(bMarks[l] + tShift[l], eMarks[l]));
     }
 
     const lastLineStart = bMarks[nextLine] + tShift[nextLine];

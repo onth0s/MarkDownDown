@@ -53,11 +53,13 @@ export function getContrastFg(hex: string): string {
 
 /** Linearly interpolate between two hex colors. */
 export function lerpColor(hexA: string, hexB: string, t: number): string {
+  const clampedT = Math.max(0, Math.min(1, t));
   const [r1, g1, b1] = hexToRgbValues(hexA);
   const [r2, g2, b2] = hexToRgbValues(hexB);
-  const r = Math.round(r1 + (r2 - r1) * t);
-  const g = Math.round(g1 + (g2 - g1) * t);
-  const b = Math.round(b1 + (b2 - b1) * t);
+  const clampByte = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  const r = clampByte(r1 + (r2 - r1) * clampedT);
+  const g = clampByte(g1 + (g2 - g1) * clampedT);
+  const b = clampByte(b1 + (b2 - b1) * clampedT);
   const toHex = (n: number) => n.toString(16).padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
@@ -97,12 +99,11 @@ export function parseAnyColor(colorStr: string): [number, number, number] | null
   }
 
   if (clean.startsWith('rgb')) {
-    const nums = clean.match(/\d+(?:\.\d+)?/g);
-    if (nums && nums.length >= 3) {
-      const r = Math.round(parseFloat(nums[0]));
-      const g = Math.round(parseFloat(nums[1]));
-      const b = Math.round(parseFloat(nums[2]));
-      return rgbToHsl(r, g, b);
+    const parts = clean.match(/\d+(?:\.\d+)?%?/g);
+    if (parts && parts.length >= 3) {
+      const parseChannel = (p: string) =>
+        p.endsWith('%') ? Math.round((parseFloat(p) / 100) * 255) : Math.round(parseFloat(p));
+      return rgbToHsl(parseChannel(parts[0]), parseChannel(parts[1]), parseChannel(parts[2]));
     }
   }
 
@@ -117,6 +118,7 @@ export function parseAnyColor(colorStr: string): [number, number, number] | null
   }
 
   if (clean.startsWith('#')) {
+    if (!isValidHex(clean)) return null;
     return hexToHsl(clean);
   }
 
@@ -167,9 +169,9 @@ export function rgbToHsl(r: number, g: number, b: number): [number, number, numb
 
 /** Convert HSL [h: 0..360, s: 0..100, l: 0..100] to RGB [r: 0..255, g: 0..255, b: 0..255]. */
 export function hslToRgb(h: number, s: number, l: number): [number, number, number] {
-  const hNorm = h / 360;
-  const sNorm = s / 100;
-  const lNorm = l / 100;
+  const hNorm = (((h % 360) + 360) % 360) / 360;
+  const sNorm = Math.max(0, Math.min(100, s)) / 100;
+  const lNorm = Math.max(0, Math.min(100, l)) / 100;
 
   let r: number, g: number, b: number;
 
@@ -192,7 +194,11 @@ export function hslToRgb(h: number, s: number, l: number): [number, number, numb
     b = hue2rgb(p, q, hNorm - 1 / 3);
   }
 
-  return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  return [
+    Math.max(0, Math.min(255, Math.round(r * 255))),
+    Math.max(0, Math.min(255, Math.round(g * 255))),
+    Math.max(0, Math.min(255, Math.round(b * 255))),
+  ];
 }
 
 /** Convert hex color to HSL [h, s, l]. */

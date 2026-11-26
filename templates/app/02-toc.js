@@ -1,8 +1,16 @@
+import {
+  article, toc, body, search, headings, hasHero, mirrorBlocks,
+  backStack, forwardStack, getSectionLabel, updateNavHistoryUI,
+  onScrollEnd, copyToClipboard, hooks, prefersReducedMotion,
+} from './01-core.js';
+import { setSearchMode } from './03b-sidebar.js';
+
 // ── Table of Contents & Copy Anchors ─────────────────────────────────────────
 toc.replaceChildren();
 if (hasHero) {
   const titleLi = document.createElement('li');
   const titleA = document.createElement('a');
+  titleA.href = '#';
   titleA.textContent = document.title || 'Untitled';
   titleA.className = 'l1';
   titleA.dataset.target = '__doc-title__';
@@ -84,16 +92,17 @@ toc.addEventListener('click', (event) => {
   event.preventDefault();
   if (window.innerWidth <= 900) body.classList.remove('nav-open');
   if (body.classList.contains('sidebar-collapsed')) body.classList.remove('nav-open');
-  tocScrollActive = true;
+  hooks.setTocScrollActive(true);
+  const behavior = prefersReducedMotion() ? 'auto' : 'smooth';
   if (link.dataset.target === '__doc-title__') {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior });
   } else {
     const target = document.getElementById(link.dataset.target);
     if (!target) return;
-    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.scrollIntoView({ behavior, block: 'start' });
   }
-  setActive(link.dataset.target);
-  onScrollEnd(() => { tocScrollActive = false; });
+  hooks.setActive(link.dataset.target);
+  onScrollEnd(() => { hooks.setTocScrollActive(false); });
 });
 
 article.addEventListener('click', async (event) => {
@@ -104,11 +113,11 @@ article.addEventListener('click', async (event) => {
 
   if (window.innerWidth <= 900) body.classList.remove('nav-open');
   if (body.classList.contains('sidebar-collapsed')) body.classList.remove('nav-open');
-  tocScrollActive = true;
+  hooks.setTocScrollActive(true);
 
   const currentSearch = search ? search.value.trim() : '';
   if (currentSearch) {
-    const currentActive = detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
+    const currentActive = hooks.detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
     backStack.push({
       y: window.scrollY,
       id: currentActive,
@@ -120,45 +129,35 @@ article.addEventListener('click', async (event) => {
     updateNavHistoryUI();
 
     search.value = '';
-    rebuildSearch('');
-    updateClearButton();
-    if (typeof setSearchMode === 'function' && window.innerWidth <= 640 && body.classList.contains('search-mode')) {
+    hooks.rebuildSearch('');
+    hooks.updateClearButton();
+    if (window.innerWidth <= 640 && body.classList.contains('search-mode')) {
       setSearchMode(false);
     }
   }
 
+  const behavior = prefersReducedMotion() ? 'auto' : 'smooth';
   const isFirstHeadingNoHero = !hasHero && targetId && headings[0]?.id === targetId;
   let url = location.href.split('#')[0];
   if (targetId === '__doc-title__' || !targetId || isFirstHeadingNoHero) {
     if (targetId === '__doc-title__' || !targetId) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior });
     } else {
       const heading = document.getElementById(targetId);
-      if (heading) heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (heading) heading.scrollIntoView({ behavior, block: 'start' });
     }
-    setActive(targetId || '__doc-title__');
+    hooks.setActive(targetId || '__doc-title__');
   } else {
     const heading = document.getElementById(targetId);
     if (heading) {
-      heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      heading.scrollIntoView({ behavior, block: 'start' });
     }
-    setActive(targetId);
+    hooks.setActive(targetId);
     url += `#${targetId}`;
   }
-  onScrollEnd(() => { tocScrollActive = false; });
+  onScrollEnd(() => { hooks.setTocScrollActive(false); });
 
-  let copied = false;
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(url);
-      copied = true;
-    } catch (_) {
-      copied = false;
-    }
-  }
-  if (!copied) {
-    copied = await copyToClipboard(url);
-  }
+  const copied = await copyToClipboard(url);
 
   if (copied) {
     anchor.textContent = 'Link copied!';

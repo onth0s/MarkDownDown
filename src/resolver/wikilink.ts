@@ -1,21 +1,23 @@
+import path from 'node:path';
 import type { Heading, Asset, ResolvedLink } from '../types.js';
 import { resolveHeading, formatAmbiguityError } from './heading.js';
-import { resolveAsset } from './asset.js';
+import { resolveAsset, KNOWN_ASSET_EXTENSIONS } from './asset.js';
 import { CompileError } from '../util/error.js';
 
 export type { ResolvedLink };
 
+function toAssetLink(asset: Asset, display: string): ResolvedLink {
+  if (asset.kind === 'image') return { kind: 'image', asset, display };
+  if (asset.kind === 'video') return { kind: 'video', asset, display };
+  return { kind: 'doc', asset, display };
+}
+
 /**
  * Resolve a single [[str|display]] wikilink.
  *
- * Resolution order (per §2.2):
- *   0. Extension fast-path: if `str` has a file extension, skip heading
- *      resolution and go directly to asset resolution.
- *   1. Heading match (4-pass fuzzy).
- *   2. File match (probe or exact).
- *
- * Throws a compiler-error string (for stderr + exit 1) on collision or
- * not-found.
+ * Resolution order:
+ *   - Known asset extension (.png, .svg, .mdd, ...): try asset first, then heading.
+ *   - Otherwise: try 4-pass fuzzy heading match first, then asset probe.
  */
 export function resolveWikilink(
   target: string,
@@ -23,30 +25,26 @@ export function resolveWikilink(
   headings: Heading[],
   assets: Asset[],
 ): ResolvedLink {
-  const hasExtension = /\.[a-zA-Z0-9]+$/.test(target);
-
-  if (!hasExtension) {
-    // Step 1: heading resolution
-    const headingResult = resolveHeading(target, headings);
-    if (headingResult.type === 'match') {
-      return { kind: 'heading', heading: headingResult.heading, display };
-    }
-    if (headingResult.type === 'ambiguous') {
-      throw new CompileError(formatAmbiguityError(target, headingResult.candidates));
-    }
-    // 'not-found' in headings → fall through to asset resolution
+  const ext = path.extname(target).toLowerCase();
+  if (KNOWN_ASSET_EXTENSIONS.has(ext)) {
+    const asset = resolveAsset(target, assets);
+    if (asset) return toAssetLink(asset, display);
   }
 
-  // Step 2: asset resolution
+  const headingResult = resolveHeading(target, headings);
+  if (headingResult.type === 'match') {
+    return { kind: 'heading', heading: headingResult.heading, display };
+  }
+  if (headingResult.type === 'ambiguous') {
+    throw new CompileError(formatAmbiguityError(target, headingResult.candidates));
+  }
+
   const asset = resolveAsset(target, assets);
-
-  if (asset === null) {
-    throw new CompileError(
-      `[[${target}]] could not be resolved — no matching heading or file found.`
-    );
+  if (asset !== null) {
+    return toAssetLink(asset, display);
   }
 
-  if (asset.kind === 'image') return { kind: 'image', asset, display };
-  if (asset.kind === 'video') return { kind: 'video', asset, display };
-  return { kind: 'doc', asset, display };
+  throw new CompileError(
+    `[[${target}]] could not be resolved — no matching heading or file found.`
+  );
 }

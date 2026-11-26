@@ -2,11 +2,11 @@
 /**
  * Markdown++ CLI entry point.
  */
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import path from 'node:path';
 import fs from 'node:fs';
 import type { CliOptions } from './types.js';
-import { SPEC } from './spec.js';
+import { getSpec } from './spec.js';
 import { executeCheck } from './cli/run-check.js';
 import { executeCompile } from './cli/run-compile.js';
 
@@ -32,14 +32,15 @@ program
   .option('--no-minify', 'Disable minification in monolithic export')
   .option('-L, --logo [path]', 'Custom SVG or image brand logo and favicon (auto-detects if single .svg exists in working dir)')
   .option('--pdf [path]', 'Export directly to PDF via headless Chrome/Edge')
-  .option('--pdf-theme <theme>', 'Theme for PDF export (dark or light)')
+  .addOption(new Option('--pdf-theme <theme>', 'Theme for PDF export (dark or light)').choices(['dark', 'light']))
+  .option('--allow-external-paths', 'Allow frontmatter paths (assets_dir, custom_css, custom_js, logo) outside the input directory', false)
   .option('-F, --force', 'Force overwrite without confirmation prompt', false)
   .option('--check', 'Verify the .mdd can be recovered from the rendered HTML, then exit', false)
   .option('-v, --verbose', 'Verbose output', false)
   .option('--debug', 'Dump full error stack traces on failure', false)
   .action(async (input: string | undefined, sourceArg: string | undefined, opts: CliOptions) => {
     if (opts.spec) {
-      process.stdout.write(SPEC);
+      process.stdout.write(getSpec());
       process.exit(0);
     }
 
@@ -54,7 +55,7 @@ program
     }
 
     const inputFile = path.resolve(process.cwd(), input);
-    if (!fs.existsSync(inputFile)) {
+    if (!fs.existsSync(inputFile) || !fs.statSync(inputFile).isFile()) {
       process.stderr.write(`ERROR: Input file not found: ${inputFile}\n`);
       process.exit(1);
     }

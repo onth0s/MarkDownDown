@@ -1,4 +1,5 @@
 import type MarkdownIt from 'markdown-it';
+import type Token from 'markdown-it/lib/token.mjs';
 
 /** Background luminosity configuration for dark/light themes */
 export interface BgLum {
@@ -44,6 +45,8 @@ export interface Options {
   verbose: boolean;
   /** Minify inlined CSS, JS, and HTML in monolithic export (default: true) */
   minify?: boolean;
+  /** Allow frontmatter paths outside the input file's directory */
+  allowExternalPaths?: boolean;
 }
 
 /** Raw CLI options parsed by commander */
@@ -53,12 +56,13 @@ export interface CliOptions {
   split: boolean;
   assetsDir?: string;
   logo?: string | boolean;
-  noDiagrams: boolean;
-  noTables: boolean;
+  diagrams: boolean;
+  tables: boolean;
   verbose: boolean;
   /** Verify the source can be recovered from the rendered HTML, then exit */
   check?: boolean;
   minify?: boolean;
+  allowExternalPaths?: boolean;
   force?: boolean;
   spec?: boolean;
   debug?: boolean;
@@ -186,10 +190,36 @@ export interface PendingWikilink {
   error?: string;
 }
 
+/** Frontmatter option overrides */
+export type FrontmatterMeta = Partial<
+  Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'theme' | 'customCss' | 'customJs' | 'logo' | 'bgLum'>
+>;
+
+/** Typed environment passed to markdown-it parse/render calls */
+export interface MarkdownRenderEnv {
+  warnings?: string[];
+  inputDir?: string;
+  options?: Options;
+  docTitle?: string;
+  linkMap?: Map<string, PendingWikilink>;
+  outputMode?: 'single' | 'split';
+  assetBase64Map?: Map<string, string>;
+  md?: MarkdownIt;
+  wikilinkDepth?: number;
+  seenSlugs?: Map<string, number>;
+  directWrapRender?: boolean;
+  tableLinkResolver?: (target: string, display: string) => { href: string } | null;
+  mirrorAnchorMap?: Map<string, { mirrorId: string; title: string }>;
+  mirrorStats?: { blocks: number; items: number; probes: number };
+  mirrorSeenIds?: Map<string, number>;
+  nearestHeadingByToken?: WeakMap<Token, string>;
+  docHeadings?: Heading[];
+}
+
 /** Unified compilation context passed across pipeline stages */
 export interface CompileContext {
   options: Options;
-  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'theme' | 'customCss' | 'customJs' | 'logo' | 'bgLum'>> & Record<string, unknown>;
+  meta: FrontmatterMeta;
   hero: HeroMeta;
   title: string;
   accent: string;

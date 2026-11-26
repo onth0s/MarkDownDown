@@ -133,6 +133,9 @@ TITLE: Markdown++ CLI Options
 | --minify | flag | Minify CSS/JS/HTML in monolithic export (default: true) |
 | --no-minify | flag | Disable minification in monolithic export |
 | -L, --logo [path] | string/flag | Custom brand logo and dynamic favicon (auto-detects if single .svg exists) |
+| --pdf [path] | string/flag | Export directly to PDF via headless Chrome/Edge |
+| --pdf-theme <theme> | string | Theme for PDF export (`dark` or `light`) |
+| --allow-external-paths | flag | Allow frontmatter paths (`assets_dir`, `custom_css`, `custom_js`, `logo`) outside the input directory |
 | -F, --force | flag | Force overwrite without confirmation prompt |
 | --check | flag | Verify the source can be recovered byte-for-byte from the artifact |
 | -v, --verbose | flag | Enable verbose compiler logging |
@@ -198,6 +201,9 @@ custom_css: "./theme.css"
 custom_js: "./analytics.js"
 ---
 ```
+
+> [!NOTE]
+> Path keys (`assets_dir`, `custom_css`, `custom_js`, `logo`) are confined to the input document's directory by default; pass `--allow-external-paths` to override.
 
 ### Wikilinks & Heading Resolution
 
@@ -315,20 +321,23 @@ npm install
 TITLE: NPM Build & Verification Scripts
 | Command | Purpose |
 | npm test | Run Jest test suite across all parser, compiler, and pipeline tests |
+| npm run test:coverage | Run Jest test suite with coverage report |
 | npm run typecheck | Execute TypeScript strict typecheck (tsc --noEmit) |
+| npm run typecheck:all | Typecheck both src/ and tests/ via tsconfig.check.json |
 | npm run lint | Execute ESLint across entire codebase |
 | npm run build | Compile TypeScript CLI entry point into dist/cli.cjs via esbuild |
 | npm run dev | Run compiler directly in development mode via tsx |
-| .\build.ps1 | Complete sequential pipeline: build, lint, typecheck, tests, and index.html |
-| .\build.ps1 -lip | "Let It Rip" mode: high-speed build, parallel worker tests, and index.html |
+| npm run verify | Run typecheck:all, lint, tests, and all geometry/mutation/logo audits |
+| .\build.ps1 | Complete sequential pipeline: build, lint, typecheck:all, tests, index.html, and showcase.html |
+| .\build.ps1 -lip | "Let It Rip" mode: high-speed build, parallel worker tests, index.html, and showcase.html |
 ```
 
 ### PowerShell Build Runner (`build.ps1`)
 
 Windows workflows can leverage `build.ps1` for complete validation or rapid iterations:
 
-- **Standard Mode** (`.\build.ps1`): Sequentially compiles the project, runs ESLint, runs TypeScript typechecking (`tsc --noEmit`), runs all Jest suites, and regenerates `index.html`.
-- **Let It Rip Mode** (`.\build.ps1 -lip` or `.\build.ps1 -LetItRip`): High-speed development mode. Skips static linting and typecheck passes, runs test suites with optimized parallel workers (`--maxWorkers=50%`), regenerates `index.html`, and returns immediately without an interactive prompt.
+- **Standard Mode** (`.\build.ps1`): Sequentially compiles the project, runs ESLint, runs full TypeScript typechecking (`typecheck:all`), runs all Jest suites, and regenerates `index.html` and `showcase/showcase.html`.
+- **Let It Rip Mode** (`.\build.ps1 -lip` or `.\build.ps1 -LetItRip`): High-speed development mode. Skips static linting and typecheck passes, runs test suites with optimized parallel workers (`--maxWorkers=50%`), regenerates `index.html` and `showcase/showcase.html`, and returns immediately without an interactive prompt.
 
 ---
 

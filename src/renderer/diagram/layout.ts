@@ -1,5 +1,6 @@
 import { DIAGRAM as C } from '../../constants.js';
 import { CompileError } from '../../util/error.js';
+import { boxOverlaps } from '../svg-helpers.js';
 import { parseInlineMarkdown, type FormattedSpan } from '../inline-markdown.js';
 import { measureInline, measureSpans, measureText, widestSpans, wrapSpansToWidth } from '../text-metrics.js';
 import type { DiagramModel, DiagramNode, DiagramTextLine, DiagramNodeMetrics } from './types.js';
@@ -32,17 +33,9 @@ export function checkBoxesOverlap(boxes: NodeBox[], layoutName = 'layout'): void
 
     for (let j = i + 1; j < boxes.length; j++) {
       const b = boxes[j];
-      const bLeft = b.cx - b.w / 2;
-      const bRight = b.cx + b.w / 2;
-      const bTop = b.cy - b.h / 2;
-      const bBottom = b.cy + b.h / 2;
-
-      const overlaps =
-        aLeft < bRight - C.OVERLAP_TOLERANCE &&
-        aRight > bLeft + C.OVERLAP_TOLERANCE &&
-        aTop < bBottom - C.OVERLAP_TOLERANCE &&
-        aBottom > bTop + C.OVERLAP_TOLERANCE;
-      if (overlaps) {
+      const boxA = { minX: aLeft, minY: aTop, maxX: aRight, maxY: aBottom };
+      const boxB = { minX: b.cx - b.w / 2, minY: b.cy - b.h / 2, maxX: b.cx + b.w / 2, maxY: b.cy + b.h / 2 };
+      if (boxOverlaps(boxA, boxB, C.OVERLAP_TOLERANCE)) {
         throw new CompileError(`Diagram compilation error: nodes "${a.id}" and "${b.id}" overlap in ${layoutName}.`);
       }
     }
@@ -399,8 +392,11 @@ export function diagramLayout(model: DiagramModel): void {
   model.lrMaxX = curX - lrGap + C.PAD;
   model.lrMaxY = maxColHeight + C.PAD * 2;
 
-  // Validate no node overlap in TB layout
+  // Validate no node overlap in TB and LR layouts
   validateNoNodeOverlap(model, false);
+  if (model.direction === 'auto' || model.horizontal) {
+    validateNoNodeOverlap(model, true);
+  }
 }
 
 /** Re-export so callers that only need a plain advance width can skip metrics. */

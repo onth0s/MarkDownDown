@@ -29,6 +29,8 @@ export function mirrorBuildHtml(
   _docTitle?: string,
   renderInline?: (text: string) => string,
 ): string {
+  const safeMirrorId = escHtml(model.id);
+  const safeKind = escHtml(model.kind);
   const render = renderInline || escHtml;
   const blockTitle = model.title || formatKindLabel(model.kind);
   const totalItems = model.items.length + model.probes.length;
@@ -54,12 +56,12 @@ export function mirrorBuildHtml(
   if (model.probes.length > 0) {
     contentHtml += `<div class="mirror-probes">`;
     model.probes.forEach((probe, pIdx) => {
-      const probeId = `${model.id}-p${pIdx}`;
+      const probeId = escHtml(`${model.id}-p${pIdx}`);
       let optionsHtml = '';
       let explanationsHtml = '';
 
       probe.options.forEach((opt, oIdx) => {
-        const optId = `${probeId}-opt-${oIdx}`;
+        const optId = escHtml(`${model.id}-p${pIdx}-opt-${oIdx}`);
         const alignedAttr = opt.isAuthorAligned ? ' data-aligned="true"' : ' data-aligned="false"';
         const expData = opt.explanation ? ` data-explanation="${escHtml(opt.explanation)}"` : '';
         optionsHtml +=
@@ -122,7 +124,7 @@ export function mirrorBuildHtml(
 
   // 3. Reader Questions Section (Document-native reader query logger)
   const readerSectionHtml =
-    `<div class="mirror-reader-section" data-parent-mirror="${model.id}">` +
+    `<div class="mirror-reader-section" data-parent-mirror="${safeMirrorId}">` +
     `<div class="mirror-reader-header">` +
     `<span class="mirror-reader-title">Reader Questions & Notes</span>` +
     `<button type="button" class="mirror-reader-toggle-btn" aria-expanded="false">+ Add Question</button>` +
@@ -148,8 +150,8 @@ export function mirrorBuildHtml(
     : '';
 
   return (
-    `<aside class="mirror-block" id="${model.id}" data-mirror-id="${model.id}" data-kind="${model.kind}" data-count="${totalItems}"${targetAttr}${targetIdAttr} aria-label="${safeTitle}">` +
-    `<button type="button" class="mirror-margin-pill" data-target-mirror="${model.id}" title="Click to view ${safeTitle} in Read Mode" aria-label="Toggle ${safeTitle}">` +
+    `<aside class="mirror-block" id="${safeMirrorId}" data-mirror-id="${safeMirrorId}" data-kind="${safeKind}" data-count="${totalItems}"${targetAttr}${targetIdAttr} aria-label="${safeTitle}">` +
+    `<button type="button" class="mirror-margin-pill" data-target-mirror="${safeMirrorId}" title="Click to view ${safeTitle} in Read Mode" aria-label="Toggle ${safeTitle}">` +
     `<span class="mirror-pill-icon">${SVG_MIRROR_ICON}</span>` +
     `<span class="mirror-pill-label">${kindBadge}</span>` +
     `<span class="mirror-pill-count">${pillLabel}</span>` +
@@ -161,7 +163,7 @@ export function mirrorBuildHtml(
     `<span class="mirror-card-heading">${safeTitle}</span>` +
     targetLocatorHtml +
     `</div>` +
-    `<button type="button" class="mirror-card-close-btn" data-target-mirror="${model.id}" aria-label="Close card" title="Close">×</button>` +
+    `<button type="button" class="mirror-card-close-btn" data-target-mirror="${safeMirrorId}" aria-label="Close card" title="Close">×</button>` +
     `</div>` +
     `<div class="mirror-card-body">` +
     contentHtml +

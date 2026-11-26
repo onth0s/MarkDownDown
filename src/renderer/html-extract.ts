@@ -19,26 +19,62 @@ import { htmlDecode } from '../util/escape.js';
  *     (e.g. the text between `</em>` and `<strong>`) or a softbreak's newline
  *     between two inline elements, both of which DO have slots.
  */
+/** Strip balanced occurrences of a specific tag matching `openRe` (handles nested same-name tags). */
+function stripBalancedElement(html: string, openRe: RegExp, tagName: string): string {
+  const closeTag = `</${tagName}>`;
+  const tagRe = new RegExp(`<(\\/)?${tagName}\\b[^>]*>`, 'gi');
+  let out = '';
+  let last = 0;
+  openRe.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = openRe.exec(html)) !== null) {
+    if (m.index < last) continue;
+    out += html.slice(last, m.index);
+    tagRe.lastIndex = m.index;
+    let depth = 0;
+    let endIdx = -1;
+    let tm: RegExpExecArray | null;
+    while ((tm = tagRe.exec(html)) !== null) {
+      if (tm[1]) {
+        depth--;
+        if (depth === 0) {
+          endIdx = tm.index + tm[0].length;
+          break;
+        }
+      } else {
+        depth++;
+      }
+    }
+    if (endIdx === -1) {
+      last = m.index + m[0].length;
+    } else {
+      last = endIdx;
+      openRe.lastIndex = endIdx;
+    }
+  }
+  void closeTag;
+  return out + html.slice(last);
+}
+
 /** Strip chrome that is not source body: hero, SVG, fences, controls, mirror UI. */
 function stripChrome(html: string): string {
   const start = html.indexOf('<article');
-  const end = html.indexOf('</article>');
+  const end = html.lastIndexOf('</article>');
   if (start < 0 || end < 0) return '';
-  return html
-    .slice(start, end + 10)
-    .replace(/<section class="hero">[\s\S]*?<\/section>/g, '')
-    .replace(/<svg[\s\S]*?<\/svg>/g, '')
-    .replace(/<pre>[\s\S]*?<\/pre>/g, '')
-    .replace(/<aside class="mirror-block"[\s\S]*?<\/aside>/g, '')
-    .replace(/<div class="alert-title">[\s\S]*?<\/div>/g, '')
-    .replace(/<div class="code-title-bar">[\s\S]*?<\/div>/g, '')
-    .replace(/<div class="code-actions">[\s\S]*?<\/div>/g, '')
-    .replace(/<div class="no-results"[^>]*>[\s\S]*?<\/div>/g, '')
-    .replace(/<script[\s\S]*?<\/script>/g, '')
-    .replace(/<style[\s\S]*?<\/style>/g, '')
-    .replace(/<textarea[\s\S]*?<\/textarea>/g, '')
-    .replace(/<button[\s\S]*?<\/button>/g, '')
-    .replace(/<\/?wbr[^>]*>/g, '');
+  let body = html.slice(start, end + 10);
+  body = stripBalancedElement(body, /<section\s+class="hero">/gi, 'section');
+  body = stripBalancedElement(body, /<svg\b[^>]*>/gi, 'svg');
+  body = stripBalancedElement(body, /<pre\b[^>]*>/gi, 'pre');
+  body = stripBalancedElement(body, /<aside\s+class="mirror-block"[^>]*>/gi, 'aside');
+  body = stripBalancedElement(body, /<div\s+class="alert-title">/gi, 'div');
+  body = stripBalancedElement(body, /<div\s+class="code-title-bar">/gi, 'div');
+  body = stripBalancedElement(body, /<div\s+class="code-actions">/gi, 'div');
+  body = stripBalancedElement(body, /<div\s+class="no-results"[^>]*>/gi, 'div');
+  body = stripBalancedElement(body, /<script\b[^>]*>/gi, 'script');
+  body = stripBalancedElement(body, /<style\b[^>]*>/gi, 'style');
+  body = stripBalancedElement(body, /<textarea\b[^>]*>/gi, 'textarea');
+  body = stripBalancedElement(body, /<button\b[^>]*>/gi, 'button');
+  return body.replace(/<\/?wbr[^>]*>/g, '');
 }
 
 /** Decode the HTML entities the compiler emits. */

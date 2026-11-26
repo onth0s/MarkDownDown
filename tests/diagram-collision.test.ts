@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { compile } from '../src/compile.js';
 import { DIAGRAM as C } from '../src/constants.js';
@@ -534,7 +535,7 @@ describe('diagram geometry: the emitted viewBox covers all the ink', () => {
 
 describe('diagram geometry: nothing overflows the reading column', () => {
   test('no showcase diagram or table exceeds the usable content width', () => {
-    const tmpDir = fs.mkdtempSync(path.join(process.cwd(), 'scratch', 'md++-geom-'));
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mdpp-geom-'));
     try {
       const result = compile({
         inputFile: SHOWCASE_MDD,

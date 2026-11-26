@@ -176,10 +176,14 @@ html[data-theme="light"] .table-svg .tcell.is-current .tbl-cell-bg, html[data-th
   opacity:0;
 }
 .view-toggle-btn svg { flex-shrink:0; }
-.code-wrap:hover .copy-btn { opacity:1; }
-.code-wrap:hover .code-actions { opacity:1; }
-.code-wrap:hover .download-btn { opacity:1; }
+.code-wrap:hover .copy-btn,
+.code-wrap:focus-within .copy-btn { opacity:1; }
+.code-wrap:hover .code-actions,
+.code-wrap:focus-within .code-actions { opacity:1; }
+.code-wrap:hover .download-btn,
+.code-wrap:focus-within .download-btn { opacity:1; }
 .code-wrap:hover .view-toggle-btn,
+.code-wrap:focus-within .view-toggle-btn,
 .code-wrap.show-raw .view-toggle-btn { opacity:1; }
 .copy-btn:hover { background:var(--surface-3); }
 .download-btn:hover { background:var(--surface-3); color:var(--accent); }

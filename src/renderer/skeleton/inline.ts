@@ -1,5 +1,5 @@
 import type Token from 'markdown-it/lib/token.mjs';
-import { PROSE } from '../skeleton.js';
+import { PROSE } from './codec.js';
 import { locate, isProseChild } from './locate.js';
 
 /**

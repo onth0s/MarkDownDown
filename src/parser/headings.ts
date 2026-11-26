@@ -1,6 +1,6 @@
 import type MarkdownIt from 'markdown-it';
 import { slugify } from '../util/slugify.js';
-import { extractInlineText } from '../resolver/heading.js';
+import { extractInlineText } from '../util/inline-text.js';
 
 /**
  * Generates an environment-scoped unique slug for duplicate headings or titles.
@@ -35,7 +35,7 @@ export function headingsPlugin(md: MarkdownIt): void {
           tokens[i].attrJoin('class', 'item-heading');
           text = bulletMatch[2].trim();
           // Clean first text child so rendered HTML has clean markup with bullet styling
-          if (inline.children && inline.children[0] && inline.children[0].type === 'text') {
+          if (inline?.children && inline.children[0] && inline.children[0].type === 'text') {
             inline.children[0].content = inline.children[0].content.replace(/^[*\-•]\s+/, '');
           }
         }

@@ -9,6 +9,7 @@ import path from 'node:path';
 import type { Options, Heading, Asset, PendingWikilink, CompileContext } from '../types.js';
 import { CompileError, toErrorMessage } from '../util/error.js';
 import { resolveWikilink } from '../resolver/wikilink.js';
+import { resolveFileLink } from '../util/file-link.js';
 import { getMime } from '../util/mime.js';
 import type Token from 'markdown-it/lib/token.mjs';
 
@@ -18,22 +19,50 @@ export interface ResolveResult {
 }
 
 /**
- * Extract wikilink strings from raw table block content, ignoring inline code spans and backslash escapes.
+ * Extract wikilink strings from raw table/mirror block content, ignoring inline code spans
+ * and backslash escapes while preserving adjacent links like [[a]][[b]].
  */
-function extractWikilinksFromTable(content: string): Array<{ target: string; display: string }> {
+function extractWikilinksFromContent(content: string): Array<{ target: string; display: string }> {
   const links: Array<{ target: string; display: string }> = [];
-  // Strip code spans `...` first so code containing `[[...]]` is not treated as a wikilink
-  const stripped = content.replace(/`+[^`]*`+/g, '');
-  // Match [[target]] or [[target|display]], but NOT \[[target]] (escaped)
-  const re = /(^|[^\\])\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(stripped)) !== null) {
-    const target = match[2].trim();
-    const display = match[3] ? match[3].trim() : target;
-    if (target) {
-      links.push({ target, display });
+  let i = 0;
+  const n = content.length;
+
+  while (i < n) {
+    // Skip backslash escapes
+    if (content[i] === '\\' && i + 1 < n) {
+      i += 2;
+      continue;
     }
+    // Skip inline code spans (`...`, ``...``, etc.)
+    if (content[i] === '`') {
+      let ticks = 1;
+      while (i + ticks < n && content[i + ticks] === '`') ticks++;
+      const closeIdx = content.indexOf('`'.repeat(ticks), i + ticks);
+      if (closeIdx !== -1) {
+        i = closeIdx + ticks;
+        continue;
+      }
+      i += ticks;
+      continue;
+    }
+    // Match [[target]] or [[target|display]]
+    if (content[i] === '[' && content[i + 1] === '[') {
+      const closeIdx = content.indexOf(']]', i + 2);
+      if (closeIdx !== -1) {
+        const inner = content.slice(i + 2, closeIdx);
+        if (!inner.includes('\n') && !inner.includes('[[')) {
+          const pipeIdx = inner.indexOf('|');
+          const target = (pipeIdx >= 0 ? inner.slice(0, pipeIdx) : inner).trim();
+          const display = (pipeIdx >= 0 ? inner.slice(pipeIdx + 1) : inner).trim() || target;
+          if (target) links.push({ target, display });
+          i = closeIdx + 2;
+          continue;
+        }
+      }
+    }
+    i++;
   }
+
   return links;
 }
 
@@ -47,6 +76,8 @@ export function resolveLinks(
   const effectiveWarnings: string[] = ctx.warnings;
   const pendingLinks: PendingWikilink[] = [];
   const errors: string[] = [];
+
+  const inputDir = path.dirname(effectiveOptions.inputFile);
 
   for (const token of tokens) {
     if (token.type === 'inline' && token.children) {
@@ -62,18 +93,32 @@ export function resolveLinks(
             pendingLinks.push({ target, display, resolution: null, error: msg });
             errors.push(msg);
           }
+        } else if (child.type === 'link_open') {
+          const rawHref = child.attrGet('href');
+          if (rawHref) {
+            const resolved = resolveFileLink(rawHref, inputDir);
+            if (resolved.href !== rawHref) {
+              child.attrSet('href', resolved.href);
+            }
+            if (!resolved.exists && resolved.warning) {
+              effectiveWarnings.push(resolved.warning);
+            }
+          }
         }
       }
-    } else if (token.type === 'fence' && token.info.trim().split(/\s+/)[0]?.toLowerCase() === 'table') {
-      const tableLinks = extractWikilinksFromTable(token.content);
-      for (const { target, display } of tableLinks) {
-        try {
-          const resolved = resolveWikilink(target, display, headings, assets);
-          pendingLinks.push({ target, display, resolution: resolved });
-        } catch (err) {
-          const msg = toErrorMessage(err);
-          pendingLinks.push({ target, display, resolution: null, error: msg });
-          errors.push(msg);
+    } else if (token.type === 'fence') {
+      const fenceKind = token.info.trim().split(/\s+/)[0]?.toLowerCase();
+      if (fenceKind === 'table' || fenceKind === 'mirror') {
+        const fenceLinks = extractWikilinksFromContent(token.content);
+        for (const { target, display } of fenceLinks) {
+          try {
+            const resolved = resolveWikilink(target, display, headings, assets);
+            pendingLinks.push({ target, display, resolution: resolved });
+          } catch (err) {
+            const msg = toErrorMessage(err);
+            pendingLinks.push({ target, display, resolution: null, error: msg });
+            errors.push(msg);
+          }
         }
       }
     }

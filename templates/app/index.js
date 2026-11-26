@@ -1,0 +1,11 @@
+import './01-core.js';
+import './02-toc.js';
+import './03a-theme.js';
+import './03b-sidebar.js';
+import './03c-mirror.js';
+import './03d-diagram-controls.js';
+import './03e-doc-stats.js';
+import './03f-pdf-export.js';
+import './04-scroll-spy.js';
+import './05-search.js';
+import './06-download.js';

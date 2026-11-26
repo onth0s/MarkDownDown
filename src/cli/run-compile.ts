@@ -1,12 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
-import type { Options, CliOptions } from '../types.js';
+import type { CliOptions } from '../types.js';
 import { compile } from '../compile.js';
-import { resolveCliLogoPath } from '../renderer/logo.js';
+import { buildCompileOptions } from './options.js';
 import { printCompileSummary, reportCliError } from './report.js';
 import { exportToPdf } from './pdf-runner.js';
-import { DEFAULT_ACCENT } from '../constants.js';
 
 export async function confirmOverwrite(targetPath: string): Promise<boolean> {
   if (!process.stdin.isTTY) return true;
@@ -53,29 +52,11 @@ export async function executeCompile(
     }
   }
 
-  const assetsDir = opts.assetsDir
-    ? path.resolve(process.cwd(), opts.assetsDir)
-    : path.join(inputDir, 'assets');
-
-  const { logoPath, error: logoErr } = resolveCliLogoPath(opts.logo, inputDir);
-  if (logoErr) {
-    process.stderr.write(`ERROR: ${logoErr}\n`);
+  const { options, error: optErr } = buildCompileOptions(inputFile, outputPath, outputMode, opts);
+  if (optErr || !options) {
+    process.stderr.write(`ERROR: ${optErr}\n`);
     return 1;
   }
-
-  const options: Options = {
-    title: stem,
-    assetsDir,
-    accent: DEFAULT_ACCENT,
-    logo: logoPath,
-    inputFile,
-    outputPath,
-    outputMode,
-    noDiagrams: opts.noDiagrams,
-    noTables: opts.noTables,
-    verbose: opts.verbose,
-    minify: opts.minify !== false,
-  };
 
   try {
     const startTime = performance.now();
@@ -105,7 +86,7 @@ export async function executeCompile(
 
       process.stdout.write(`Exporting PDF to: ${pdfTarget} ...\n`);
       const pdfRes = exportToPdf({
-        htmlPath: outputPath,
+        htmlPath: result.stats?.outputFile ?? outputPath,
         pdfPath: pdfTarget,
         theme: opts.pdfTheme,
       });

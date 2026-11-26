@@ -1,43 +1,45 @@
-// ── Copy buttons ───────────────────────────────────────────────────────────
-document.querySelectorAll('.copy-btn').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    const parent = btn.closest('.code-wrap') || btn.parentElement;
+import { root, body, article, copyToClipboard, setTrustedSvg, downloadBlob } from './01-core.js';
+
+// ── Copy, View Toggle & SVG/JPG Download (event delegation on article) ───────
+const ICON_RAW_CODE = '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>';
+const ICON_RENDERED_DIAG = '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>';
+
+(article || document).addEventListener('click', async (e) => {
+  const copyBtn = e.target.closest?.('.copy-btn');
+  if (copyBtn) {
+    const parent = copyBtn.closest('.code-wrap') || copyBtn.parentElement;
+    if (!parent) return;
     let code = parent.getAttribute('data-raw');
     if (!code) {
       code = parent.querySelector('code')?.textContent ?? '';
     }
-    const old = btn.textContent;
+    const old = copyBtn.textContent;
     const ok = await copyToClipboard(code);
-    btn.textContent = ok ? 'Copied' : 'Copy failed';
-    setTimeout(() => btn.textContent = old, 1000);
-  });
-});
+    copyBtn.textContent = ok ? 'Copied' : 'Copy failed';
+    setTimeout(() => copyBtn.textContent = old, 1000);
+    return;
+  }
 
-// ── Raw / Rendered DSL view toggle ──────────────────────────────────────────
-const ICON_RAW_CODE = '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>';
-const ICON_RENDERED_DIAG = '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>';
-
-document.querySelectorAll('.view-toggle-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const wrap = btn.closest('.code-wrap');
+  const toggleBtn = e.target.closest?.('.view-toggle-btn');
+  if (toggleBtn) {
+    const wrap = toggleBtn.closest('.code-wrap');
     if (!wrap) return;
     const isRaw = wrap.classList.toggle('show-raw');
-    const textSpan = btn.querySelector('.view-toggle-text');
-    const iconSvg = btn.querySelector('.view-toggle-icon');
+    const textSpan = toggleBtn.querySelector('.view-toggle-text');
+    const iconSvg = toggleBtn.querySelector('.view-toggle-icon');
     if (textSpan) {
       textSpan.textContent = isRaw ? 'Rendered' : 'Raw';
     }
     if (iconSvg) {
       setTrustedSvg(iconSvg, isRaw ? ICON_RENDERED_DIAG : ICON_RAW_CODE);
     }
-    btn.setAttribute('aria-label', isRaw ? 'Show rendered view' : 'Show raw DSL');
-    btn.setAttribute('title', isRaw ? 'Show rendered view' : 'Show raw DSL');
-  });
-});
+    toggleBtn.setAttribute('aria-label', isRaw ? 'Show rendered view' : 'Show raw DSL');
+    toggleBtn.setAttribute('title', isRaw ? 'Show rendered view' : 'Show raw DSL');
+    return;
+  }
 
-// ── SVG / JPG Download buttons ──────────────────────────────────────────────
-document.querySelectorAll('.download-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
+  const btn = e.target.closest?.('.download-btn');
+  if (btn) {
     const wrap = btn.closest('.code-wrap');
     if (!wrap) return;
     const format = btn.dataset.format || 'svg';
@@ -59,11 +61,11 @@ document.querySelectorAll('.download-btn').forEach(btn => {
     }
 
     // Fallback: If table is GFM HTML table, render it onto canvas directly for JPG
+    let isGfmTableFallback = false;
     if (!svg && isTable && wrap.querySelector('table')) {
       const tbl = wrap.querySelector('table');
       if (tbl) {
-        const rawTitle = wrap.getAttribute('data-title') || 'table';
-        const cleanTitle = rawTitle.replace(/[\\/:*?"<>|]+/g, '_').trim() || 'table';
+        isGfmTableFallback = true;
         const tblRect = tbl.getBoundingClientRect();
         const w = Math.max(300, Math.ceil(tblRect.width || tbl.scrollWidth || 600));
         const h = Math.max(100, Math.ceil(tblRect.height || tbl.scrollHeight || 400));
@@ -163,7 +165,11 @@ document.querySelectorAll('.download-btn').forEach(btn => {
     const subgraphHdrStroke = getResolvedColor(sampleSubgraphHdr, 'stroke', isLight ? '#e2e8f0' : '#1e293b');
     const subgraphTitleFill = getResolvedColor(sampleSubgraphTitle, 'fill', isLight ? '#64748b' : '#94a3b8');
 
-    svgClone.querySelectorAll('style').forEach(s => s.remove());
+    if (!isGfmTableFallback) {
+      if (!isGfmTableFallback) {
+      svgClone.querySelectorAll('style').forEach(s => s.remove());
+    }
+    }
 
     svgClone.querySelectorAll('marker path').forEach(p => {
       const isStrokedMarker = p.getAttribute('fill') === 'none' || p.closest('marker')?.id?.includes('back');
@@ -294,19 +300,12 @@ document.querySelectorAll('.download-btn').forEach(btn => {
     const svgXml = new XMLSerializer().serializeToString(svgClone);
 
     if (format === 'svg') {
-      const blob = new Blob([svgXml], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${cleanTitle}.svg`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      downloadBlob(new Blob([svgXml], { type: 'image/svg+xml;charset=utf-8' }), `${cleanTitle}.svg`);
     } else if (format === 'jpg') {
       const blob = new Blob([svgXml], { type: 'image/svg+xml;charset=utf-8' });
       const blobUrl = URL.createObjectURL(blob);
       const img = new Image();
+      img.onerror = () => URL.revokeObjectURL(blobUrl);
       img.onload = () => {
         const scale = 2;
         const canvas = document.createElement('canvas');
@@ -319,14 +318,7 @@ document.querySelectorAll('.download-btn').forEach(btn => {
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           canvas.toBlob(jpgBlob => {
             if (jpgBlob) {
-              const jpgUrl = URL.createObjectURL(jpgBlob);
-              const link = document.createElement('a');
-              link.href = jpgUrl;
-              link.download = `${cleanTitle}.jpg`;
-              document.body.appendChild(link);
-              link.click();
-              link.remove();
-              setTimeout(() => URL.revokeObjectURL(jpgUrl), 1000);
+              downloadBlob(jpgBlob, `${cleanTitle}.jpg`);
             }
           }, 'image/jpeg', 0.96);
         }
@@ -334,5 +326,5 @@ document.querySelectorAll('.download-btn').forEach(btn => {
       };
       img.src = blobUrl;
     }
-  });
+  }
 });

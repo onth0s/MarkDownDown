@@ -19,6 +19,7 @@
  * fall back through CLASS_EM and finally to a full-em box, which is the right
  * answer for CJK and for any glyph we have not measured.
  */
+import { parseInlineMarkdown, type FormattedSpan } from './inline-markdown.js';
 
 /** Bias every measurement slightly wide. Under-estimating causes visible
  *  overflow and viewBox clipping; over-estimating only costs a little air. */
@@ -88,8 +89,6 @@ function glyphEm(ch: string): number {
   if (symbol !== undefined) return symbol;
   return FULL_EM;
 }
-
-import { parseInlineMarkdown, type FormattedSpan } from './inline-markdown.js';
 
 export interface MeasureOptions {
   /** Render at weight 700. */

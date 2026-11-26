@@ -13,7 +13,7 @@
 <body>
 <div class="progress" id="progress"></div>
 <header class="topbar">
-  <button class="icon-btn mobile-nav" id="navBtn" aria-label="Toggle navigation">☰</button>
+  <button class="icon-btn mobile-nav" id="navBtn" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="sidebar">☰</button>
   <div class="brand">
     {{logo_svg}}
     <span>{{title}}</span>
@@ -23,7 +23,7 @@
   </button>
   <div class="search-box">
     <input class="search" id="search" type="text" placeholder="Search document…" aria-label="Search document">
-    <span class="search-count" id="searchCount"></span>
+    <span class="search-count" id="searchCount" aria-live="polite"></span>
     <button class="search-clear" id="clearSearchBtn" type="button" aria-label="Clear search" title="Clear search">×</button>
     <button class="search-opt" id="caseBtn" type="button" aria-label="Toggle case sensitivity" title="Match case">Aa</button>
     <button class="search-nav" id="prevBtn" type="button" aria-label="Previous match" title="Previous match">↑</button>
@@ -31,8 +31,8 @@
   </div>
   <div class="toolbar">
     <div class="mode-switch" id="modeSwitch" role="radiogroup" aria-label="Reading Mode">
-      <button type="button" class="mode-btn active" id="modeReadBtn" data-mode="read" aria-checked="true" title="Read Mode (Standard publication view)">Read</button>
-      <button type="button" class="mode-btn" id="modeMirrorBtn" data-mode="mirror" aria-checked="false" title="Mirror Mode (Semantic audit, Q&A, and author probes)">Mirror<span class="mirror-count-badge" id="mirrorGlobalCount" hidden>0</span></button>
+      <button type="button" role="radio" class="mode-btn active" id="modeReadBtn" data-mode="read" aria-checked="true" title="Read Mode (Standard publication view)">Read</button>
+      <button type="button" role="radio" class="mode-btn" id="modeMirrorBtn" data-mode="mirror" aria-checked="false" title="Mirror Mode (Semantic audit, Q&A, and author probes)">Mirror<span class="mirror-count-badge" id="mirrorGlobalCount" hidden>0</span></button>
     </div>
     <div class="toolbar-divider" aria-hidden="true"></div>
     <button class="tool-btn icon-only" id="themeBtn" title="Toggle light/dark" aria-label="Toggle light/dark">
@@ -51,7 +51,7 @@
         </g>
       </svg>
     </button>
-    <button class="tool-btn icon-only" id="settingsBtn" title="Customize appearance" aria-label="Customize appearance">
+    <button class="tool-btn icon-only" id="settingsBtn" type="button" title="Customize appearance" aria-label="Customize appearance" aria-haspopup="true" aria-expanded="false">
       <svg class="icon-accent" width="17" height="17" viewBox="0 0 801 774" fill="none" stroke="currentColor" stroke-width="50" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
         <path d="M674.971 446.977C532.471 437.34 459.508 518.14 481.902 644.1C485.81 666.082 473.964 689.023 451.989 692.972C157.375 745.919 -20.3388 393.631 143.453 194.929C308.637 -5.46295 742.2 32.7014 720.192 410.694C718.877 433.285 697.549 448.504 674.971 446.977Z"/>
         <path d="M636.763 313.533C636.763 344.222 610.848 369.1 578.881 369.1C546.914 369.1 521 344.222 521 313.533C521 282.844 546.914 257.966 578.881 257.966C610.848 257.966 636.763 282.844 636.763 313.533Z"/>
@@ -70,7 +70,7 @@
   </div>
 </header>
 
-<div class="settings" id="settings">
+<div class="settings" id="settings" role="dialog" aria-label="Appearance settings">
   <h3>Appearance</h3>
   <div class="setting-row color-row">
     <span>Accent color</span>

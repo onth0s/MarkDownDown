@@ -3,6 +3,7 @@
  * Minifies CSS, JS, SVG, and HTML for monolithic self-contained exports.
  */
 
+import crypto from 'node:crypto';
 import { transformSync } from 'esbuild';
 
 /**
@@ -42,7 +43,7 @@ export function minifySvg(svg: string): string {
     .replace(/>\s+</g, '><')
     .replace(/\s+/g, ' ')
     .replace(/(<[a-zA-Z0-9_-]+)\s+/g, '$1 ')
-    .replace(/\s*(d="[^"]+")/g, (match, dAttr) => {
+    .replace(/\s+(d="[^"]+")/g, (_match, dAttr) => {
       const cleaned = dAttr
         .replace(/([A-DF-Za-df-z])\s+/g, '$1')
         .replace(/\s+([A-DF-Za-df-z])/g, '$1')
@@ -54,16 +55,18 @@ export function minifySvg(svg: string): string {
     .trim();
 }
 
+const BLOCK_TAGS = 'html|head|body|title|meta|link|style|script|div|section|article|aside|header|footer|nav|main|ul|ol|li|table|thead|tbody|tr|th|td|blockquote|h[1-6]|p|hr';
+const BLOCK_CLOSE_OPEN_RE = new RegExp(`>(?:\\s+)<(?=/?(?:${BLOCK_TAGS})\\b)`, 'gi');
+const BLOCK_TAG_OPEN_RE = new RegExp(`(</?(?:${BLOCK_TAGS})[^>]*>)(?:\\s+)<`, 'gi');
+
 /**
  * Minify monolithic HTML document.
  * Preserves the exact contents of <pre><code>...</code></pre> tags and code-wrap data attributes.
  */
 export function minifyHtml(html: string): string {
   const protectedBlocks: string[] = [];
-  // The placeholder is a block-level tag, not a comment, so the inter-block
-  // whitespace rules below still fire in its place and the gap between two
-  // adjacent protected elements collapses to nothing once they are restored.
-  const placeholder = (idx: number) => `<div data-mdd-protected="${idx}"></div>`;
+  const nonce = crypto.randomBytes(4).toString('hex');
+  const placeholder = (idx: number) => `<div data-mdd-p-${nonce}="${idx}"></div>`;
   const protect = (match: string): string => {
     protectedBlocks.push(match);
     return placeholder(protectedBlocks.length - 1);
@@ -71,38 +74,20 @@ export function minifyHtml(html: string): string {
 
   // Protect code-wrap blocks (including their data-raw attributes and <pre> tags)
   const protectedHtml = html
-  // The JSON download payload must survive verbatim: whitespace collapse would
-  // corrupt its embedded source strings, so treat the whole tag as opaque.
-  .replace(/<script type="application\/json"[^>]*>[\s\S]*?<\/script>/g, protect)
-  // Script and style bodies are code, not markup. The whitespace collapse below
-  // is only valid between tags, and applying it to JS silently rewrites
-  // literals: esbuild prints '\r\n' as a template literal holding a REAL
-  // newline, so the collapse turned it into CR + SPACE and broke the
-  // comparison. String literals, template literals, and regexes are all
-  // whitespace-significant, so the whole element is opaque.
-  .replace(/<script[^>]*>[\s\S]*?<\/script>/g, protect)
-  .replace(/<style[^>]*>[\s\S]*?<\/style>/g, protect)
-  .replace(/<div class="code-wrap[\s\S]*?<\/pre>/g, protect)
-  .replace(/<pre[\s\S]*?<\/pre>/g, protect);
-
-  // Block elements where whitespace between tags can be safely eliminated
-  const blockTags = 'html|head|body|title|meta|link|style|script|div|section|article|aside|header|footer|nav|main|ul|ol|li|table|thead|tbody|tr|th|td|blockquote|h[1-6]|p|hr';
+    .replace(/<script type="application\/json"[^>]*>[\s\S]*?<\/script>/g, protect)
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/g, protect)
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/g, protect)
+    .replace(/<div class="code-wrap[\s\S]*?<\/pre>/g, protect)
+    .replace(/<pre[\s\S]*?<\/pre>/g, protect);
 
   let minified = protectedHtml
-    .replace(/<!--(?!__PROTECTED_BLOCK_)[\s\S]*?-->/g, '')
-    // Collapse multi-whitespace into a single space
+    .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/[ \t\r\n]+/g, ' ')
-    // Eliminate spaces between closing and opening block-level elements
-    .replace(new RegExp(`>(?:\\s+)<(?=/?(?:${blockTags})\\b)`, 'gi'), '><')
-    .replace(new RegExp(`(</?(?:${blockTags})[^>]*>)(?:\\s+)<`, 'gi'), '$1<')
+    .replace(BLOCK_CLOSE_OPEN_RE, '><')
+    .replace(BLOCK_TAG_OPEN_RE, '$1<')
     .trim();
 
   for (let idx = 0; idx < protectedBlocks.length; idx++) {
-    // A FUNCTION replacer, never a string: as a replacement string, `$&`, `$'`,
-    // ``$` `` and `$1` inside shipped code would be expanded as substitution
-    // patterns, re-injecting the placeholder and corrupting the block. The
-    // shipped app bundle is full of `.replace(re, '$1')`, so this leaked
-    // `data-mdd-protected` markers into the artifact.
     minified = minified.replace(placeholder(idx), () => protectedBlocks[idx]);
   }
 

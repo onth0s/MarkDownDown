@@ -3,7 +3,7 @@
   width:var(--sidebar-w, 280px);
   min-width:0;
   position:sticky; top:64px; height:calc(100vh - 64px); overflow-y:auto; overflow-x:hidden;
-  padding:24px 16px 24px 22px; border-right:1px solid var(--border);
+  padding:24px 16px 24px 22px; border-right:1px solid var(--border); border-left:0 solid var(--border);
   background:var(--bg);
   z-index:30;
   overscroll-behavior:contain;
@@ -72,8 +72,8 @@ body.sidebar-animating .sidebar {
 
   body.sidebar-right .sidebar {
     order: 3;
-    border-right: none;
-    border-left: 1px solid var(--border);
+    border-right-width: 0;
+    border-left-width: 1px;
   }
   body.sidebar-right .main {
     order: 1;
@@ -178,7 +178,8 @@ body.is-resizing .nav-history-bar {
     display: flex;
   }
   body.sidebar-collapsed:not(.nav-open) .sidebar-reopen-btn.is-visible,
-  body.sidebar-collapsed:not(.nav-open) .sidebar-reopen-btn:hover {
+  body.sidebar-collapsed:not(.nav-open) .sidebar-reopen-btn:hover,
+  body.sidebar-collapsed:not(.nav-open) .sidebar-reopen-btn:focus-visible {
     opacity: 1;
     pointer-events: auto;
     transform: translateX(0);

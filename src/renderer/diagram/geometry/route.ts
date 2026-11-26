@@ -122,84 +122,38 @@ export function routeAround(
     return count;
   };
 
-  if (orientation === 'TB') {
-    const tryCorridors = (box: Box): EdgeRoute | null => {
-      const rightX = box.maxX + C.EDGE_CLEAR;
-      const leftX = box.minX - C.EDGE_CLEAR;
-      const chordMidX = (start.x + end.x) / 2;
-      const preferredX = Math.abs(chordMidX - rightX) <= Math.abs(chordMidX - leftX) ? rightX : leftX;
-      const alternateX = preferredX === rightX ? leftX : rightX;
-      const gateY = Math.min(box.minY - C.EDGE_CLEAR, start.y + 8);
-      let exitY = Math.max(box.maxY + C.EDGE_CLEAR, end.y - 8);
-      if (box.maxY < end.y && exitY > end.y - 6) {
-        exitY = Math.max(box.maxY + 4, end.y - 8);
-      }
+  const isTB = orientation === 'TB';
+  const tryCorridors = (box: Box): EdgeRoute | null => {
+    const posMax = (isTB ? box.maxX : box.maxY) + C.EDGE_CLEAR;
+    const posMin = (isTB ? box.minX : box.minY) - C.EDGE_CLEAR;
+    const chordMid = isTB ? (start.x + end.x) / 2 : (start.y + end.y) / 2;
+    const preferred = Math.abs(chordMid - posMax) <= Math.abs(chordMid - posMin) ? posMax : posMin;
+    const alternate = preferred === posMax ? posMin : posMax;
 
-      const candidates: Array<{ route: EdgeRoute; crossings: number }> = [];
-      for (const corridorX of [preferredX, alternateX]) {
-        const candidate = roundedPolylineRoute(
-          [
-            start,
-            { x: start.x, y: gateY },
-            { x: corridorX, y: gateY },
-            { x: corridorX, y: exitY },
-            { x: end.x, y: exitY },
-            end,
-          ],
-          10
-        );
-        if (allOthers && edgeNodeCollisions(candidate, allOthers).length > 0) {
-          continue;
-        }
-        const crossings = countCrossings(candidate.points);
-        if (crossings === 0) return candidate;
-        candidates.push({ route: candidate, crossings });
-      }
-      if (candidates.length > 0) {
-        candidates.sort((a, b) => a.crossings - b.crossings);
-        return candidates[0].route;
-      }
-      return null;
-    };
+    const flowStart = isTB ? start.y : start.x;
+    const flowEnd = isTB ? end.y : end.x;
+    const boxFlowMin = isTB ? box.minY : box.minX;
+    const boxFlowMax = isTB ? box.maxY : box.maxX;
 
-    let result = tryCorridors(obstructing);
-    if (!result && allOthers?.length) {
-      let expandedBox: Box | undefined = obstructing;
-      const minY = Math.min(start.y, end.y);
-      const maxY = Math.max(start.y, end.y);
-      for (const o of allOthers) {
-        if (o.box.maxY > minY + 4 && o.box.minY < maxY - 4) {
-          expandedBox = unionBox(expandedBox, o.box);
-        }
-      }
-      if (expandedBox) {
-        result = tryCorridors(expandedBox);
-      }
+    const gate = Math.min(boxFlowMin - C.EDGE_CLEAR, flowStart + 8);
+    let exit = Math.max(boxFlowMax + C.EDGE_CLEAR, flowEnd - 8);
+    if (boxFlowMax < flowEnd && exit > flowEnd - 6) {
+      exit = Math.max(boxFlowMax + 4, flowEnd - 8);
     }
-    return result;
-  }
 
-  const tryCorridorsLR = (box: Box): EdgeRoute | null => {
-    const botY = box.maxY + C.EDGE_CLEAR;
-    const topY = box.minY - C.EDGE_CLEAR;
-    const chordMidY = (start.y + end.y) / 2;
-    const preferredY = Math.abs(chordMidY - botY) <= Math.abs(chordMidY - topY) ? botY : topY;
-    const alternateY = preferredY === botY ? topY : botY;
-    const gateX = Math.min(box.minX - C.EDGE_CLEAR, start.x + 8);
-    let exitX = Math.max(box.maxX + C.EDGE_CLEAR, end.x - 8);
-    if (box.maxX < end.x && exitX > end.x - 6) {
-      exitX = Math.max(box.maxX + 4, end.x - 8);
-    }
+    const mkPt = (cross: number, flow: number): Point => (isTB ? { x: cross, y: flow } : { x: flow, y: cross });
+    const startCross = isTB ? start.x : start.y;
+    const endCross = isTB ? end.x : end.y;
 
     const candidates: Array<{ route: EdgeRoute; crossings: number }> = [];
-    for (const corridorY of [preferredY, alternateY]) {
+    for (const corridor of [preferred, alternate]) {
       const candidate = roundedPolylineRoute(
         [
           start,
-          { x: gateX, y: start.y },
-          { x: gateX, y: corridorY },
-          { x: exitX, y: corridorY },
-          { x: exitX, y: end.y },
+          mkPt(startCross, gate),
+          mkPt(corridor, gate),
+          mkPt(corridor, exit),
+          mkPt(endCross, exit),
           end,
         ],
         10
@@ -218,18 +172,20 @@ export function routeAround(
     return null;
   };
 
-  let result = tryCorridorsLR(obstructing);
+  let result = tryCorridors(obstructing);
   if (!result && allOthers?.length) {
     let expandedBox: Box | undefined = obstructing;
-    const minX = Math.min(start.x, end.x);
-    const maxX = Math.max(start.x, end.x);
+    const minFlow = Math.min(isTB ? start.y : start.x, isTB ? end.y : end.x);
+    const maxFlow = Math.max(isTB ? start.y : start.x, isTB ? end.y : end.x);
     for (const o of allOthers) {
-      if (o.box.maxX > minX + 4 && o.box.minX < maxX - 4) {
+      const oMin = isTB ? o.box.minY : o.box.minX;
+      const oMax = isTB ? o.box.maxY : o.box.maxX;
+      if (oMax > minFlow + 4 && oMin < maxFlow - 4) {
         expandedBox = unionBox(expandedBox, o.box);
       }
     }
     if (expandedBox) {
-      result = tryCorridorsLR(expandedBox);
+      result = tryCorridors(expandedBox);
     }
   }
   return result;

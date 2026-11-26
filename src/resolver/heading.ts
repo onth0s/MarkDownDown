@@ -1,26 +1,9 @@
 import type { Heading, HeadingMatchResult } from '../types.js';
 import type Token from 'markdown-it/lib/token.mjs';
+import { extractInlineText } from '../util/inline-text.js';
 
+export { extractInlineText };
 export type { HeadingMatchResult };
-
-/**
- * Extracts clean plain text from a markdown-it inline token's children.
- * Handles text, code spans, wikilinks, line breaks, etc.
- */
-export function extractInlineText(children?: Token[] | null): string {
-  if (!children || !children.length) return '';
-  let out = '';
-  for (const t of children) {
-    if (t.type === 'text' || t.type === 'code_inline' || t.type === 'math_inline' || t.type === 'math_display') {
-      out += t.content;
-    } else if (t.type === 'wikilink') {
-      out += t.info || t.content;
-    } else if (t.type === 'softbreak' || t.type === 'hardbreak') {
-      out += ' ';
-    }
-  }
-  return out;
-}
 
 /**
  * Extracts all headings (h1–h6) from a markdown-it token stream.
@@ -56,7 +39,7 @@ export function extractHeadings(tokens: Token[]): Heading[] {
 // ── Normalisation helper ──────────────────────────────────────────────────────
 
 function norm(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+  return s.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim();
 }
 
 function levenshtein(a: string, b: string): number {
@@ -88,6 +71,8 @@ export function resolveHeading(str: string, headings: Heading[]): HeadingMatchRe
 
   // Pass 2 — Normalized
   const ns = norm(str);
+  if (!ns) return { type: 'not-found' };
+
   const normalized = headings.filter((h) => norm(h.text) === ns);
   if (normalized.length === 1) return { type: 'match', heading: normalized[0], pass: 'normalized' };
   if (normalized.length > 1) return {
@@ -95,21 +80,23 @@ export function resolveHeading(str: string, headings: Heading[]): HeadingMatchRe
     candidates: normalized.map((h) => ({ heading: h, pass: 'normalized' })),
   };
 
-  // Pass 3 — Substring (prefix then containment)
-  const substringMatches: Array<{ heading: Heading; pass: string }> = [];
+  // Pass 3 — Substring (prefix prioritized over containment)
+  const prefixMatches: Array<{ heading: Heading; pass: string }> = [];
+  const containsMatches: Array<{ heading: Heading; pass: string }> = [];
   for (const h of headings) {
     const nh = norm(h.text);
+    if (!nh) continue;
     if (ns.startsWith(nh) || nh.startsWith(ns)) {
-      substringMatches.push({ heading: h, pass: 'substring-prefix' });
+      prefixMatches.push({ heading: h, pass: 'substring-prefix' });
     } else if (ns.includes(nh) || nh.includes(ns)) {
-      substringMatches.push({ heading: h, pass: 'substring-contains' });
+      containsMatches.push({ heading: h, pass: 'substring-contains' });
     }
   }
-  // Deduplicate
-  const seen = new Set<string>();
-  const uniqueSub = substringMatches.filter(v => {
-    if (seen.has(v.heading.id)) return false;
-    seen.add(v.heading.id);
+  const subRaw = prefixMatches.length > 0 ? prefixMatches : containsMatches;
+  const seen = new Set<Heading>();
+  const uniqueSub = subRaw.filter((v) => {
+    if (seen.has(v.heading)) return false;
+    seen.add(v.heading);
     return true;
   });
   if (uniqueSub.length === 1) return { type: 'match', heading: uniqueSub[0].heading, pass: uniqueSub[0].pass };
@@ -120,6 +107,7 @@ export function resolveHeading(str: string, headings: Heading[]): HeadingMatchRe
   const lev: Array<{ heading: Heading; dist: number }> = [];
   for (const h of headings) {
     const nh = norm(h.text);
+    if (!nh) continue;
     const threshold = Math.max(2, Math.floor(nh.length * 0.3));
     if (Math.abs(ns.length - nh.length) > threshold) continue;
     const dist = levenshtein(ns, nh);
@@ -150,7 +138,7 @@ export function formatAmbiguityError(
   candidates: Array<{ heading: Heading; pass: string }>
 ): string {
   const lines = [
-    `ERROR: [[${str}]] is ambiguous — matched ${candidates.length} headings:`,
+    `[[${str}]] is ambiguous — matched ${candidates.length} headings:`,
     ...candidates.map((c, i) => `  ${i + 1}. "${c.heading.text}" (pass: ${c.pass})`),
     'Resolve to a unique string or use the full heading text.',
   ];

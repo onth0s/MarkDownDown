@@ -22,8 +22,15 @@
     "pretest": "npm run build",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=\"tests/\"",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --testPathPattern=\"tests/\" --coverage",
-    "verify": "npm run typecheck:all && npm run lint && npm test && npm run audit:geometry && npm run audit:mutations && npm run audit:tests"
+    "verify": "npm run typecheck:all && npm run lint && npm test && npm run audit:geometry && npm run audit:mutations && npm run audit:tests && npm run audit:logo"
   },
+  "files": [
+    "dist/",
+    "templates/",
+    "SPEC.md",
+    "DSL.md",
+    "README.md"
+  ],
   "dependencies": {
     "commander": "^12.1.0",
     "esbuild": "^0.23.1",

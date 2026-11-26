@@ -6,13 +6,13 @@
  */
 import yaml from 'js-yaml';
 import path from 'node:path';
-import type { Options, HeroMeta, BgLum } from '../types.js';
+import type { FrontmatterMeta, HeroMeta, BgLum } from '../types.js';
 import { CompileError, toErrorMessage } from '../util/error.js';
 import { isValidHex, formatHexWithHash } from '../util/color.js';
 
 export interface FrontmatterResult {
   /** Parsed option overrides from frontmatter */
-  meta: Partial<Pick<Options, 'title' | 'author' | 'assetsDir' | 'accent' | 'theme' | 'customCss' | 'customJs' | 'logo' | 'bgLum'>>;
+  meta: FrontmatterMeta;
   /** Hero presentation metadata (kicker, subtitle, pills) */
   hero: HeroMeta;
   /** The markdown body with frontmatter stripped */
@@ -21,8 +21,8 @@ export interface FrontmatterResult {
   warnings: string[];
 }
 
-export const FRONTMATTER_BLOCK_RE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
-export const FRONTMATTER_FENCE_RE = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)([\s\S]*)$/;
+export const FRONTMATTER_BLOCK_RE = /^\uFEFF?---\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;
+export const FRONTMATTER_FENCE_RE = /^\uFEFF?---\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)([\s\S]*)$/;
 const FENCE_RE = FRONTMATTER_FENCE_RE;
 
 export function parseBgLum(raw: unknown): BgLum | undefined {
@@ -82,14 +82,23 @@ export function parseBgLum(raw: unknown): BgLum | undefined {
   return undefined;
 }
 
-export function parseFrontmatter(source: string, inputDir: string): FrontmatterResult {
+export function parseFrontmatter(
+  source: string,
+  inputDir: string,
+  allowExternalPaths = false,
+): FrontmatterResult {
   const match = source.match(FENCE_RE);
   if (!match) {
     return { meta: {}, hero: {}, body: source, warnings: [] };
   }
 
-  const rawYaml = match[1];
+  const rawYaml = match[1] ?? '';
   const body = match[2];
+  const warnings: string[] = [];
+
+  if (!rawYaml.trim()) {
+    return { meta: {}, hero: {}, body, warnings };
+  }
 
   let parsed: Record<string, unknown>;
   try {
@@ -126,9 +135,23 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
     return val;
   };
 
+  const resolvedInputDir = path.resolve(inputDir);
   const validatePath = (key: string): string => {
     const val = validateString(key, `Invalid frontmatter: "${key}" must be a file path string`);
-    return path.resolve(inputDir, val);
+    const resolved = path.resolve(resolvedInputDir, val);
+    const rel = path.relative(resolvedInputDir, resolved);
+    const isExternal = rel.startsWith('..') || path.isAbsolute(rel);
+    if (isExternal) {
+      if (!allowExternalPaths) {
+        throw new CompileError(
+          `Frontmatter "${key}" ("${val}") resolves outside the input directory ("${resolvedInputDir}"). External paths are blocked by default for security; pass --allow-external-paths to override.`
+        );
+      }
+      warnings.push(
+        `Frontmatter "${key}" ("${val}") resolves outside the input directory ("${resolvedInputDir}"). External paths may break if files are moved or paths change.`
+      );
+    }
+    return resolved;
   };
 
   if (parsed['title'] !== undefined) meta.title = validateString('title');
@@ -172,5 +195,5 @@ export function parseFrontmatter(source: string, inputDir: string): FrontmatterR
   if (parsed['custom_js'] !== undefined) meta.customJs = validatePath('custom_js');
   if (parsed['logo'] !== undefined) meta.logo = validatePath('logo');
 
-  return { meta, hero, body, warnings: [] };
+  return { meta, hero, body, warnings };
 }

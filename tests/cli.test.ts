@@ -104,8 +104,8 @@ describe('CLI modules: report and run handlers', () => {
     const opts: CliOptions = {
       single: true,
       split: false,
-      noDiagrams: false,
-      noTables: false,
+      diagrams: true,
+      tables: true,
       verbose: false,
     };
     const code = executeCheck('nonexistent-file.mdd', undefined, opts);

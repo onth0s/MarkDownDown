@@ -87,26 +87,6 @@
   padding-top: 10px;
   border-top: 1px solid var(--border);
 }
-.mirror-settings-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.btn-export-mirror {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--accent);
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 160ms ease;
-}
-.btn-export-mirror:hover {
-  border-color: var(--accent);
-  background: var(--surface-3);
-}
 .btn-reset-mirror {
   background: var(--surface-2);
   border: 1px solid var(--border);

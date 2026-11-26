@@ -1,6 +1,6 @@
 import type MarkdownIt from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';
-import { detectEol, extractFrontmatter, type Skeleton } from '../skeleton.js';
+import { detectEol, extractFrontmatter, type Skeleton } from './codec.js';
 import { trailingWhitespace } from './locate.js';
 import { inlineSegments } from './inline.js';
 import { containerSegments, scanContainer } from './container.js';

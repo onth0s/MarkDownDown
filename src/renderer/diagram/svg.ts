@@ -6,12 +6,11 @@ import {
   coordPair,
   round1,
   xyAttrs,
+  SVG_NS as NS,
 } from '../svg-helpers.js';
 import { renderFormattedTspans, renderSpansTspans } from '../inline-markdown.js';
 import { resolveGeometry, type DiagramGeometry, type Orientation, type PlacedNode } from './geometry/index.js';
 import type { DiagramModel } from './types.js';
-
-const NS = 'http://www.w3.org/2000/svg';
 
 function hashString(input: string): string {
   let hash = 5381;
@@ -29,6 +28,9 @@ function markerIdsFor(model: DiagramModel, title: string, orientation: Orientati
   const parts = [title, orientation];
   for (const node of model.nodes.values()) {
     parts.push(node.id, node.shape, node.label, node.subtitle);
+  }
+  for (const sg of model.subgraphs.values()) {
+    parts.push(sg.id, sg.label, String(sg.parentId ?? ''));
   }
   for (const edge of model.edges) {
     parts.push(edge.from, edge.to, String(edge.directed), edge.label);

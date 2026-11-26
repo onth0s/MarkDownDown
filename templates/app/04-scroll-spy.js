@@ -1,3 +1,8 @@
+import {
+  article, toc, sidebar, progress, backtop, headings, hasHero,
+  isInitialScrollDone, onScrollEnd, hooks, prefersReducedMotion, store,
+} from './01-core.js';
+
 // ── Scroll Spy & Progress Bar ──────────────────────────────────────────────
 const tocLinks = [...toc.querySelectorAll('a')];
 let sidebarScrollAnimation = null;
@@ -6,6 +11,10 @@ function animateSidebarTo(targetScrollTop, duration) {
   duration = duration || 420;
   const maxScroll = Math.max(0, sidebar.scrollHeight - sidebar.clientHeight);
   const target = Math.max(0, Math.min(maxScroll, targetScrollTop));
+  if (prefersReducedMotion()) {
+    sidebar.scrollTop = target;
+    return;
+  }
   const start = sidebar.scrollTop;
   const distance = target - start;
   if (Math.abs(distance) < 1) return;
@@ -24,7 +33,12 @@ function animateSidebarTo(targetScrollTop, duration) {
 let lastActiveId = null;
 let tocScrollActive = false;
 const scrollStateKey = `mdd_scroll_${location.pathname}`;
-function setActive(id) {
+export function setTocScrollActive(v) {
+  tocScrollActive = !!v;
+}
+hooks.setTocScrollActive = setTocScrollActive;
+
+export function setActive(id) {
   if (!id) return;
   const isBareTarget = id === '__doc-title__' || (!hasHero && (id === headings[0]?.id && window.scrollY === 0));
   if (isBareTarget) {
@@ -40,7 +54,12 @@ function setActive(id) {
   if (id === lastActiveId) return;
   lastActiveId = id;
   const activeLink = tocLinks.find(a => a.dataset.target === id);
-  tocLinks.forEach(a => a.classList.toggle('active', a === activeLink));
+  tocLinks.forEach(a => {
+    const isAct = a === activeLink;
+    a.classList.toggle('active', isAct);
+    if (isAct) a.setAttribute('aria-current', 'location');
+    else a.removeAttribute('aria-current');
+  });
   if (!activeLink || !sidebar) return;
 
   const sidebarRect = sidebar.getBoundingClientRect();
@@ -51,18 +70,19 @@ function setActive(id) {
   const maxSidebarScroll = Math.max(0, sidebar.scrollHeight - sidebar.clientHeight);
   const target = Math.max(0, Math.min(maxSidebarScroll, sidebar.scrollTop + delta));
 
-  if (!initialScrollDone) {
+  if (!isInitialScrollDone()) {
     sidebar.scrollTop = target;
   } else if (Math.abs(delta) > sidebarRect.height * 0.18) {
     animateSidebarTo(target, 440);
   }
 }
+hooks.setActive = setActive;
 
 function headingOffsetTop(el) {
   return el.getBoundingClientRect().top + window.scrollY;
 }
 
-function detectActiveHeading() {
+export function detectActiveHeading() {
   if (window.scrollY === 0) return hasHero ? '__doc-title__' : (headings[0]?.id ?? null);
   if (!headings.length) return null;
 
@@ -86,8 +106,9 @@ function detectActiveHeading() {
 
   return headings[activeIdx]?.id ?? null;
 }
+hooks.detectActiveHeading = detectActiveHeading;
 
-function adjustArticleBottomPadding() {
+export function adjustArticleBottomPadding() {
   if (!headings.length || !article) return;
   const lastHeading = headings[headings.length - 1];
   const lastHeadingRect = lastHeading.getBoundingClientRect();
@@ -99,11 +120,11 @@ function adjustArticleBottomPadding() {
   const needed = Math.max(80, Math.ceil(window.innerHeight - THRESHOLD - lastSectionHeight + 60));
   article.style.paddingBottom = `${needed}px`;
 }
+hooks.adjustArticleBottomPadding = adjustArticleBottomPadding;
 
 let ticking = false;
 let pendingTick = false;
-function doScrollUpdate() {
-  adjustArticleBottomPadding();
+export function doScrollUpdate() {
   const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
   progress.style.width = `${Math.min(100, Math.max(0, window.scrollY / max * 100))}%`;
   if (!tocScrollActive) {
@@ -120,7 +141,13 @@ function updateScrollUI() {
 }
 
 window.addEventListener('scroll', updateScrollUI, { passive: true });
-window.addEventListener('resize', updateScrollUI);
+window.addEventListener('resize', () => {
+  adjustArticleBottomPadding();
+  updateScrollUI();
+});
+if (typeof ResizeObserver !== 'undefined' && article) {
+  new ResizeObserver(() => adjustArticleBottomPadding()).observe(article);
+}
 
 adjustArticleBottomPadding();
 
@@ -134,13 +161,20 @@ backtop.addEventListener('click', () => {
   if (topId) {
     lastActiveId = topId;
     const activeLink = tocLinks.find(a => a.dataset.target === topId);
-    tocLinks.forEach(a => a.classList.toggle('active', a === activeLink));
+    tocLinks.forEach(a => {
+      const isAct = a === activeLink;
+      a.classList.toggle('active', isAct);
+      if (isAct) a.setAttribute('aria-current', 'location');
+      else a.removeAttribute('aria-current');
+    });
   }
   animateSidebarTo(0, 300);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   onScrollEnd(() => {
     tocScrollActive = false;
     sidebar.scrollTop = 0;
     if (topId) setActive(topId);
   });
 });
+
+void store;

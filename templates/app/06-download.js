@@ -1,3 +1,5 @@
+import { downloadBlob, closeAllPopovers } from './01-core.js';
+
 // ── Download original .mdd (right-click the document logo) ───────────────────
 // Reconstructs the exact source from the DOM prose runs plus the embedded
 // skeleton, then downloads it. Mirrors the `mdd --check` round-trip
@@ -133,15 +135,7 @@ if (mddSkeletonEl && mddBrand && mddArticle) {
 
     // Hand the reconstructed bytes over as a .mdd download.
     function mddDownload(filename, text) {
-      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 0);
+      downloadBlob(new Blob([text], { type: 'text/markdown;charset=utf-8' }), filename);
     }
 
     function executeMddDownload() {
@@ -176,10 +170,7 @@ if (mddSkeletonEl && mddBrand && mddArticle) {
     if (mddMenuDownloadBtn) {
       mddMenuDownloadBtn.addEventListener('click', (ev) => {
         ev.preventDefault();
-        const dropMenu = document.getElementById('dropdownMenu');
-        if (dropMenu) dropMenu.classList.remove('open');
-        const mBtn = document.getElementById('menuBtn');
-        if (mBtn) mBtn.setAttribute('aria-expanded', 'false');
+        closeAllPopovers();
         executeMddDownload();
       });
     }

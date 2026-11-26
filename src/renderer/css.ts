@@ -5,7 +5,8 @@
  */
 import { loadTemplate, substituteTokens } from '../util/template-loader.js';
 import type { BgLum } from '../types.js';
-import { lerpColor, getContrastFg } from '../util/color.js';
+import { lerpColor, getContrastFg, isValidHex } from '../util/color.js';
+import { CompileError } from '../util/error.js';
 
 export interface LuminosityParams {
   darkBg: string;
@@ -73,6 +74,12 @@ export function computeLuminosityParams(bgLum?: BgLum): LuminosityParams {
 }
 
 export function buildCss(accent: string, accentRgb: string, bgLum?: BgLum): string {
+  if (!isValidHex(accent)) {
+    throw new CompileError(`Invalid accent color "${accent}".`);
+  }
+  if (!/^\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}$/.test(accentRgb.trim())) {
+    throw new CompileError(`Invalid accentRgb value "${accentRgb}".`);
+  }
   const p = computeLuminosityParams(bgLum);
   const accentFg = getContrastFg(accent);
 

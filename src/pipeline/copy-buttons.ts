@@ -17,7 +17,7 @@ import { CompileError } from '../util/error.js';
  * `aria-hidden` + `focusable="false"` matches how the brand logo is emitted in
  * renderer/logo.ts.
  */
-const DOWNLOAD_BTNS_HTML =
+export const DOWNLOAD_BTNS_HTML =
   '<div class="code-actions">' +
   '<button class="download-btn" data-format="svg" type="button" aria-label="Download SVG" title="Download SVG">' +
   '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
@@ -27,11 +27,24 @@ const DOWNLOAD_BTNS_HTML =
   '<span>JPG</span></button>' +
   '</div>';
 
-const VIEW_TOGGLE_BTN_HTML =
+export const VIEW_TOGGLE_BTN_HTML =
   '<button class="view-toggle-btn" type="button" aria-label="Show raw DSL" title="Show raw DSL">' +
   '<svg class="view-toggle-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>' +
   '<span class="view-toggle-text">Raw</span>' +
   '</button>';
+
+/** Build the header/action chrome for a .code-wrap graphic block. */
+export function buildGraphicChrome(titleEscaped: string, hasPre = true): string {
+  let headerHtml = '';
+  let prefix = DOWNLOAD_BTNS_HTML;
+  if (hasPre) prefix += VIEW_TOGGLE_BTN_HTML;
+  if (titleEscaped.trim()) {
+    headerHtml = `<div class="code-title-bar"><span class="code-title-text">${titleEscaped.trim()}</span><button class="copy-btn in-title-bar" type="button">Copy</button></div>`;
+  } else {
+    prefix += '<button class="copy-btn" type="button">Copy</button>';
+  }
+  return headerHtml + prefix;
+}
 
 /**
  * Finds the index right after the closing </div> that balances the <div> starting at startIndex.
@@ -75,8 +88,10 @@ export function wrapCodeBlocksWithCopyButtons(html: string): string {
       }
 
       const wrapBody = html.slice(match.index + openWrapTag.length, closeDivStart);
-      const isGraphic = openWrapTag.includes('diagram') || openWrapTag.includes('table');
-      const isMirror = openWrapTag.includes('mirror');
+      const classMatch = openWrapTag.match(/\bclass\s*=\s*"([^"]*)"/i);
+      const classTokens = new Set((classMatch ? classMatch[1] : '').split(/\s+/).filter(Boolean));
+      const isGraphic = classTokens.has('diagram') || classTokens.has('table');
+      const isMirror = classTokens.has('mirror');
       const hasCopy = wrapBody.includes('class="copy-btn"');
       const hasDl = wrapBody.includes('class="download-btn"');
       const hasToggle = wrapBody.includes('class="view-toggle-btn"');

@@ -21,7 +21,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'showcase', 'assets'),
     title: 'Markdown++',
     accent: '#3b82f6',
-    expectedHash: 'e4fa73f1fcf6997fa4bfa1ad541369acc3966f6f00fbcbdea1af7a06a83ea6fb',
+    expectedHash: 'cf655f5ca302a24da5ff36a53deaceec2c2edf4518001c36995d9686374d28aa',
   },
   {
     name: 'showcase/showcase.mdd',
@@ -29,7 +29,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'showcase', 'assets'),
     title: 'Capability Showcase',
     accent: '#8b5cf6',
-    expectedHash: 'c1dec58e150b0afd443741976dbc7e9da600c3061bdc4b3cbdb572fbdc030657',
+    expectedHash: '49850b3a5cc46d76a626a3060d8b70e499ccca768690f86faaca9575d47ddc03',
   },
   {
     name: 'tests/fixtures/sample.mdd',
@@ -37,7 +37,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'tests', 'fixtures'),
     title: 'Sample Document',
     accent: '#3b82f6',
-    expectedHash: '6d8f034fb9ac4971475d4c8c49ff64b3297d95d05ca5f7b03c18d1c3da87ea75',
+    expectedHash: '01db14992eb21d5ff076d6b58af884e603bd55f5ddf9b6b66c5248ac6e953af1',
   },
   {
     name: 'tests/fixtures/download.mdd',
@@ -45,7 +45,7 @@ const TARGETS: GoldenTarget[] = [
     assetsDir: path.resolve(process.cwd(), 'tests', 'fixtures'),
     title: 'Download Test',
     accent: '#3b82f6',
-    expectedHash: 'c6db65d8bdc9761add71e702909a083254fbf9fdf5c25744ca99e363140d1b05',
+    expectedHash: '9b0227ecb7de62b9edb8f854c9b2363d2953b06e207bb866a5c326e95e66505d',
   },
 ];
 
@@ -84,6 +84,15 @@ describe('golden-output regression suite', () => {
       const hash = sha256(res.html);
 
       expect(hash).toBe(target.expectedHash);
+
+      // Enforce on-disk freshness for tracked compiled artifacts
+      if (target.name === 'README.md') {
+        const onDisk = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8');
+        expect(sha256(onDisk)).toBe(hash);
+      } else if (target.name === 'showcase/showcase.mdd') {
+        const onDisk = fs.readFileSync(path.resolve(process.cwd(), 'showcase', 'showcase.html'), 'utf8');
+        expect(sha256(onDisk)).toBe(hash);
+      }
     });
   }
 });

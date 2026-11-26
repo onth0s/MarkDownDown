@@ -65,6 +65,8 @@ TITLE: Frontmatter Configuration Keys
 
 `bg_lum` also accepts the aliases `bg-lum` and `bglum`.
 
+Path keys (`assets_dir`, `custom_css`, `custom_js`, `logo`) must stay within the input document's directory by default; external paths are rejected unless `--allow-external-paths` is passed.
+
 ### 2.1 Background Luminosity (`bg_lum`)
 
 Accepts slice syntax, arrays, or key-value mappings:
@@ -136,7 +138,7 @@ FILE_MATCH -->|Found Asset| RENDER_MEDIA
 FILE_MATCH -->|Not Found| FAIL
 ```
 
-1. **Extension fast-path**: If `str` contains a `.`, heading matching is skipped and the resolver probes for file assets directly.
+1. **Extension fast-path**: If `str` ends with a known asset extension (e.g. `.png`, `.svg`, `.mdd`, `.md`), the resolver probes for file assets first before falling back to heading matching — so dotted headings like `[[Node.js]]` still resolve to headings.
 2. **Heading match**: If `str` has no extension, it evaluates against document headings using the 4-pass fuzzy resolver.
 3. **File match**: Checked against the assets directory (supports images, videos, `.mdd`, and `.md` documents).
 4. **Ambiguity / Collision**: Multiple matches trigger a compile error with detailed candidate diagnostics.
@@ -227,6 +229,7 @@ TITLE: Markdown++ CLI Options
 | --minify | flag | true | Minify CSS/JS/HTML in monolithic export |
 | --no-minify | flag | false | Disable minification in monolithic export |
 | -L, --logo [path] | string/flag | (auto) | Custom brand logo SVG/image and dynamic favicon |
+| --allow-external-paths | flag | false | Allow frontmatter paths (`assets_dir`, `custom_css`, `custom_js`, `logo`) outside the input directory |
 | -F, --force | flag | false | Force overwrite without confirmation prompt |
 | -v, --verbose | flag | false | Verbose compiler logging |
 | --debug | flag | false | Dump full error stack traces on failure |

@@ -1,3 +1,6 @@
+import { root, body, sidebar, search, settings, updateNavHistoryUI, store } from './01-core.js';
+import { closeDropdownMenu } from './03a-theme.js';
+
 // ── Sidebar Resizing, Collapse & Positioning ────────────────────────────────
 const navBtn = document.getElementById('navBtn');
 const sidebarResizer = document.getElementById('sidebarResizer');
@@ -21,8 +24,9 @@ function getStoredSidebarWidth() {
 
 function setSidebarWidth(width, persist = true) {
   root.style.setProperty('--sidebar-w', `${width}px`);
+  if (sidebarResizer) sidebarResizer.setAttribute('aria-valuenow', String(Math.round(width)));
   if (persist) {
-    try { localStorage.setItem('mdd_sidebar_w', String(width)); } catch (_) {}
+    store.set('mdd_sidebar_w', String(width));
   }
   updateNavHistoryUI();
 }
@@ -104,30 +108,42 @@ if (sidebarReopenBtn) {
   });
 }
 
-// Track cursor approach to edge on whatever Y axis it approaches
+// Track cursor approach to edge on whatever Y axis it approaches (throttled via rAF)
+let mouseMovePending = false;
+let lastMouseX = 0;
+let lastMouseY = 0;
 window.addEventListener('mousemove', (e) => {
   if (window.innerWidth <= 900 || !body.classList.contains('sidebar-collapsed') || !sidebarReopenBtn) {
-    if (sidebarReopenBtn) sidebarReopenBtn.classList.remove('is-visible');
+    if (sidebarReopenBtn?.classList.contains('is-visible')) {
+      sidebarReopenBtn.classList.remove('is-visible');
+    }
     return;
   }
-  const isRight = body.classList.contains('sidebar-right');
-  const dist = isRight ? (window.innerWidth - e.clientX) : e.clientX;
-
-  if (dist <= 56 && e.clientY >= 64) {
-    const arrowH = 48;
-    const topMin = 64 + 8;
-    const topMax = window.innerHeight - arrowH - 12;
-    const clampedY = Math.max(topMin, Math.min(topMax, e.clientY - (arrowH / 2)));
-    sidebarReopenBtn.style.top = `${clampedY}px`;
-    sidebarReopenBtn.classList.add('is-visible');
-  } else if (!sidebarReopenBtn.matches(':hover')) {
-    sidebarReopenBtn.classList.remove('is-visible');
-  }
-});
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+  if (mouseMovePending) return;
+  mouseMovePending = true;
+  requestAnimationFrame(() => {
+    mouseMovePending = false;
+    const isRight = body.classList.contains('sidebar-right');
+    const dist = isRight ? (window.innerWidth - lastMouseX) : lastMouseX;
+    if (dist <= 56 && lastMouseY >= 64) {
+      const arrowH = 48;
+      const topMin = 64 + 8;
+      const topMax = window.innerHeight - arrowH - 12;
+      const clampedY = Math.max(topMin, Math.min(topMax, lastMouseY - (arrowH / 2)));
+      sidebarReopenBtn.style.top = `${clampedY}px`;
+      sidebarReopenBtn.classList.add('is-visible');
+    } else if (!sidebarReopenBtn.matches(':hover')) {
+      sidebarReopenBtn.classList.remove('is-visible');
+    }
+  });
+}, { passive: true });
 
 if (navBtn) {
   navBtn.addEventListener('click', () => {
-    body.classList.toggle('nav-open');
+    const isOpen = body.classList.toggle('nav-open');
+    navBtn.setAttribute('aria-expanded', String(isOpen));
     updateNavHistoryUI();
   });
 }
@@ -199,33 +215,50 @@ if (sidebarResizer) {
 
   sidebarResizer.addEventListener('pointerup', stopDragging);
   sidebarResizer.addEventListener('pointercancel', stopDragging);
+
+  sidebarResizer.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight' && e.key !== 'Home') return;
+    e.preventDefault();
+    if (e.key === 'Home') {
+      setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+      setSidebarCollapsed(false);
+      return;
+    }
+    const isRight = body.classList.contains('sidebar-right');
+    const step = (e.key === 'ArrowRight' ? 16 : -16) * (isRight ? -1 : 1);
+    const currentW = parseInt(getComputedStyle(root).getPropertyValue('--sidebar-w'), 10) || DEFAULT_SIDEBAR_WIDTH;
+    const maxW = Math.min(650, Math.round(window.innerWidth * 0.45));
+    const nextW = Math.max(MIN_SIDEBAR_WIDTH, Math.min(maxW, currentW + step));
+    if (body.classList.contains('sidebar-collapsed')) setSidebarCollapsed(false);
+    setSidebarWidth(nextW, true);
+  });
 }
 
 // ── Mobile search toggle ───────────────────────────────────────────────────
 const searchToggle = document.getElementById('searchToggle');
-const searchIconSvg =
-  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
 
-function setSearchMode(on) {
+export function setSearchMode(on) {
   body.classList.toggle('search-mode', on);
-  searchToggle.classList.toggle('close', on);
-  searchToggle.setAttribute('aria-expanded', String(on));
-  searchToggle.setAttribute('aria-label', on ? 'Close search' : 'Search');
-  requestAnimationFrame(() => {
-    setTrustedSvg(searchToggle, searchIconSvg);
-    if (on) search.focus();
-  });
+  searchToggle?.classList.toggle('close', on);
+  searchToggle?.setAttribute('aria-expanded', String(on));
+  searchToggle?.setAttribute('aria-label', on ? 'Close search' : 'Search');
+  if (on && search) {
+    requestAnimationFrame(() => search.focus());
+  }
 }
 
-searchToggle.addEventListener('click', () => {
+searchToggle?.addEventListener('click', () => {
   setSearchMode(!body.classList.contains('search-mode'));
 });
 
 document.addEventListener('click', (event) => {
   if (settings && !settings.contains(event.target) && event.target.id !== 'settingsBtn') {
     settings.classList.remove('open');
+    document.getElementById('settingsBtn')?.setAttribute('aria-expanded', 'false');
   }
-  if (dropdownMenu && !dropdownMenu.contains(event.target) && !menuBtn?.contains(event.target)) {
+  const dropdownMenuEl = document.getElementById('dropdownMenu');
+  const menuBtnEl = document.getElementById('menuBtn');
+  if (dropdownMenuEl && !dropdownMenuEl.contains(event.target) && !menuBtnEl?.contains(event.target)) {
     closeDropdownMenu();
   }
   if (body.classList.contains('nav-open') &&

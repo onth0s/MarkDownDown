@@ -6,7 +6,9 @@ import os from 'os';
 import { build } from '../src/compile.js';
 import type { Options } from '../src/types.js';
 
-const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+import { findChromiumBinary } from '../src/cli/pdf-runner.js';
+
+const CHROME_PATH = findChromiumBinary() ?? '';
 
 interface CdpTab {
   url: string;
@@ -135,15 +137,14 @@ A: A markdown compiler.
 
       // Confirm no copy button is injected inside the mirror wrap
       const mirrorWrapMatch = res.html.match(/<div class="code-wrap mirror"[^>]*>([\s\S]*?)<\/div>\s*<\/div>/);
-      if (mirrorWrapMatch) {
-        expect(mirrorWrapMatch[0]).not.toContain('class="copy-btn"');
-      }
+      expect(mirrorWrapMatch).not.toBeNull();
+      expect(mirrorWrapMatch![0]).not.toContain('class="copy-btn"');
     } finally {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
 
-  const runBrowserTests = fs.existsSync(CHROME_PATH);
+  const runBrowserTests = Boolean(CHROME_PATH) && fs.existsSync(CHROME_PATH);
   (runBrowserTests ? test : test.skip)(
     'headless Chrome verification: 0 horizontal overflows across 320px, 375px, 768px, 1200px in Read & Mirror modes',
     async () => {

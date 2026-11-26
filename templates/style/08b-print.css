@@ -32,47 +32,27 @@
   /* -------------------------------------------------------------------------
      Theme Synchronization
      ------------------------------------------------------------------------- */
-  /* Dark Theme */
+  /* Theme & Surface Sync */
   html[data-theme="dark"],
   html[data-theme="dark"] body {
     color-scheme: dark !important;
-    background-color: var(--bg) !important;
-    background: var(--bg) !important;
-    color: var(--text) !important;
   }
 
-  html[data-theme="dark"] .code-wrap,
-  html[data-theme="dark"] .code-inner,
-  html[data-theme="dark"] .mirror-card {
-    background: var(--surface) !important;
-    border-color: var(--border) !important;
-    color: var(--text) !important;
-  }
-
-  html[data-theme="dark"] .alert {
-    background: var(--surface) !important;
-    border-color: var(--border) !important;
-    color: var(--text) !important;
-  }
-
-  /* Light Theme */
   html[data-theme="light"],
   html[data-theme="light"] body {
     color-scheme: light !important;
+  }
+
+  html[data-theme],
+  html[data-theme] body {
     background-color: var(--bg) !important;
     background: var(--bg) !important;
     color: var(--text) !important;
   }
 
-  html[data-theme="light"] .code-wrap,
-  html[data-theme="light"] .code-inner,
-  html[data-theme="light"] .mirror-card {
-    background: var(--surface) !important;
-    border-color: var(--border) !important;
-    color: var(--text) !important;
-  }
-
-  html[data-theme="light"] .alert {
+  html[data-theme] .code-wrap,
+  html[data-theme] .mirror-card,
+  html[data-theme] .alert {
     background: var(--surface) !important;
     border-color: var(--border) !important;
     color: var(--text) !important;
@@ -81,8 +61,7 @@
   /* Reset layout wrapper to full page width */
   .layout,
   .main,
-  .article,
-  .content {
+  .article {
     margin: 0 !important;
     padding: 0 !important;
     max-width: 100% !important;
@@ -106,9 +85,8 @@
   .code-actions,
   .view-toggle-btn,
   .search-count,
-  .search-highlight-active,
-  .mode-switch-btn,
-  .theme-toggle-btn {
+  .mode-switch,
+  #themeBtn {
     display: none !important;
   }
 
@@ -194,25 +172,25 @@
   }
 
   /* Dual-mode Mirror formatting for print */
-  body.mode-mirror .mirror-block {
+  body[data-mode="mirror"] .mirror-block {
     display: block !important;
     border: 1px solid var(--border) !important;
     background: var(--surface) !important;
     margin: 1rem 0 !important;
   }
 
-  body.mode-mirror .mirror-reveal-content {
+  body[data-mode="mirror"] .mirror-probe-reveal {
     display: block !important;
   }
 
-  body.mode-mirror .mirror-input-group,
-  body.mode-mirror .mirror-vote-btn,
-  body.mode-mirror .mirror-probe-btn {
+  body[data-mode="mirror"] .mirror-reader-body,
+  body[data-mode="mirror"] .mirror-audit-actions,
+  body[data-mode="mirror"] .mirror-eval-btn,
+  body[data-mode="mirror"] .mirror-card-close-btn {
     display: none !important;
   }
 
-  body:not(.mode-mirror) .mirror-block {
-    border-left: 3px solid var(--accent) !important;
-    background: var(--surface) !important;
+  body:not([data-mode="mirror"]) .mirror-block {
+    display: none !important;
   }
 }

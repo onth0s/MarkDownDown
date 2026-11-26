@@ -1,5 +1,5 @@
 import { DIAGRAM as C } from '../../../constants.js';
-import type { EdgeRoute, Point } from '../../svg-helpers.js';
+import { polylineLengths, type EdgeRoute, type Point } from '../../svg-helpers.js';
 import type { PlacedNode, EdgeNodeCollision } from './types.js';
 
 /** Half-width available for text at vertical offset `dy` inside a rhombus. */
@@ -17,13 +17,7 @@ export function rhombusHalfWidth(w: number, h: number, dy: number): number {
 export function trimPolylineEnds(points: Point[], distance: number): Point[] {
   if (points.length < 2 || distance <= 0) return points;
 
-  const segLen: number[] = [];
-  let total = 0;
-  for (let i = 1; i < points.length; i++) {
-    const d = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
-    segLen.push(d);
-    total += d;
-  }
+  const { segs: segLen, total } = polylineLengths(points);
   if (total <= 0) return points;
 
   const target = Math.min(distance, total / 2);
@@ -95,6 +89,23 @@ export function segmentsCross(
 }
 
 export function polylinesCross(a: Point[], b: Point[]): boolean {
+  if (a.length < 2 || b.length < 2) return false;
+  let aMinX = Infinity, aMinY = Infinity, aMaxX = -Infinity, aMaxY = -Infinity;
+  for (const p of a) {
+    if (p.x < aMinX) aMinX = p.x;
+    if (p.y < aMinY) aMinY = p.y;
+    if (p.x > aMaxX) aMaxX = p.x;
+    if (p.y > aMaxY) aMaxY = p.y;
+  }
+  let bMinX = Infinity, bMinY = Infinity, bMaxX = -Infinity, bMaxY = -Infinity;
+  for (const p of b) {
+    if (p.x < bMinX) bMinX = p.x;
+    if (p.y < bMinY) bMinY = p.y;
+    if (p.x > bMaxX) bMaxX = p.x;
+    if (p.y > bMaxY) bMaxY = p.y;
+  }
+  if (aMaxX < bMinX || bMaxX < aMinX || aMaxY < bMinY || bMaxY < aMinY) return false;
+
   for (let i = 1; i < a.length; i++) {
     for (let j = 1; j < b.length; j++) {
       if (segmentsCross(a[i - 1], a[i], b[j - 1], b[j])) return true;

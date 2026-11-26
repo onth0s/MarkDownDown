@@ -329,6 +329,10 @@ export function tableBuildSvg(model: TableModel, title: string, linkResolver?: L
     });
   });
 
+  if (colCount === 0) {
+    return `<svg class="table-svg" viewBox="0 0 0 0" width="0" height="0" role="img" aria-label="${esc(title)}" xmlns="${NS}"></svg>`;
+  }
+
   let grid = '';
   const lastX = colX[colCount - 1] + colW[colCount - 1];
   for (let c = 1; c < colCount; c++) {

@@ -1,10 +1,12 @@
+import { closeDropdownMenu } from './03a-theme.js';
+
 // ── Document Statistics ──────────────────────────────────────────────────
 const docStatsBtn = document.getElementById('docStatsBtn');
 const docStats = document.getElementById('docStats');
 const docStatsCloseBtn = document.getElementById('docStatsCloseBtn');
 const docStatsGrid = document.getElementById('docStatsGrid');
 
-function closeDocStats() {
+export function closeDocStats() {
   if (docStats && !docStats.hidden) {
     docStats.hidden = true;
     docStats.classList.remove('open');
@@ -175,7 +177,8 @@ document.addEventListener('click', (event) => {
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && docStats && !docStats.hidden) {
     event.preventDefault();
+    event.stopPropagation();
     closeDocStats();
-    if (docStatsBtn) docStatsBtn.focus();
+    document.getElementById('menuBtn')?.focus();
   }
 });

@@ -1,9 +1,8 @@
 import { compile } from '../src/compile.js';
 import { checkRoundTrip, extractEmbeddedSkeleton } from '../src/pipeline/check.js';
-import { buildSkeleton } from '../src/renderer/skeleton/index.js';
+import { buildSkeleton, assembleFromSkeleton, spanAt, PROSE } from '../src/renderer/skeleton/index.js';
 import { createMarkdownParser } from '../src/parser/markdown.js';
 import { extractProse } from '../src/renderer/html-extract.js';
-import { assembleFromSkeleton, spanAt, PROSE } from '../src/renderer/skeleton.js';
 import type { Options } from '../src/types.js';
 import fs from 'node:fs';
 import path from 'node:path';

@@ -204,7 +204,7 @@ function auditSvg(svg: string): Finding[] {
     const openTag = m[0].slice(0, m[0].indexOf('>') + 1);
     const a = attrs(openTag);
     if (a.x === undefined) continue;
-    const size = Number(a.fontSize ?? 12);
+    const size = Number(a['font-size'] ?? 12);
     let baseX = Number(a.x);
     let baseY = Number(a.y);
     const g = svg.slice(Math.max(0, m.index - 220), m.index);

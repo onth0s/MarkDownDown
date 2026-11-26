@@ -14,6 +14,7 @@ export default {
         tsconfig: {
           module: 'ESNext',
           moduleResolution: 'bundler',
+          rootDir: '.',
         },
       },
     ],

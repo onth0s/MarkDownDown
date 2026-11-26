@@ -5,8 +5,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ProcessedLogo } from '../types.js';
+import { LOGO } from '../constants.js';
 import { darkenHex, getContrastFg, parseAnyColor, hexToHsl, hslToHex } from '../util/color.js';
+import { escHtml } from '../util/escape.js';
 import { getMime } from '../util/mime.js';
+
+const VIEWBOX_RE = /^-?\d+(?:\.\d+)?(?:\s+-?\d+(?:\.\d+)?){3}$/;
+
+function sanitizeSvgContent(svg: string): string {
+  return svg
+    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    .replace(/<foreignObject\b[\s\S]*?<\/foreignObject>/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/\s+(?:xlink:)?href\s*=\s*(?:"\s*(?:javascript|vbscript|data:text\/html)[^"]*"|'\s*(?:javascript|vbscript|data:text\/html)[^']*')/gi, '');
+}
 
 export type { ProcessedLogo };
 
@@ -60,9 +72,9 @@ export function processLogo(logoPath?: string, accent = '#3b82f6', warnings?: st
 
     // Extract viewBox or calculate from width / height attributes
     const viewBoxMatch = rawSvg.match(/viewBox=["']([^"']+)["']/i);
-    let viewBox = viewBoxMatch ? viewBoxMatch[1] : '';
+    let viewBox = viewBoxMatch ? viewBoxMatch[1].trim() : '';
 
-    if (!viewBox) {
+    if (!viewBox || !VIEWBOX_RE.test(viewBox)) {
       const wMatch = rawSvg.match(/width=["'](\d+(?:\.\d+)?)["']/i);
       const hMatch = rawSvg.match(/height=["'](\d+(?:\.\d+)?)["']/i);
       if (wMatch && hMatch) {
@@ -72,35 +84,32 @@ export function processLogo(logoPath?: string, accent = '#3b82f6', warnings?: st
       }
     }
 
-    // Extract inner content of the SVG tag and flatten whitespace/newlines
+    // Extract inner content of the SVG tag, sanitize, and flatten whitespace/newlines
     const innerContentMatch = rawSvg.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-    const innerContent = (innerContentMatch ? innerContentMatch[1] : rawSvg)
+    const innerContent = sanitizeSvgContent(innerContentMatch ? innerContentMatch[1] : rawSvg)
       .replace(/\r?\n|\r/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
     const [targetH, targetS, targetL] = hexToHsl(accent);
 
-    // Regex matching fill="...", stroke="...", stop-color="...", and style="..." declarations
-    const colorRegex = /(fill|stroke|stop-color)\s*[:=]\s*["']?([^"';>]+)["']?/gi;
+    const attrColorRegex = /(fill|stroke|stop-color)\s*=\s*["']([^"']+)["']/gi;
+    const stylePropRegex = /(fill|stroke|stop-color)\s*:\s*([^;"']+)/gi;
 
     // Lightness window in which a colour keeps its own tone. Outside it a colour
     // is an extreme -- a white knockout, a black shadow -- whose only job is to
     // contrast with the shapes it sits on.
-    const MID_LO = 15;
-    const MID_HI = 85;
-    const KNOCKOUT_L = 97;
-    const SHADOW_L = 3;
+    const MID_LO = LOGO.MID_LO;
+    const MID_HI = LOGO.MID_HI;
+    const KNOCKOUT_L = LOGO.KNOCKOUT_L;
+    const SHADOW_L = LOGO.SHADOW_L;
 
-    // Resolve the logo's whole tone set before recolouring any single colour.
-    // Judged per element, an extreme snapped onto the accent's own lightness --
-    // which is exactly where a mid-tone shape had already landed, because
-    // mid-tones keep their relative lightness. The two collapse to one hex and
-    // the knockout text disappears into the shape behind it. Only artwork that
-    // genuinely carries more than one tone is treated as multi-tone, so
-    // single-tone logos keep snapping wholesale to the accent.
     const sourceTones = new Set<number>();
-    for (const m of innerContent.matchAll(colorRegex)) {
+    for (const m of innerContent.matchAll(attrColorRegex)) {
+      const parsed = parseAnyColor(m[2]);
+      if (parsed) sourceTones.add(parsed[2]);
+    }
+    for (const m of innerContent.matchAll(stylePropRegex)) {
       const parsed = parseAnyColor(m[2]);
       if (parsed) sourceTones.add(parsed[2]);
     }
@@ -126,36 +135,48 @@ export function processLogo(logoPath?: string, accent = '#3b82f6', warnings?: st
       };
     };
 
+    const recolorSvg = (src: string, dynamic: boolean): string => {
+      let out = src.replace(/style\s*=\s*(["'])([\s\S]*?)\1/gi, (_m, q: string, styleBody: string) => {
+        const replaced = styleBody.replace(stylePropRegex, (sm, prop: string, color: string) => {
+          const res = transformColor(color);
+          if (!res) return sm;
+          return dynamic ? `${prop}:${`{L_${res.lightness}}`}` : `${prop}:${res.recoloredHex}`;
+        });
+        return `style=${q}${replaced}${q}`;
+      });
+      out = out.replace(attrColorRegex, (match, prop: string, color: string) => {
+        const res = transformColor(color);
+        if (!res) return match;
+        return dynamic
+          ? `${prop}="{L_${res.lightness}}"`
+          : `${prop}="${res.recoloredHex}" data-l="${res.lightness}"`;
+      });
+      return out;
+    };
+
     // Static recolored content for compile-time navbar
-    const staticRecolored = innerContent.replace(colorRegex, (match, prop, color) => {
-      const res = transformColor(color);
-      if (!res) return match;
-      return `${prop}="${res.recoloredHex}" data-l="${res.lightness}"`;
-    });
+    const staticRecolored = recolorSvg(innerContent, false);
 
     // Dynamic template for runtime favicon (placeholders {L_xx})
-    const dynamicTemplateContent = innerContent.replace(colorRegex, (match, prop, color) => {
-      const res = transformColor(color);
-      if (!res) return match;
-      return `${prop}="{L_${res.lightness}}"`;
-    });
+    const dynamicTemplateContent = recolorSvg(innerContent, true);
 
+    const safeViewBox = escHtml(viewBox);
     const navbarLogo =
       `<svg class="brand-logo" aria-hidden="true" focusable="false" ` +
-      `width="34.5" height="34.5" viewBox="${viewBox}" ` +
+      `width="34.5" height="34.5" viewBox="${safeViewBox}" ` +
       `fill="none" xmlns="http://www.w3.org/2000/svg">` +
       staticRecolored +
       `</svg>`;
 
     // Favicon template from normalized SVG (single line, safe for JS string embedding)
     const faviconTemplate =
-      `<svg viewBox="${viewBox}" width="64" height="64" ` +
+      `<svg viewBox="${safeViewBox}" width="64" height="64" ` +
       `fill="none" xmlns="http://www.w3.org/2000/svg">` +
       dynamicTemplateContent +
       `</svg>`;
 
     const faviconSvg =
-      `<svg viewBox="${viewBox}" width="64" height="64" ` +
+      `<svg viewBox="${safeViewBox}" width="64" height="64" ` +
       `fill="none" xmlns="http://www.w3.org/2000/svg">` +
       staticRecolored +
       `</svg>`;

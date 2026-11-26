@@ -80,12 +80,6 @@
 .dropdown-item:hover .dropdown-item-left svg {
   opacity:1; stroke:var(--accent);
 }
-.stub-badge {
-  font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
-  padding:2px 6px; border-radius:6px;
-  background:rgba(var(--accent-rgb), .12); color:var(--accent);
-  flex:none;
-}
 .sidebar-pos-badge {
   font-size:11px; font-weight:600;
   padding:2px 7px; border-radius:6px;
@@ -155,7 +149,7 @@
 }
 @media (min-width: 901px) {
   .nav-history-bar {
-    left: calc(max(0px, (100vw - 1500px) / 2) + 280px + 20px);
+    left: calc(max(0px, (100vw - 1500px) / 2) + var(--sidebar-w, 280px) + 20px);
   }
 }
 .nav-history-bar[hidden] { display: none; }
@@ -254,6 +248,6 @@
 .backtop::before {
   content:""; position:absolute; inset:-20px;
 }
-.backtop:hover { opacity:1; }
+.backtop:hover,
+.backtop:focus-visible { opacity:1; }
 .no-results { display:none; margin:20px 0; padding:20px; border:1px dashed var(--border); border-radius:12px; color:var(--muted); }
-body.searching .article > * { transition:opacity .15s; }

@@ -1,3 +1,13 @@
+import {
+  root, body, article, toc, search, count, noResults, settings, headings, hasHero,
+  backStack, forwardStack, navClearBtn, navBackBtn, navForwardBtn,
+  getSectionLabel, updateNavHistoryUI, highlightJumpTarget,
+  navigateHistoryBack, navigateHistoryForward, isInitialScrollDone, setInitialScrollDone,
+  hooks, safeDecode, closeAllPopovers, setTrustedSvg,
+} from './01-core.js';
+import { setSearchMode } from './03b-sidebar.js';
+import { setActive, setTocScrollActive, doScrollUpdate } from './04-scroll-spy.js';
+
 // ── Diagram & Table Search Sync, Search Engine & Keyboard Shortcuts ─────────
 const diagramContainers = [...article.querySelectorAll('.code-wrap.diagram')];
 const tableContainers = [...article.querySelectorAll('.code-wrap.table')];
@@ -148,10 +158,6 @@ const searchableNodes = [...article.children].filter(el =>
   !el.classList.contains('no-results')
 );
 
-searchableNodes.forEach(node => {
-  if (!node.dataset.originalHtml) node.dataset.originalHtml = encodeURIComponent(node.innerHTML);
-});
-
 const navigableHeadings = headings.filter(h => h.id);
 
 function escapeRegex(s) {
@@ -160,7 +166,12 @@ function escapeRegex(s) {
 
 function restoreSearchDOM() {
   searchableNodes.forEach(node => {
-    restoreOriginalHtml(node, node.dataset.originalHtml);
+    node.querySelectorAll('mark[data-search-match]').forEach(mark => {
+      const parent = mark.parentNode;
+      if (!parent) return;
+      parent.replaceChild(document.createTextNode(mark.textContent || ''), mark);
+      parent.normalize();
+    });
     node.hidden = false;
   });
 }
@@ -218,7 +229,7 @@ function highlightNode(node, query) {
   return cnt;
 }
 
-function rebuildSearch(query) {
+export function rebuildSearch(query) {
   restoreSearchDOM();
   matches = [];
   currentMatch = -1;
@@ -442,12 +453,12 @@ article.addEventListener('click', (event) => {
   if (!link || link.classList.contains('heading-anchor')) return;
   const href = link.getAttribute('href');
   if (!href || href === '#') return;
-  const targetId = decodeURIComponent(href.slice(1));
+  const targetId = safeDecode(href.slice(1));
   const targetEl = targetId === '__doc-title__' ? article.querySelector('.hero') : document.getElementById(targetId);
   if (!targetEl && targetId !== '__doc-title__') return;
 
   // Capture current reading state before jumping
-  const currentActive = detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
+  const currentActive = hooks.detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
   const currentSearch = search ? search.value.trim() : '';
   backStack.push({
     y: window.scrollY,
@@ -467,7 +478,7 @@ article.addEventListener('click', (event) => {
   }
 
   event.preventDefault();
-  tocScrollActive = true;
+  setTocScrollActive(true);
   if (targetId === '__doc-title__') {
     window.scrollTo(0, 0);
   } else if (targetEl) {
@@ -476,7 +487,7 @@ article.addEventListener('click', (event) => {
   setActive(targetId);
   highlightJumpTarget(targetId);
   history.replaceState(null, '', `#${targetId}`);
-  tocScrollActive = false;
+  setTocScrollActive(false);
 });
 
 if (navClearBtn) {
@@ -522,7 +533,9 @@ document.addEventListener('keydown', event => {
     }
   }
 
-  if (event.key === '/' && document.activeElement !== search) {
+  const activeTag = document.activeElement?.tagName;
+  const isEditable = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT' || document.activeElement?.isContentEditable;
+  if (event.key === '/' && !isEditable && document.activeElement !== search) {
     event.preventDefault();
     if (window.innerWidth <= 640) setSearchMode(true);
     else search.focus();
@@ -531,8 +544,7 @@ document.addEventListener('keydown', event => {
     const dropdownMenu = document.getElementById('dropdownMenu');
     const menuBtn = document.getElementById('menuBtn');
     if (dropdownMenu && dropdownMenu.classList.contains('open')) {
-      dropdownMenu.classList.remove('open');
-      menuBtn?.setAttribute('aria-expanded', 'false');
+      closeAllPopovers();
       menuBtn?.focus();
       return;
     }
@@ -543,7 +555,8 @@ document.addEventListener('keydown', event => {
       setSearchMode(false);
     }
     if (settings && settings.classList.contains('open')) {
-      settings.classList.remove('open');
+      closeAllPopovers();
+      document.getElementById('settingsBtn')?.focus();
       return;
     }
     if (search.value) {
@@ -557,15 +570,15 @@ document.addEventListener('keydown', event => {
 
 // Land on hash target or restore exact saved state after browser restores scroll.
 let savedState = null;
-try { savedState = JSON.parse(sessionStorage.getItem(scrollStateKey) || 'null'); } catch (_) {}
+try { savedState = JSON.parse(sessionStorage.getItem(`mdd_scroll_${location.pathname}`) || 'null'); } catch (_) {}
 
-initialScrollDone = false;
+setInitialScrollDone(false);
 
-const initialHash = location.hash ? decodeURIComponent(location.hash.slice(1)) : null;
+const initialHash = location.hash ? safeDecode(location.hash.slice(1)) : null;
 if (initialHash) {
   const target = document.getElementById(initialHash);
   if (target) {
-    const targetTop = headingOffsetTop(target);
+    const targetTop = target.getBoundingClientRect().top + window.scrollY;
     const expectedY = Math.max(0, targetTop - 88);
     if (savedState && savedState.id === initialHash && typeof savedState.y === 'number') {
       window.scrollTo(0, savedState.y);
@@ -580,4 +593,7 @@ if (initialHash) {
 }
 
 doScrollUpdate();
-initialScrollDone = true;
+setInitialScrollDone(true);
+void isInitialScrollDone;
+hooks.rebuildSearch = rebuildSearch;
+hooks.updateClearButton = updateClearButton;

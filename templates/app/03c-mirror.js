@@ -1,3 +1,5 @@
+import { body, article, mirrorBlocks, setMode, downloadBlob, closeAllPopovers } from './01-core.js';
+
 // ── Mirror Mode Controls & State Persistence ────────────────────────────────
 const modeReadBtn = document.getElementById('modeReadBtn');
 const modeMirrorBtn = document.getElementById('modeMirrorBtn');
@@ -357,7 +359,7 @@ function initMirrorState() {
     for (const [probeId, pState] of Object.entries(state.probes)) {
       const probeCard = document.getElementById(probeId);
       if (!probeCard) continue;
-      if (typeof pState.selectedOption === 'number' && pState.selectedOption >= 0) {
+      if (Number.isInteger(pState.selectedOption) && pState.selectedOption >= 0) {
         const radio = probeCard.querySelector(`input[type="radio"][value="${pState.selectedOption}"]`);
         if (radio) radio.checked = true;
       }
@@ -368,7 +370,7 @@ function initMirrorState() {
           updateProbeOutcome(probeCard, pState.selectedOption);
         }
       }
-      if (pState.auditStatus) {
+      if (pState.auditStatus === 'understood' || pState.auditStatus === 'misread' || pState.auditStatus === 'disagree') {
         const auditBtn = probeCard.querySelector(`.mirror-audit-btn[data-action="${pState.auditStatus}"]`);
         const statusEl = probeCard.querySelector('.mirror-audit-status');
         if (auditBtn) auditBtn.classList.add('active');
@@ -406,15 +408,7 @@ function initMirrorState() {
 initMirrorState();
 
 function downloadTextFile(filename, text) {
-  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  downloadBlob(new Blob([text], { type: 'text/markdown;charset=utf-8' }), filename);
 }
 
 function generateMirrorAuditMarkdown() {
@@ -428,7 +422,7 @@ function generateMirrorAuditMarkdown() {
   let divergedProbes = 0;
   let totalNotes = 0;
 
-  for (const [_, pState] of Object.entries(state.probes || {})) {
+  for (const pState of Object.values(state.probes || {})) {
     if (typeof pState.selectedOption === 'number' && pState.selectedOption >= 0) {
       completedProbes++;
       if (pState.outcome === 'matched') matchedProbes++;
@@ -436,7 +430,7 @@ function generateMirrorAuditMarkdown() {
     }
   }
 
-  for (const [_, notesList] of Object.entries(state.notes || {})) {
+  for (const notesList of Object.values(state.notes || {})) {
     if (Array.isArray(notesList)) totalNotes += notesList.length;
   }
 
@@ -535,19 +529,11 @@ function handleMirrorAuditExport() {
   downloadTextFile(`${slug}-mirror-audit.md`, mdText);
 }
 
-const exportMirrorBtn = document.getElementById('exportMirrorBtn');
-if (exportMirrorBtn) {
-  exportMirrorBtn.addEventListener('click', handleMirrorAuditExport);
-}
-
 const exportMirrorMenuBtn = document.getElementById('exportMirrorMenuBtn');
 if (exportMirrorMenuBtn) {
   exportMirrorMenuBtn.addEventListener('click', (ev) => {
     ev.preventDefault();
-    const dropMenu = document.getElementById('dropdownMenu');
-    if (dropMenu) dropMenu.classList.remove('open');
-    const mBtn = document.getElementById('menuBtn');
-    if (mBtn) mBtn.setAttribute('aria-expanded', 'false');
+    closeAllPopovers();
     handleMirrorAuditExport();
   });
 }

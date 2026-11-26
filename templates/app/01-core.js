@@ -1,44 +1,89 @@
 // ── Core DOM, Navigation Stack & State ──────────────────────────────────────
-const root = document.documentElement;
-const body = document.body;
-const article = document.getElementById('article');
-const toc = document.getElementById('toc');
-const sidebar = document.getElementById('sidebar');
-const search = document.getElementById('search');
-const count = document.getElementById('searchCount');
-const noResults = document.getElementById('noResults');
-const settings = document.getElementById('settings');
-const progress = document.getElementById('progress');
-const backtop = document.getElementById('backtop');
+export const root = document.documentElement;
+export const body = document.body;
+export const article = document.getElementById('article');
+export const toc = document.getElementById('toc');
+export const sidebar = document.getElementById('sidebar');
+export const search = document.getElementById('search');
+export const count = document.getElementById('searchCount');
+export const noResults = document.getElementById('noResults');
+export const settings = document.getElementById('settings');
+export const progress = document.getElementById('progress');
+export const backtop = document.getElementById('backtop');
 
-const headings = article ? [...article.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id], .alert[id]')].filter(h => !h.closest('.hero')) : [];
-const hasHero = article ? !!article.querySelector('.hero') : false;
-const mirrorBlocks = article ? [...article.querySelectorAll('.mirror-block')] : [];
+export const headings = article ? [...article.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id], .alert[id]')].filter(h => !h.closest('.hero')) : [];
+export const hasHero = article ? !!article.querySelector('.hero') : false;
+export const mirrorBlocks = article ? [...article.querySelectorAll('.mirror-block')] : [];
 
-const navHistoryBar = document.getElementById('navHistoryBar');
-const navClearBtn = document.getElementById('navClearBtn');
-const navBackBtn = document.getElementById('navBackBtn');
-const navBackLabel = document.getElementById('navBackLabel');
-const navForwardBtn = document.getElementById('navForwardBtn');
-const navForwardLabel = document.getElementById('navForwardLabel');
+export const navHistoryBar = document.getElementById('navHistoryBar');
+export const navClearBtn = document.getElementById('navClearBtn');
+export const navBackBtn = document.getElementById('navBackBtn');
+export const navBackLabel = document.getElementById('navBackLabel');
+export const navForwardBtn = document.getElementById('navForwardBtn');
+export const navForwardLabel = document.getElementById('navForwardLabel');
+
+export const hooks = {
+  detectActiveHeading: () => null,
+  setActive: (_id) => {},
+  setTocScrollActive: (_v) => {},
+  rebuildSearch: (_q) => {},
+  updateClearButton: () => {},
+  adjustArticleBottomPadding: () => {},
+};
 
 const MDD_ROUTES = __ROUTES__;
 
-// Trusted DOM markup helpers (restricted to internal SVG icon templates and original DOM restore)
-function setTrustedSvg(el, svgMarkup) {
+// Trusted DOM markup helpers (restricted to internal SVG icon templates)
+export function setTrustedSvg(el, svgMarkup) {
   el.innerHTML = svgMarkup;
 }
 
-function restoreOriginalHtml(el, encodedHtml) {
-  el.innerHTML = decodeURIComponent(encodedHtml);
+export function safeDecode(s) {
+  try { return decodeURIComponent(s); } catch (_) { return s; }
+}
+
+export function prefersReducedMotion() {
+  return !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+export function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function closeAllPopovers() {
+  const dropdownMenu = document.getElementById('dropdownMenu');
+  const menuBtn = document.getElementById('menuBtn');
+  if (dropdownMenu) dropdownMenu.classList.remove('open');
+  if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+
+  if (settings) settings.classList.remove('open');
+  const settingsBtn = document.getElementById('settingsBtn');
+  if (settingsBtn) settingsBtn.setAttribute('aria-expanded', 'false');
+
+  const docStats = document.getElementById('docStats');
+  if (docStats && !docStats.hidden) {
+    docStats.hidden = true;
+    docStats.classList.remove('open');
+    const docStatsBtn = document.getElementById('docStatsBtn');
+    if (docStatsBtn) docStatsBtn.setAttribute('aria-expanded', 'false');
+  }
 }
 
 // ── Bidirectional Navigation Stack ──────────────────────────────────────────
-const backStack = [];
-const forwardStack = [];
+export const backStack = [];
+export const forwardStack = [];
 let initialScrollDone = false;
+export function isInitialScrollDone() { return initialScrollDone; }
+export function setInitialScrollDone(v) { initialScrollDone = !!v; }
 
-function getSectionLabel(id) {
+export function getSectionLabel(id) {
   if (!id) return '';
   if (MDD_ROUTES && MDD_ROUTES[id]) return MDD_ROUTES[id];
   const el = document.getElementById(id);
@@ -53,7 +98,7 @@ function getSectionLabel(id) {
   return id;
 }
 
-function updateNavHistoryUI() {
+export function updateNavHistoryUI() {
   if (!navHistoryBar) return;
   const hasBack = backStack.length > 0;
   const hasForward = forwardStack.length > 0;
@@ -96,7 +141,7 @@ function updateNavHistoryUI() {
   }
 }
 
-function highlightJumpTarget(target) {
+export function highlightJumpTarget(target) {
   if (!target) return;
   let el = null;
   if (typeof target === 'string') {
@@ -112,9 +157,9 @@ function highlightJumpTarget(target) {
   }
 }
 
-function navigateHistoryBack() {
+export function navigateHistoryBack() {
   if (!backStack.length) return;
-  const currentActive = detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
+  const currentActive = hooks.detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
   const currentSearch = search ? search.value.trim() : '';
 
   const prev = backStack.pop();
@@ -133,31 +178,30 @@ function navigateHistoryBack() {
   if (prev.searchQuery !== undefined) {
     if (search) {
       search.value = prev.searchQuery;
-      rebuildSearch(prev.searchQuery);
-      updateClearButton();
+      hooks.rebuildSearch(prev.searchQuery);
+      hooks.updateClearButton();
     }
   } else if (search && search.value) {
     search.value = '';
-    rebuildSearch('');
-    updateClearButton();
+    hooks.rebuildSearch('');
+    hooks.updateClearButton();
   }
 
-  tocScrollActive = true;
+  hooks.setTocScrollActive(true);
   const targetY = prev.y;
   if (prev.id) {
-    setActive(prev.id);
+    hooks.setActive(prev.id);
   }
 
   window.scrollTo(0, targetY);
-  // Pulse the exact link that initiated the navigation if available, otherwise the section heading
   highlightJumpTarget(prev.linkEl || prev.id);
-  tocScrollActive = false;
-  if (prev.id) setActive(prev.id);
+  hooks.setTocScrollActive(false);
+  if (prev.id) hooks.setActive(prev.id);
 }
 
-function navigateHistoryForward() {
+export function navigateHistoryForward() {
   if (!forwardStack.length) return;
-  const currentActive = detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
+  const currentActive = hooks.detectActiveHeading() || (hasHero ? '__doc-title__' : (headings[0]?.id ?? ''));
   const currentSearch = search ? search.value.trim() : '';
 
   const next = forwardStack.pop();
@@ -176,28 +220,28 @@ function navigateHistoryForward() {
   if (next.searchQuery !== undefined) {
     if (search) {
       search.value = next.searchQuery;
-      rebuildSearch(next.searchQuery);
-      updateClearButton();
+      hooks.rebuildSearch(next.searchQuery);
+      hooks.updateClearButton();
     }
   } else if (search && search.value) {
     search.value = '';
-    rebuildSearch('');
-    updateClearButton();
+    hooks.rebuildSearch('');
+    hooks.updateClearButton();
   }
 
-  tocScrollActive = true;
+  hooks.setTocScrollActive(true);
   const targetY = next.y;
   if (next.id) {
-    setActive(next.id);
+    hooks.setActive(next.id);
   }
 
   window.scrollTo(0, targetY);
   highlightJumpTarget(next.id);
-  tocScrollActive = false;
-  if (next.id) setActive(next.id);
+  hooks.setTocScrollActive(false);
+  if (next.id) hooks.setActive(next.id);
 }
 
-const store = {
+export const store = {
   get(key, fallback) {
     try { return localStorage.getItem(key) ?? fallback; } catch (_) { return fallback; }
   },
@@ -206,16 +250,25 @@ const store = {
   }
 };
 
-function onScrollEnd(callback) {
+export function onScrollEnd(callback) {
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(fallbackTimer);
+    document.removeEventListener('scrollend', finish);
+    callback();
+  };
+  const fallbackTimer = setTimeout(finish, 700);
   if ('onscrollend' in window) {
-    document.addEventListener('scrollend', callback, { once: true });
+    document.addEventListener('scrollend', finish, { once: true });
   } else {
     let timer;
     const handler = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
         document.removeEventListener('scroll', handler);
-        callback();
+        finish();
       }, 100);
     };
     document.addEventListener('scroll', handler, { passive: true });
@@ -319,7 +372,7 @@ const docAccent = '__ACCENT__';
 const docTheme = '__THEME__';
 const faviconTmpl = '__FAVICON__';
 
-function setAccent(hex, isInitial = false) {
+export function setAccent(hex, isInitial = false) {
   if (typeof hex !== 'string') return;
   let cleanHex = hex.trim();
   if (!cleanHex.startsWith('#')) cleanHex = '#' + cleanHex;
@@ -396,16 +449,14 @@ function setAccent(hex, isInitial = false) {
   document.querySelectorAll('img').forEach(img => {
     const alt = img.getAttribute('alt') || '';
     const src = img.getAttribute('src') || '';
-    if (src.includes('mdpp-logo') || alt.includes('mdpp-logo') || alt.includes('logo')) {
+    if (img.dataset.recolor === 'accent' || src.includes('mdpp-logo') || alt.includes('mdpp-logo')) {
       if (!img.dataset.origSvg) {
         if (src.startsWith('data:image/svg+xml;base64,')) {
           try {
             img.dataset.origSvg = atob(src.slice(26));
           } catch (_) {}
         } else if (src.startsWith('data:image/svg+xml,')) {
-          try {
-            img.dataset.origSvg = decodeURIComponent(src.slice(19));
-          } catch (_) {}
+          img.dataset.origSvg = safeDecode(src.slice(19));
         }
       }
       if (img.dataset.origSvg) {
@@ -413,7 +464,7 @@ function setAccent(hex, isInitial = false) {
           if (m.toLowerCase().includes('#fff')) return m;
           return `fill="${hex}"`;
         });
-        img.src = 'data:image/svg+xml;base64,' + btoa(recolored);
+        img.src = 'data:image/svg+xml,' + encodeURIComponent(recolored);
       }
     }
   });
@@ -428,14 +479,14 @@ function setAccent(hex, isInitial = false) {
   );
 }
 
-function setTheme(theme, isInitial = false) {
+export function setTheme(theme, isInitial = false) {
   root.dataset.theme = theme === 'light' ? 'light' : 'dark';
   if (!isInitial) {
     store.set('mdd-theme', root.dataset.theme);
   }
 }
 
-function setMode(mode, isInitial = false) {
+export function setMode(mode, isInitial = false) {
   const validMode = mode === 'mirror' ? 'mirror' : 'read';
   body.dataset.mode = validMode;
   root.dataset.mode = validMode;
@@ -453,6 +504,7 @@ function setMode(mode, isInitial = false) {
   }
   if (!isInitial) {
     store.set(`mdd_mode_${location.pathname}`, validMode);
+    hooks.adjustArticleBottomPadding();
   }
 }
 
@@ -478,7 +530,7 @@ setTheme(initialTheme, true);
 setMode(initialMode, true);
 
 // ── Shared Clipboard Helper ────────────────────────────────────────────────
-async function copyToClipboard(text) {
+export async function copyToClipboard(text) {
   if (navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);

@@ -60,7 +60,7 @@
   .topbar { gap:1px; padding-left:max(2px, env(safe-area-inset-left)); padding-right:max(2px, env(safe-area-inset-right)); }
   .tool-btn.icon-only { width: 25px; height: 25px; }
   .brand-logo { width: 25px; height: 25px; }
-  .mode-switch .toolbar-divider { display: none; }
+  .toolbar .toolbar-divider { display: none; }
   .mode-btn { padding: 2px 2px; font-size: 8.5px; gap: 2px; }
   .toolbar { gap: 1px; }
 }
@@ -128,5 +128,10 @@ button, a, input, label, .toc a, .search-result-item {
   .search-result-item,
   .heading-anchor {
     transition: none !important;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -34,7 +34,11 @@ export function build(options: Options): BuildResult {
   const rawSource = options.rawSource ?? fs.readFileSync(options.inputFile, 'utf8');
 
   // 2. Frontmatter
-  const { meta, hero, body: markdownBody, warnings: fmWarnings } = parseFrontmatter(rawSource, inputDir);
+  const { meta, hero, body: markdownBody, warnings: fmWarnings } = parseFrontmatter(
+    rawSource,
+    inputDir,
+    options.allowExternalPaths === true,
+  );
   warnings.push(...fmWarnings);
   const rawAccent = meta.accent ?? options.accent;
   if (!isValidHex(rawAccent)) {
@@ -130,7 +134,7 @@ export function build(options: Options): BuildResult {
  */
 export function compileToDisk(options: Options): CompileResult {
   const built = build(options);
-  const finalSize = writeOutput(options, built.assembled, built.assetsDir, built.warnings);
+  const finalSize = writeOutput(built.assembled.finalOutputFile ? { ...options, accent: built.stats?.accent ?? options.accent } : options, built.assembled, built.assetsDir, built.warnings);
   if (built.stats) {
     built.stats.sizeBytes = finalSize;
   }

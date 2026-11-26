@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import type MarkdownIt from 'markdown-it';
-import { assembleFromSkeleton, parseSkeleton, spanAt, PROSE, SKIP_RUN, type Segment, type Skeleton } from '../../renderer/skeleton.js';
-import { buildSkeleton } from '../../renderer/skeleton/index.js';
+import { assembleFromSkeleton, buildSkeleton, parseSkeleton, spanAt, PROSE, SKIP_RUN, type Segment, type Skeleton } from '../../renderer/skeleton/index.js';
 import { extractFences, extractProse } from '../../renderer/html-extract.js';
 import { toErrorMessage } from '../../util/error.js';
 import { canonicalize, firstDifference } from './canonicalize.js';
@@ -46,7 +45,7 @@ export function extractEmbeddedSkeletonPayload(html: string): { name?: string; s
   if (!m) return null;
   try {
     const payload = JSON.parse(m[1]) as { name?: string; skeleton?: Skeleton };
-    if (payload?.skeleton && payload.skeleton.v === 1) {
+    if (payload?.skeleton && payload.skeleton.v === 1 && Array.isArray(payload.skeleton.b)) {
       return { name: payload.name, skeleton: payload.skeleton };
     }
     return null;
@@ -119,13 +118,15 @@ export function checkRoundTrip(opts: CheckOptions): CheckResult {
 
   const diff = semanticEqual ? undefined : firstDifference(canonSrc, canonRebuilt);
 
+  const sourceBytes = Buffer.byteLength(rawSource, 'utf8');
+  const rebuiltBytes = Buffer.byteLength(rebuilt, 'utf8');
   const parts: string[] = [];
   parts.push(semanticEqual ? 'SEMANTIC: PASS' : 'SEMANTIC: FAIL');
   parts.push(`byte ${byteEqual ? 'PASS' : 'differs'}`);
   parts.push(`fences ${fencesVerified}/${fences.length}`);
   parts.push(`slots ${slotCount}/runs ${prose.length}`);
   if (proseOverrides > 0) parts.push(`prose-literals ${proseOverrides}`);
-  parts.push(`${rawSource.length} B -> ${rebuilt.length} B`);
+  parts.push(`${sourceBytes} B -> ${rebuiltBytes} B`);
   parts.push(`sha256 ${sourceHash.slice(0, 12)}`);
 
   return {
@@ -134,8 +135,8 @@ export function checkRoundTrip(opts: CheckOptions): CheckResult {
     byteEqual,
     sourceHash,
     rebuiltHash,
-    sourceBytes: rawSource.length,
-    rebuiltBytes: rebuilt.length,
+    sourceBytes,
+    rebuiltBytes,
     fenceCount: fences.length,
     fencesVerified,
     firstDiff: diff,

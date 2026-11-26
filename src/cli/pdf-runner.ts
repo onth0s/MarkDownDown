@@ -5,6 +5,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
@@ -31,14 +32,14 @@ export function findChromiumBinary(): string | null {
   if (isWindows) {
     const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
     const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
-    const localAppData = process.env.LocalAppData || '';
+    const localAppData = process.env.LocalAppData;
 
     const winPaths = [
       path.join(programFiles, 'Google\\Chrome\\Application\\chrome.exe'),
       path.join(programFilesX86, 'Google\\Chrome\\Application\\chrome.exe'),
       path.join(programFilesX86, 'Microsoft\\Edge\\Application\\msedge.exe'),
       path.join(programFiles, 'Microsoft\\Edge\\Application\\msedge.exe'),
-      path.join(localAppData, 'Google\\Chrome\\Application\\chrome.exe'),
+      ...(localAppData ? [path.join(localAppData, 'Google\\Chrome\\Application\\chrome.exe')] : []),
     ];
 
     for (const p of winPaths) {
@@ -111,7 +112,7 @@ export function exportToPdf(options: PdfExportOptions): PdfExportResult {
     };
   }
 
-  if (!fs.existsSync(options.htmlPath)) {
+  if (!fs.existsSync(options.htmlPath) || !fs.statSync(options.htmlPath).isFile()) {
     return {
       success: false,
       error: `Input HTML file not found: ${options.htmlPath}`,
@@ -129,34 +130,33 @@ export function exportToPdf(options: PdfExportOptions): PdfExportResult {
   let finalHtmlPath = options.htmlPath;
   let tempHtmlCreated = false;
 
-  // If a theme override is requested, adjust data-theme and color-scheme in a temporary file
+  // If a theme override is requested, adjust data-theme and inject a <style> override in a temporary file beside htmlPath
   if (options.theme) {
+    if (options.theme !== 'dark' && options.theme !== 'light') {
+      return {
+        success: false,
+        error: `Invalid PDF theme "${String(options.theme)}". Expected "dark" or "light".`,
+      };
+    }
     try {
       const origHtml = fs.readFileSync(options.htmlPath, 'utf8');
       let modifiedHtml = origHtml.replace(
         /data-theme="[^"]*"/,
         `data-theme="${options.theme}"`
       );
-      if (options.theme === 'light') {
-        modifiedHtml = modifiedHtml.replace(
-          /color-scheme:\s*dark/g,
-          'color-scheme: light'
-        );
-      } else if (options.theme === 'dark') {
-        modifiedHtml = modifiedHtml.replace(
-          /color-scheme:\s*light/g,
-          'color-scheme: dark'
-        );
-      }
+      const overrideStyle = `<style>:root,html,body{color-scheme:${options.theme}!important;}</style>`;
+      modifiedHtml = modifiedHtml.includes('</head>')
+        ? modifiedHtml.replace('</head>', `${overrideStyle}</head>`)
+        : `${overrideStyle}${modifiedHtml}`;
+      const nonce = `${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
       const tempPath = path.join(
-        parentDir,
-        `.temp-${Date.now()}-${path.basename(options.htmlPath)}`
+        path.dirname(path.resolve(options.htmlPath)),
+        `.temp-${nonce}-${path.basename(options.htmlPath)}`
       );
       fs.writeFileSync(tempPath, modifiedHtml, 'utf8');
       finalHtmlPath = tempPath;
       tempHtmlCreated = true;
     } catch {
-      // Fallback to original HTML if temporary file creation fails
       finalHtmlPath = options.htmlPath;
     }
   }
@@ -177,16 +177,8 @@ export function exportToPdf(options: PdfExportOptions): PdfExportResult {
       timeout: 30000,
     });
 
-    if (tempHtmlCreated && fs.existsSync(finalHtmlPath)) {
-      try {
-        fs.unlinkSync(finalHtmlPath);
-      } catch {
-        // Ignore cleanup errors on temporary files
-      }
-    }
-
-    if (res.status !== 0 || !fs.existsSync(pdfOutput)) {
-      const errDetail = res.stderr || res.stdout || `Process exited with code ${res.status}`;
+    if (res.error || res.status !== 0 || !fs.existsSync(pdfOutput)) {
+      const errDetail = res.error?.message || res.stderr || res.stdout || `Process exited with code ${res.status}`;
       return {
         success: false,
         error: `Failed to generate PDF via headless browser: ${errDetail}`,
@@ -202,5 +194,13 @@ export function exportToPdf(options: PdfExportOptions): PdfExportResult {
       success: false,
       error: `Error running headless browser: ${err instanceof Error ? err.message : String(err)}`,
     };
+  } finally {
+    if (tempHtmlCreated && fs.existsSync(finalHtmlPath)) {
+      try {
+        fs.unlinkSync(finalHtmlPath);
+      } catch {
+        // Ignore cleanup errors on temporary files
+      }
+    }
   }
 }

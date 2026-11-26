@@ -7,6 +7,7 @@
  */
 import path from 'node:path';
 import fs from 'node:fs';
+import esbuild from 'esbuild';
 
 type AnyNode = FakeEl | FakeText;
 
@@ -232,10 +233,22 @@ function runClient(payload: unknown, article: FakeEl | null): Harness {
     revokeObjectURL() { /* no-op */ },
   };
 
-  // The client file is a plain script, not a module: evaluate it as a function
-  // body with the browser globals it touches supplied as parameters.
-  new Function('document', 'Blob', 'URL', 'setTimeout', CLIENT_SRC)(
-    doc, Blob, urlStub, () => undefined,
+  const cjsSrc = esbuild.transformSync(CLIENT_SRC, { format: 'cjs', loader: 'js' }).code;
+  const fakeRequire = (mod: string) => {
+    if (mod.endsWith('01-core.js')) {
+      return {
+        downloadBlob(b: Blob, filename: string) {
+          urlStub.createObjectURL(b);
+          const a = doc.createElement('a');
+          if (a) { a.download = filename; a.click(); a.remove(); }
+        },
+        closeAllPopovers() { /* no-op */ },
+      };
+    }
+    return {};
+  };
+  new Function('require', 'document', 'Blob', 'URL', 'setTimeout', cjsSrc)(
+    fakeRequire, doc, Blob, urlStub, () => undefined,
   );
 
   return {

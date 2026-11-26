@@ -7,10 +7,12 @@
  * mutation survives, the audit is blind to that class of defect.
  */
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const target = path.join(process.cwd(), 'scratch', 'mutant.html');
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mdpp-audit-mut-'));
+const target = path.join(tmpDir, 'mutant.html');
 
 interface Mutation {
   name: string;
@@ -89,9 +91,16 @@ const MUTATIONS: Mutation[] = [
     mutate: () =>
       '<tspan x="26" dy="0">-o, --output &lt;path&gt; with a great deal more text than the cell can hold</tspan>',
   },
+  {
+    name: 'A5 16px-vs-12px boundary overflow',
+    what: 'widen a 16px node title so it overflows at 16px while fitting at 12px',
+    find: /<text class="node-title"[^>]*font-size="16"[^>]*>Abstract<\/text>/,
+    mutate: m => m.replace('Abstract', 'Abstract Boundary X'),
+  },
 ];
 
 let failed = 0;
+try {
 for (const { name, what, source, find, mutate } of MUTATIONS) {
   const from = source ?? path.join('showcase', 'showcase.html');
   const html = fs.readFileSync(path.resolve(from), 'utf8');
@@ -135,7 +144,8 @@ for (const { name, what, source, find, mutate } of MUTATIONS) {
   console.log(`${detected ? 'DETECT ' : 'MISSED '} ${name.padEnd(22)} (${what}) -> exit ${code}, "${tail}"`);
   if (!detected) failed++;
 }
-
-fs.rmSync(target, { force: true });
+} finally {
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+}
 console.log(`\n${MUTATIONS.length - failed}/${MUTATIONS.length} mutations detected`);
 process.exit(failed ? 1 : 0);

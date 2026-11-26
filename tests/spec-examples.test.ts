@@ -6,7 +6,7 @@ import { tableParse, tableBuildSvg } from '../src/renderer/table-svg.js';
 import { mirrorParse } from '../src/renderer/mirror/parse.js';
 import { mirrorBuildHtml } from '../src/renderer/mirror/html.js';
 import { build } from '../src/compile.js';
-import { SPEC } from '../src/spec.js';
+import { getSpec } from '../src/spec.js';
 
 const DIAGRAM_FENCE_RE = /(?:^|\n)```diagram[^\n]*\n([\s\S]*?)\n```/g;
 const TABLE_FENCE_RE = /(?:^|\n)```table[^\n]*\n([\s\S]*?)\n```/g;
@@ -109,7 +109,7 @@ describe('spec-embedded tables compile', () => {
 describe('spec alignment and compilation', () => {
   test('CLI --spec matches SPEC exported string', () => {
     const cliSpec = execFileSync('node', ['dist/cli.cjs', '--spec'], { encoding: 'utf8' });
-    expect(cliSpec).toBe(SPEC);
+    expect(cliSpec).toBe(getSpec());
   });
 
   test('SPEC.md compiles end-to-end through the compiler with zero errors', () => {
@@ -154,7 +154,7 @@ describe('spec alignment and compilation', () => {
       assetsDir: path.resolve(process.cwd(), 'assets'),
       accent: '#3b82f6',
       inputFile: path.resolve(process.cwd(), 'SPEC.md'),
-      rawSource: SPEC,
+      rawSource: getSpec(),
       outputPath: path.resolve(process.cwd(), 'dist/combined-spec-test.html'),
       outputMode: 'single',
       noDiagrams: false,

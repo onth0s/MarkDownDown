@@ -1,17 +1,15 @@
 /**
  * Pipeline stage: render markdown body to HTML.
  *
- * Renders via markdown-it, injects diagram/table SVGs, and wraps code blocks
- * with copy buttons.
+ * Renders via markdown-it in a single token-level pass (diagrams, tables,
+ * mirror blocks, and .code-wrap chrome are rendered directly in rules).
  */
 import path from 'node:path';
-import type { PendingWikilink, CompileContext } from '../types.js';
+import type { PendingWikilink, CompileContext, MarkdownRenderEnv } from '../types.js';
 import { extractHeadings } from '../resolver/heading.js';
+import { extractInlineText } from '../util/inline-text.js';
 import type Token from 'markdown-it/lib/token.mjs';
-import { injectDiagramSvgs } from './inject-diagrams.js';
-import { injectTableSvgs } from './inject-tables.js';
-import { injectMirrorBlocks, type MirrorStats } from './inject-mirror.js';
-import { wrapCodeBlocksWithCopyButtons } from './copy-buttons.js';
+import { collectMirrorAnchors, type MirrorStats } from './inject-mirror.js';
 
 export interface RenderBodyResult {
   html: string;
@@ -41,22 +39,22 @@ export function renderBody(params: RenderBodyParams): RenderBodyResult {
   }
 
   const inputDir = path.dirname(options.inputFile);
+  const parsedTokens = tokens ?? md.parse(markdownBody, {});
+  const docHeadings = headings ?? extractHeadings(parsedTokens);
 
-  // Render markdown to HTML, then inject SVGs, mirror blocks, and copy buttons
-  const renderEnv = {
-    warnings,
-    inputDir,
-    options,
-    docTitle,
-    linkMap,
-    outputMode: options.outputMode,
-    assetBase64Map,
-    md,
-  };
-  let bodyHtml = tokens
-    ? md.renderer.render(tokens, md.options, renderEnv)
-    : md.render(markdownBody, renderEnv);
-  // Create table wikilink resolver
+  // Pre-compute nearest heading for each fence token in O(N)
+  const nearestHeadingByToken = new WeakMap<Token, string>();
+  let currentHeading = '';
+  for (let i = 0; i < parsedTokens.length; i++) {
+    const tok = parsedTokens[i];
+    if (tok.type === 'heading_open') {
+      const text = extractInlineText(parsedTokens[i + 1]?.children).replace(/\s+/g, ' ').trim();
+      if (text) currentHeading = text;
+    } else if (tok.type === 'fence' && currentHeading) {
+      nearestHeadingByToken.set(tok, currentHeading);
+    }
+  }
+
   const tableLinkResolver = (target: string, display: string): { href: string } | null => {
     const pw = linkMap.get(`${target}|${display}`) ?? linkMap.get(`${target}|${target}`);
     if (!pw || !pw.resolution) return null;
@@ -75,17 +73,28 @@ export function renderBody(params: RenderBodyParams): RenderBodyResult {
     }
   };
 
-  if (!options.noDiagrams) bodyHtml = injectDiagramSvgs(bodyHtml, docTitle, warnings);
-  if (!options.noTables) bodyHtml = injectTableSvgs(bodyHtml, docTitle, warnings, tableLinkResolver);
-  const docHeadings = headings ?? (tokens ? extractHeadings(tokens) : []);
-  const { html: mirrorHtml, stats: mirrorStats } = injectMirrorBlocks(
-    bodyHtml,
-    docTitle,
-    warnings,
-    (text: string) => md.renderInline(text, renderEnv),
-    docHeadings,
-  );
-  bodyHtml = wrapCodeBlocksWithCopyButtons(mirrorHtml);
+  const mirrorAnchorMap = collectMirrorAnchors(parsedTokens, docHeadings);
+  const mirrorStats: MirrorStats = { blocks: 0, items: 0, probes: 0 };
+  const mirrorSeenIds = new Map<string, number>();
 
+  const renderEnv: MarkdownRenderEnv = {
+    warnings,
+    inputDir,
+    options,
+    docTitle,
+    linkMap,
+    outputMode: options.outputMode,
+    assetBase64Map,
+    md,
+    directWrapRender: true,
+    tableLinkResolver,
+    mirrorAnchorMap,
+    mirrorStats,
+    mirrorSeenIds,
+    nearestHeadingByToken,
+    docHeadings,
+  };
+
+  const bodyHtml = md.renderer.render(parsedTokens, md.options, renderEnv);
   return { html: bodyHtml, mirrorStats };
 }

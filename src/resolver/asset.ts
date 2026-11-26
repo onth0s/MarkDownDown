@@ -8,6 +8,7 @@ const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp'];
 const VIDEO_EXTS = ['.mp4', '.webm'];
 const DOC_EXTS = ['.mdd', '.md'];
 const PROBE_ORDER = [...IMAGE_EXTS, ...VIDEO_EXTS, ...DOC_EXTS];
+export const KNOWN_ASSET_EXTENSIONS = new Set(PROBE_ORDER);
 
 function classify(ext: string): Asset['kind'] {
   if (IMAGE_EXTS.includes(ext)) return 'image';
@@ -36,7 +37,7 @@ export function scanAssets(assetsDir: string): Asset[] {
       const rel = relBase ? `${relBase}/${entry.name}` : entry.name;
       if (entry.isDirectory()) {
         walk(abs, rel, depth + 1);
-      } else {
+      } else if (entry.isFile()) {
         const ext = path.extname(entry.name).toLowerCase();
         results.push({
           key: rel,
@@ -62,14 +63,22 @@ export function scanAssets(assetsDir: string): Asset[] {
  * Returns the matching Asset or null if not found.
  * Throws if multiple candidates match (collision).
  */
+function matchAssets(target: string, assets: Asset[]): Asset[] {
+  const normalized = target.replace(/\\/g, '/');
+  if (normalized.includes('/')) {
+    return assets.filter((a) => a.relativePath === normalized);
+  }
+  return assets.filter(
+    (a) => a.relativePath === normalized || path.basename(a.relativePath) === normalized,
+  );
+}
+
 export function resolveAsset(str: string, assets: Asset[]): Asset | null {
-  const hasExtension = path.extname(str).length > 0;
+  const normalized = str.replace(/\\/g, '/');
+  const hasExtension = path.extname(normalized).length > 0;
 
   if (hasExtension) {
-    // Exact basename match: check if any asset's relativePath ends with str
-    const matches = assets.filter(
-      (a) => a.relativePath === str || path.basename(a.relativePath) === path.basename(str)
-    );
+    const matches = matchAssets(normalized, assets);
     if (matches.length === 0) return null;
     if (matches.length === 1) return matches[0];
     throw new CompileError(
@@ -80,10 +89,8 @@ export function resolveAsset(str: string, assets: Asset[]): Asset | null {
 
   // No extension: probe in order
   for (const ext of PROBE_ORDER) {
-    const candidate = str + ext;
-    const matches = assets.filter(
-      (a) => a.relativePath === candidate || path.basename(a.relativePath) === path.basename(candidate)
-    );
+    const candidate = normalized + ext;
+    const matches = matchAssets(candidate, assets);
     if (matches.length === 1) return matches[0];
     if (matches.length > 1) {
       throw new CompileError(

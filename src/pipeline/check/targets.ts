@@ -45,7 +45,8 @@ export function resolveCheckTargets(
     if (!payload?.skeleton) {
       return { htmlFile, sourceFile: null, error: `HTML artifact does not contain an embedded #mdd-skeleton payload: ${htmlFile}` };
     }
-    const sourceName = payload.name;
+    const rawSourceName = payload.name;
+    const sourceName = rawSourceName ? path.basename(rawSourceName) : '';
 
     const candidates: string[] = [];
     if (sourceName) {

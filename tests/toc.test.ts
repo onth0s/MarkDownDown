@@ -8,35 +8,34 @@ const css = buildCss('#3b82f6', '59,130,246');
 
 describe('TOC click handler', () => {
   test('calls setActive immediately on click', () => {
-    expect(js).toMatch(/toc\.addEventListener\('click'[\s\S]*?setActive\(link\.dataset\.target\)/);
+    expect(js).toMatch(/toc\.addEventListener\(["']click["'][\s\S]*?(?:hooks\.)?setActive\(link\.dataset\.target\)/);
   });
 
   test('does not call history.replaceState directly in click handler', () => {
-    const clickBlock = js.slice(
-      js.indexOf("toc.addEventListener('click'"),
-      js.indexOf("// ── Theme"),
-    );
+    const start = js.indexOf('toc.addEventListener("click"');
+    const end = js.indexOf('article.addEventListener("click"', start);
+    const clickBlock = js.slice(start, end);
     expect(clickBlock).not.toMatch(/history\.replaceState/);
   });
 
-  test('calls scrollIntoView with smooth start for heading targets', () => {
-    expect(js).toMatch(/target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+  test('calls scrollIntoView with reduced-motion-aware smooth start for heading targets', () => {
+    expect(js).toMatch(/target\.scrollIntoView\(\{\s*behavior,\s*block:\s*["']start["']\s*\}\)/);
   });
 
   test('calls window.scrollTo for doc-title target', () => {
-    expect(js).toMatch(/window\.scrollTo\(\{ top: 0, behavior: 'smooth' \}\)/);
+    expect(js).toMatch(/window\.scrollTo\(\{\s*top:\s*0,\s*behavior\s*\}\)/);
   });
 
   test('closes mobile nav on click when viewport <= 900', () => {
-    expect(js).toMatch(/window\.innerWidth <= 900\) body\.classList\.remove\('nav-open'\)/);
+    expect(js).toMatch(/window\.innerWidth <= 900\) body\.classList\.remove\(["']nav-open["']\)/);
   });
 
   test('prevents default on TOC click', () => {
-    expect(js).toMatch(/toc\.addEventListener\('click'[\s\S]*?event\.preventDefault\(\)/);
+    expect(js).toMatch(/toc\.addEventListener\(["']click["'][\s\S]*?event\.preventDefault\(\)/);
   });
 
   test('uses event delegation with closest("a[data-target]")', () => {
-    expect(js).toMatch(/event\.target\.closest\('a\[data-target\]'\)/);
+    expect(js).toMatch(/event\.target\.closest\(["']a\[data-target\]["']\)/);
   });
 });
 
@@ -44,11 +43,11 @@ describe('TOC click handler', () => {
 
 describe('TOC generation', () => {
   test('collects headings with ids from #article', () => {
-    expect(js).toMatch(/article\.querySelectorAll\('h1\[id\], h2\[id\], h3\[id\], h4\[id\], h5\[id\], h6\[id\], \.alert\[id\]'\)/);
+    expect(js).toMatch(/article\.querySelectorAll\(["']h1\[id\], h2\[id\], h3\[id\], h4\[id\], h5\[id\], h6\[id\], \.alert\[id\]["']\)/);
   });
 
   test('excludes headings inside .hero', () => {
-    expect(js).toMatch(/\.filter\(h => !h\.closest\('\.hero'\)\)/);
+    expect(js).toMatch(/\.filter\(\(?h\)? => !h\.closest\(["']\.hero["']\)\)/);
   });
 
   test('clears TOC before populating', () => {
@@ -56,7 +55,7 @@ describe('TOC generation', () => {
   });
 
   test('creates document title entry with __doc-title__ target when hero is present', () => {
-    expect(js).toMatch(/titleA\.dataset\.target = '__doc-title__'/);
+    expect(js).toMatch(/titleA\.dataset\.target = ["']__doc-title__["']/);
   });
 
   test('creates heading entries with data-target matching heading id', () => {
@@ -76,7 +75,7 @@ describe('TOC generation', () => {
   });
 
   test('title link uses document.title as text', () => {
-    expect(js).toMatch(/titleA\.textContent = document\.title \|\| 'Untitled'/);
+    expect(js).toMatch(/titleA\.textContent = document\.title \|\| ["']Untitled["']/);
   });
 });
 
@@ -84,11 +83,11 @@ describe('TOC generation', () => {
 
 describe('Scroll spy', () => {
   test('caches TOC links array', () => {
-    expect(js).toMatch(/const tocLinks = \[\.\.\.toc\.querySelectorAll\('a'\)\]/);
+    expect(js).toMatch(/(?:const|var) tocLinks = \[\.\.\.toc\.querySelectorAll\(["']a["']\)\]/);
   });
 
   test('detectActiveHeading returns __doc-title__ at scrollY 0 when hero is present', () => {
-    expect(js).toMatch(/if \(window\.scrollY === 0\) return hasHero \? '__doc-title__' :/);
+    expect(js).toMatch(/if \(window\.scrollY === 0\) return hasHero \? ["']__doc-title__["'] :/);
   });
 
   test('detectActiveHeading uses THRESHOLD constant', () => {
@@ -109,20 +108,20 @@ describe('Scroll spy', () => {
   });
 
   test('setActive strips hash on bare target or scrollY 0', () => {
-    expect(js).toMatch(/isBareTarget = id === '__doc-title__' \|\| \(!hasHero && \(id === headings\[0\]\?\.id && window\.scrollY === 0\)\)/);
-    expect(js).toMatch(/history\.replaceState\(null, '', location\.pathname \+ location\.search\)/);
+    expect(js).toMatch(/isBareTarget = id === ["']__doc-title__["'] \|\| !hasHero && \(?id === headings\[0\]\?\.id && window\.scrollY === 0\)?/);
+    expect(js).toMatch(/history\.replaceState\(null, ["']["'], location\.pathname \+ location\.search\)/);
   });
 
   test('setActive updates URL hash via history.replaceState', () => {
-    expect(js).toMatch(/history\.replaceState\(null, '', `#\$\{id\}`\)/);
+    expect(js).toMatch(/history\.replaceState\(null, ["']["'], `#\$\{id\}`\)/);
   });
 
   test('setActive toggles active class on correct link', () => {
-    expect(js).toMatch(/tocLinks\.forEach\(a => a\.classList\.toggle\('active', a === activeLink\)\)/);
+    expect(js).toMatch(/a\.classList\.toggle\(["']active["'], isAct\)/);
   });
 
   test('setActive finds active link by data-target', () => {
-    expect(js).toMatch(/const activeLink = tocLinks\.find\(a => a\.dataset\.target === id\)/);
+    expect(js).toMatch(/const activeLink = tocLinks\.find\(\(?a\)? => a\.dataset\.target === id\)/);
   });
 
   test('scrolls sidebar to center active link when off-center', () => {
@@ -130,17 +129,17 @@ describe('Scroll spy', () => {
   });
 
   test('snaps sidebar on first call instead of animating', () => {
-    expect(js).toMatch(/let initialScrollDone = false/);
-    expect(js).toMatch(/if \(!initialScrollDone\)/);
+    expect(js).toMatch(/(?:let|var) initialScrollDone = false/);
+    expect(js).toMatch(/if \(!isInitialScrollDone\(\)\)/);
     expect(js).toMatch(/sidebar\.scrollTop = target/);
   });
 
   test('updateScrollUI is bound to window scroll event', () => {
-    expect(js).toMatch(/window\.addEventListener\('scroll', updateScrollUI, \{ passive: true \}\)/);
+    expect(js).toMatch(/window\.addEventListener\(["']scroll["'], updateScrollUI, \{ passive: true \}\)/);
   });
 
   test('updateScrollUI is bound to window resize event', () => {
-    expect(js).toMatch(/window\.addEventListener\('resize', updateScrollUI\)/);
+    expect(js).toMatch(/window\.addEventListener\(["']resize["'],[\s\S]*?updateScrollUI\(\)/);
   });
 
   test('updateScrollUI calls detectActiveHeading', () => {
@@ -152,11 +151,11 @@ describe('Scroll spy', () => {
   });
 
   test('updateScrollUI uses rAF throttling', () => {
-    expect(js).toMatch(/if \(ticking\) \{ pendingTick = true; return; \}/);
+    expect(js).toMatch(/if \(ticking\) \{\s*pendingTick = true;\s*return;\s*\}/);
   });
 
   test('updateScrollUI called once on init', () => {
-    expect(js).toMatch(/doScrollUpdate\(\);[\s\S]*?initialScrollDone = true/);
+    expect(js).toMatch(/doScrollUpdate\(\);[\s\S]*?setInitialScrollDone\(true\)/);
   });
 });
 
@@ -168,7 +167,7 @@ describe('Sidebar scroll animation', () => {
   });
 
   test('animateSidebarTo uses ease function', () => {
-    expect(js).toMatch(/const ease = t => t < 0\.5 \? 4 \* t \* t \* t : 1 - Math\.pow\(-2 \* t \+ 2, 3\) \/ 2/);
+    expect(js).toMatch(/const ease = \(?t\)? => t < 0\.5 \? 4 \* t \* t \* t : 1 - Math\.pow\(-2 \* t \+ 2, 3\) \/ 2/);
   });
 
   test('animateSidebarTo cancels previous animation', () => {
@@ -180,7 +179,7 @@ describe('Sidebar scroll animation', () => {
 
 describe('Hash navigation', () => {
   test('hashchange listener calls setActive', () => {
-    expect(js).toMatch(/window\.addEventListener\('hashchange'[\s\S]*?setActive\(id\)/);
+    expect(js).toMatch(/window\.addEventListener\(["']hashchange["'][\s\S]*?setActive\(id\)/);
   });
 
   test('hashchange listener checks element exists', () => {
@@ -196,7 +195,7 @@ describe('Hash navigation', () => {
   });
 
   test('restores saved state from sessionStorage on page load', () => {
-    expect(js).toMatch(/savedState = JSON\.parse\(sessionStorage\.getItem\(scrollStateKey\) \|\| 'null'\)/);
+    expect(js).toMatch(/savedState = JSON\.parse\(sessionStorage\.getItem\([^)]+\) \|\| ["']null["']\)/);
   });
 });
 
@@ -270,7 +269,7 @@ describe('Copy button hover-reveal', () => {
   });
 
   test('copy button appears on code-wrap hover', () => {
-    expect(css).toMatch(/\.code-wrap:hover \.copy-btn \{ opacity:1; \}/);
+    expect(css).toMatch(/\.code-wrap:hover \.copy-btn[\s\S]*?\{ opacity:1; \}/);
   });
 });
 
@@ -288,7 +287,7 @@ describe('Backtop button hover-reveal', () => {
   });
 
   test('backtop appears on hover', () => {
-    expect(css).toMatch(/\.backtop:hover \{ opacity:1; \}/);
+    expect(css).toMatch(/\.backtop:hover[\s\S]*?\{ opacity:1; \}/);
   });
 
   test('backtop has ::before for enlarged hit area', () => {
@@ -308,11 +307,11 @@ describe('Backtop button hover-reveal', () => {
 
 describe('Scroll guard', () => {
   test('declares tocScrollActive variable', () => {
-    expect(js).toMatch(/let tocScrollActive = false/);
+    expect(js).toMatch(/(?:let|var) tocScrollActive = false/);
   });
 
   test('TOC click sets tocScrollActive to true', () => {
-    expect(js).toMatch(/toc\.addEventListener\('click'[\s\S]*?tocScrollActive = true/);
+    expect(js).toMatch(/toc\.addEventListener\(["']click["'][\s\S]*?setTocScrollActive\(true\)/);
   });
 
   test('doScrollUpdate checks tocScrollActive before setActive', () => {
@@ -321,32 +320,32 @@ describe('Scroll guard', () => {
 
   test('defines onScrollEnd helper with scrollend feature detection', () => {
     expect(js).toMatch(/function onScrollEnd\(callback\)/);
-    expect(js).toMatch(/'onscrollend' in window/);
+    expect(js).toMatch(/["']onscrollend["'] in window/);
   });
 
   test('onScrollEnd uses scrollend event when available', () => {
-    expect(js).toMatch(/document\.addEventListener\('scrollend', callback, \{ once: true \}\)/);
+    expect(js).toMatch(/document\.addEventListener\(["']scrollend["'], finish, \{ once: true \}\)/);
   });
 
   test('onScrollEnd falls back to debounced scroll listener', () => {
-    expect(js).toMatch(/document\.addEventListener\('scroll', handler, \{ passive: true \}\)/);
+    expect(js).toMatch(/document\.addEventListener\(["']scroll["'], handler, \{ passive: true \}\)/);
   });
 
   test('TOC click clears tocScrollActive via onScrollEnd', () => {
-    expect(js).toMatch(/toc\.addEventListener\('click'[\s\S]*?onScrollEnd\(\(\) => \{ tocScrollActive = false/);
+    expect(js).toMatch(/toc\.addEventListener\(["']click["'][\s\S]*?onScrollEnd\(\(\) => \{\s*hooks\.setTocScrollActive\(false\)/);
   });
 
   test('backtop click sets tocScrollActive to true', () => {
-    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?tocScrollActive = true/);
+    expect(js).toMatch(/backtop\.addEventListener\(["']click["'][\s\S]*?tocScrollActive = true/);
   });
 
   test('backtop click clears tocScrollActive via onScrollEnd', () => {
-    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?onScrollEnd\(\(\)\s*=>\s*\{[\s\S]*?tocScrollActive\s*=\s*false/);
+    expect(js).toMatch(/backtop\.addEventListener\(["']click["'][\s\S]*?onScrollEnd\(\(\)\s*=>\s*\{[\s\S]*?tocScrollActive\s*=\s*false/);
   });
 
   test('backtop click immediately strips URL hash and scrolls to top', () => {
-    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?history\.replaceState\(null, '', location\.pathname \+ location\.search\)/);
-    expect(js).toMatch(/backtop\.addEventListener\('click'[\s\S]*?window\.scrollTo\(\{ top: 0, behavior: 'smooth' \}\)/);
+    expect(js).toMatch(/backtop\.addEventListener\(["']click["'][\s\S]*?history\.replaceState\(null, ["']["'], location\.pathname \+ location\.search\)/);
+    expect(js).toMatch(/backtop\.addEventListener\(["']click["'][\s\S]*?window\.scrollTo\(\{ top: 0,/);
   });
 });
 
@@ -354,35 +353,35 @@ describe('Scroll guard', () => {
 
 describe('Section title heading anchors', () => {
   test('creates heading-anchor element for each heading', () => {
-    expect(js).toMatch(/anchor\.className = 'heading-anchor'/);
-    expect(js).toMatch(/anchor\.textContent = '#'/);
+    expect(js).toMatch(/anchor\.className = ["']heading-anchor["']/);
+    expect(js).toMatch(/anchor\.textContent = ["']#["']/);
     expect(js).toMatch(/anchor\.href = `#\$\{heading\.id\}`/);
     expect(js).toMatch(/heading\.appendChild\(anchor\)/);
   });
 
   test('creates heading-anchor element for hero h1', () => {
-    expect(js).toMatch(/article\.querySelector\('\.hero h1'\)/);
-    expect(js).toMatch(/heroAnchor\.dataset\.target = '__doc-title__'/);
+    expect(js).toMatch(/article\.querySelector\(["']\.hero h1["']\)/);
+    expect(js).toMatch(/heroAnchor\.dataset\.target = ["']__doc-title__["']/);
     expect(js).toMatch(/heroH1\.appendChild\(heroAnchor\)/);
   });
 
   test('heading anchor click handler scrolls smoothly to target and updates active state', () => {
-    expect(js).toMatch(/article\.addEventListener\('click'[\s\S]*?event\.target\.closest\('\.heading-anchor'\)/);
-    expect(js).toMatch(/heading\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
-    expect(js).toMatch(/window\.scrollTo\(\{ top: 0, behavior: 'smooth' \}\)/);
+    expect(js).toMatch(/article\.addEventListener\(["']click["'][\s\S]*?event\.target\.closest\(["']\.heading-anchor["']\)/);
+    expect(js).toMatch(/heading\.scrollIntoView\(\{\s*behavior,\s*block:\s*["']start["']\s*\}\)/);
+    expect(js).toMatch(/window\.scrollTo\(\{\s*top:\s*0,\s*behavior\s*\}\)/);
     expect(js).toMatch(/setActive\(/);
-    expect(js).toMatch(/tocScrollActive = true/);
+    expect(js).toMatch(/setTocScrollActive\(true\)/);
   });
 
   test('heading anchor click copies section URL to clipboard and temporarily displays Copied label', () => {
-    expect(js).toMatch(/navigator\.clipboard\.writeText\(url\)/);
-    expect(js).toMatch(/anchor\.textContent = 'Link copied!'/);
-    expect(js).toMatch(/anchor\.classList\.add\('copied'\)/);
+    expect(js).toMatch(/copyToClipboard\(url\)/);
+    expect(js).toMatch(/anchor\.textContent = ["']Link copied!["']/);
+    expect(js).toMatch(/anchor\.classList\.add\(["']copied["']\)/);
   });
 
   test('copy button reads verbatim data-raw or code textContent', () => {
-    expect(js).toMatch(/parent\.getAttribute\('data-raw'\)/);
-    expect(js).toMatch(/parent\.querySelector\('code'\)\?\.textContent/);
+    expect(js).toMatch(/parent\.getAttribute\(["']data-raw["']\)/);
+    expect(js).toMatch(/parent\.querySelector\(["']code["']\)\?\.textContent/);
   });
 
   test('heading anchor is hidden by default with opacity 0 and transitions', () => {
@@ -407,6 +406,3 @@ describe('Section title heading anchors', () => {
     expect(css).toMatch(/prefers-reduced-motion: reduce[\s\S]*?\.heading-anchor[\s\S]*?transition: none !important/);
   });
 });
-
-
-

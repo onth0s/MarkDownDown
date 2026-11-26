@@ -1,7 +1,7 @@
 import { DIAGRAM as C } from '../../constants.js';
 import { measureText } from '../text-metrics.js';
 import type { DiagramModel } from './types.js';
-import { assignRanks } from './dag.js';
+import { assignRanks, assignDagRanks, orderByBarycenter } from './dag.js';
 
 export function diagramCompoundLayout(model: DiagramModel): void {
   function getAncestorInContainer(itemId: string, containerId?: string): string | null {
@@ -91,23 +91,7 @@ export function diagramCompoundLayout(model: DiagramModel): void {
         }
       }
 
-      const rankMap = new Map<string, number>();
-      const visiting = new Set<string>();
-      const assignItemRank = (id: string): number => {
-        if (rankMap.has(id)) return rankMap.get(id)!;
-        if (visiting.has(id)) return 0;
-        visiting.add(id);
-        let r = 0;
-        for (const e of inducedEdges) {
-          if (e.to === id && e.from !== id) {
-            r = Math.max(r, assignItemRank(e.from) + 1);
-          }
-        }
-        visiting.delete(id);
-        rankMap.set(id, r);
-        return r;
-      };
-      for (const it of items) assignItemRank(it.id);
+      const rankMap = assignDagRanks(items.map(it => it.id), inducedEdges);
 
       const itemRanks: string[][] = [];
       for (const it of items) {
@@ -115,28 +99,7 @@ export function diagramCompoundLayout(model: DiagramModel): void {
         (itemRanks[r] ||= []).push(it.id);
       }
 
-      for (let r = 1; r < itemRanks.length; r++) {
-        const prevRow = itemRanks[r - 1];
-        if (!prevRow) continue;
-        const posMap = new Map<string, number>();
-        prevRow.forEach((id, i) => posMap.set(id, i));
-
-        const med = (id: string) => {
-          const ps = inducedEdges
-            .filter(e => e.to === id && posMap.has(e.from))
-            .map(e => posMap.get(e.from)!)
-            .sort((a, b) => a - b);
-          if (!ps.length) return Infinity;
-          const m = Math.floor(ps.length / 2);
-          return ps.length % 2 ? ps[m] : (ps[m - 1] + ps[m]) / 2;
-        };
-
-        itemRanks[r].sort((a, b) => {
-          const ma = med(a), mb = med(b);
-          if (ma === Infinity && mb === Infinity) return 0;
-          return ma - mb;
-        });
-      }
+      orderByBarycenter(itemRanks, inducedEdges);
 
       const allNodes = items.every(it => !it.isSubgraph);
       if (allNodes && !isLR) {

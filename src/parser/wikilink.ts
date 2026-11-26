@@ -22,11 +22,11 @@ export function wikilinkPlugin(md: MarkdownIt): void {
     const display = tok.info || target;
     const linkMap = env?.linkMap as Map<string, PendingWikilink> | undefined;
     const pw = linkMap?.get(`${target}|${display}`);
-    if (!pw?.resolution) return `[[${target}]]`;
+    if (!pw?.resolution) return escHtml(`[[${target}]]`);
     const mode = (env?.outputMode || env?.options?.outputMode || 'single') as 'single' | 'split';
     const b64Map = env?.assetBase64Map as Map<string, string> | undefined;
     const parser = (env?.md || md) as MarkdownIt;
-    return renderWikilinkToken(target, display, pw.resolution, mode, b64Map, parser);
+    return renderWikilinkToken(target, display, pw.resolution, mode, b64Map, parser, env);
   };
 }
 
@@ -37,31 +37,36 @@ function renderWikilinkToken(
   outputMode: 'single' | 'split',
   assetBase64Map?: Map<string, string>,
   md?: MarkdownIt,
+  env?: Record<string, unknown>,
 ): string {
-  const renderDisplay = (text: string) => (md ? md.renderInline(text) : escHtml(text));
+  const depth = typeof env?.wikilinkDepth === 'number' ? env.wikilinkDepth : 0;
+  const renderDisplay = (text: string) =>
+    md && depth < 2
+      ? md.renderInline(text, { ...(env ?? {}), wikilinkDepth: depth + 1 })
+      : escHtml(text);
 
   switch (resolved.kind) {
     case 'heading':
-      return `<a href="#${resolved.heading.id}">${renderDisplay(display)}</a>`;
+      return `<a href="#${escHtml(resolved.heading.id)}">${renderDisplay(display)}</a>`;
 
     case 'image': {
       if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
         const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
-        return `<img src="${b64}" alt="${escHtml(display)}">`;
+        return `<img src="${escHtml(b64)}" alt="${escHtml(display)}">`;
       }
-      return `<img src="${resolved.asset.relativePath}" alt="${escHtml(display)}">`;
+      return `<img src="${escHtml(resolved.asset.relativePath)}" alt="${escHtml(display)}">`;
     }
 
     case 'video': {
       if (outputMode === 'single' && assetBase64Map?.has(resolved.asset.absolutePath)) {
         const b64 = assetBase64Map.get(resolved.asset.absolutePath)!;
-        return `<video src="${b64}" controls></video>`;
+        return `<video src="${escHtml(b64)}" controls></video>`;
       }
-      return `<video src="${resolved.asset.relativePath}" controls></video>`;
+      return `<video src="${escHtml(resolved.asset.relativePath)}" controls></video>`;
     }
 
     case 'doc':
-      return `<a href="${resolved.asset.relativePath}">${renderDisplay(display)}</a>`;
+      return `<a href="${escHtml(resolved.asset.relativePath)}">${renderDisplay(display)}</a>`;
   }
 }
 
@@ -76,12 +81,12 @@ function wikilinkRule(state: StateInline, silent: boolean): boolean {
     return false;
   }
 
-  // Find closing ]]
+  // Find closing ]] within posMax and on the same line
   const closePos = src.indexOf(']]', pos + 2);
-  if (closePos < 0) return false;
+  if (closePos < 0 || closePos + 2 > max) return false;
 
   const inner = src.slice(pos + 2, closePos);
-  if (!inner) return false;
+  if (!inner || inner.includes('\n') || inner.includes('[[')) return false;
 
   if (!silent) {
     // Split on | for aliased links: [[target|display]]

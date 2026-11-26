@@ -1,8 +1,10 @@
 import { build } from 'esbuild';
 import fs from 'node:fs';
 
-const specContent = fs.existsSync('SPEC.md') ? fs.readFileSync('SPEC.md', 'utf8') : '';
-const dslContent = fs.existsSync('DSL.md') ? fs.readFileSync('DSL.md', 'utf8') : '';
+if (!fs.existsSync('SPEC.md')) throw new Error('SPEC.md is required for build');
+if (!fs.existsSync('DSL.md')) throw new Error('DSL.md is required for build');
+const specContent = fs.readFileSync('SPEC.md', 'utf8');
+const dslContent = fs.readFileSync('DSL.md', 'utf8');
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
 await build({

@@ -4,6 +4,9 @@
  * Returns the client-side JS with accent color and favicon substituted in.
  */
 import { loadTemplate, substituteTokens } from '../util/template-loader.js';
+import { safeJsonForScript } from '../util/escape.js';
+import { isValidHex } from '../util/color.js';
+import { CompileError } from '../util/error.js';
 import { DEFAULT_FAVICON_TEMPLATE } from './logo.js';
 import { SKELETON } from '../constants.js';
 
@@ -47,14 +50,18 @@ export function buildJs(accentOrOpts: string | BuildJsOptions): string {
     theme = 'dark',
   } = opts;
 
+  if (!isValidHex(accent)) {
+    throw new CompileError(`Invalid accent color "${accent}".`);
+  }
+
   return substituteTokens(loadTemplate('app.js'), {
     __ACCENT__: accent,
-    "'__THEME__'": () => JSON.stringify(theme),
-    "'__FAVICON__'": () => JSON.stringify(faviconTemplate),
-    __ROUTES__: () => JSON.stringify(routes),
+    "'__THEME__'": () => safeJsonForScript(theme),
+    "'__FAVICON__'": () => safeJsonForScript(faviconTemplate),
+    __ROUTES__: () => safeJsonForScript(routes),
     __SKELETON_PROSE_SLOT__: String(SKELETON.PROSE),
     __SKELETON_SKIP_RUN__: String(SKELETON.SKIP_RUN),
-    __SKELETON_SKIPPED_TAGS__: () => JSON.stringify(Object.fromEntries(SKELETON.SKIPPED_TAGS.map(t => [t, 1]))),
+    __SKELETON_SKIPPED_TAGS__: () => safeJsonForScript(Object.fromEntries(SKELETON.SKIPPED_TAGS.map(t => [t, 1]))),
     __BASE_DARK_BG__: darkBg,
     __BASE_DARK_SURFACE__: darkSurface,
     __DARK_BG_MIX__: darkBgMix,

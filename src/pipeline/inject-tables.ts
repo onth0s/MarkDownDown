@@ -6,8 +6,44 @@ import { tableParse, tableBuildSvg, type LinkResolver } from '../renderer/table-
 import { escHtml, htmlDecode } from '../util/escape.js';
 import { createCodeWrapRegex, extractDecodedDataAttr, extractDataAttr } from '../util/fence.js';
 import { toErrorMessage } from '../util/error.js';
+import { buildGraphicChrome } from './copy-buttons.js';
 
-const TABLE_SVG_RE = createCodeWrapRegex('table');
+/** Render a single table block directly from parsed fence data (no HTML regex pass). */
+export function renderTableCodeWrap(params: {
+  rawCode: string;
+  titleAttr: string;
+  safeRawAttr: string;
+  docTitle: string;
+  warnings: string[];
+  linkResolver?: LinkResolver;
+  includeChrome?: boolean;
+}): string | null {
+  const { rawCode, titleAttr, safeRawAttr, docTitle, warnings, linkResolver, includeChrome = false } = params;
+  try {
+    const tblTitle = titleAttr || docTitle;
+    const model = tableParse(rawCode);
+    if (!model.headers.length) {
+      warnings.push(`table: no headers found, skipped render`);
+      return null;
+    }
+    const svg = tableBuildSvg(model, tblTitle, linkResolver);
+    const safeContent = escHtml(rawCode);
+    const safeTitle = escHtml(tblTitle);
+    const labelsJson = escHtml(JSON.stringify(model.labels));
+    const rawOutAttr = safeRawAttr ? ` data-raw="${safeRawAttr}"` : '';
+    const chrome = includeChrome ? buildGraphicChrome(safeTitle, true) : '';
+    return (
+      `<div class="code-wrap table" data-title="${safeTitle}"${rawOutAttr} data-labels="${labelsJson}">` +
+      chrome +
+      `<pre><code class="language-table">${safeContent}</code></pre>` +
+      `<div class="table-render">${svg}</div>` +
+      `</div>`
+    );
+  } catch (err) {
+    warnings.push(`table render failed: ${toErrorMessage(err)}`);
+    return null;
+  }
+}
 
 export function injectTableSvgs(
   html: string,
@@ -15,35 +51,23 @@ export function injectTableSvgs(
   warnings: string[],
   linkResolver?: LinkResolver,
 ): string {
-  TABLE_SVG_RE.lastIndex = 0;
+  const tableRe = createCodeWrapRegex('table');
   return html.replace(
-    TABLE_SVG_RE,
+    tableRe,
     (match, attrs, codeContent) => {
-      try {
-        const titleAttr = extractDecodedDataAttr(attrs, 'title');
-        const rawAttr = extractDataAttr(attrs, 'raw');
-
-        const rawCode = htmlDecode(codeContent);
-        const tblTitle = titleAttr || docTitle;
-        const model = tableParse(rawCode);
-        if (!model.headers.length) {
-          warnings.push(`table: no headers found, skipped render`);
-          return match;
-        }
-        const svg = tableBuildSvg(model, tblTitle, linkResolver);
-        const safeContent = escHtml(rawCode);
-        const labelsJson = escHtml(JSON.stringify(model.labels));
-        const rawOutAttr = rawAttr ? ` data-raw="${rawAttr}"` : '';
-        return (
-          `<div class="code-wrap table" data-title="${escHtml(tblTitle)}"${rawOutAttr} data-labels="${labelsJson}">` +
-          `<pre><code class="language-table">${safeContent}</code></pre>` +
-          `<div class="table-render">${svg}</div>` +
-          `</div>`
-        );
-      } catch (err) {
-        warnings.push(`table render failed: ${toErrorMessage(err)}`);
-        return match;
-      }
+      const titleAttr = extractDecodedDataAttr(attrs, 'title');
+      const rawAttr = extractDataAttr(attrs, 'raw');
+      const rawCode = htmlDecode(codeContent);
+      const rendered = renderTableCodeWrap({
+        rawCode,
+        titleAttr,
+        safeRawAttr: rawAttr,
+        docTitle,
+        warnings,
+        linkResolver,
+        includeChrome: false,
+      });
+      return rendered ?? match;
     }
   );
 }

@@ -5,6 +5,29 @@
  * per-character constant here, which is what made node boxes wrong.
  */
 
+import { DIAGRAM as C } from '../constants.js';
+import { escHtml } from '../util/escape.js';
+
+export const SVG_NS = 'http://www.w3.org/2000/svg';
+export const BASELINE_RATIO = 0.35;
+
+/** Format the responsive scale-floor style attribute shared by diagram & table SVGs. */
+export function scaleFloorStyle(w: number, minScale: number): string {
+  return ` style="--svg-min-w:${round1(w * minScale)}px"`;
+}
+
+/** Compute segment lengths and total arc length for a polyline. */
+export function polylineLengths(points: Point[]): { segs: number[]; total: number } {
+  const segs: number[] = [];
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    const d = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+    segs.push(d);
+    total += d;
+  }
+  return { segs, total };
+}
+
 /** Round a number to 1 decimal place. */
 export function round1(v: number): string {
   return String(Math.round(v * 10) / 10);
@@ -43,11 +66,6 @@ export function unionBox(a: Box | undefined, b: Box): Box {
     maxX: Math.max(a.maxX, b.maxX),
     maxY: Math.max(a.maxY, b.maxY),
   };
-}
-
-/** Box centred on (cx, cy). */
-export function centeredBox(cx: number, cy: number, w: number, h: number): Box {
-  return { minX: cx - w / 2, minY: cy - h / 2, maxX: cx + w / 2, maxY: cy + h / 2 };
 }
 
 /** Test if two boxes overlap within an optional tolerance. */
@@ -91,7 +109,7 @@ export function lineRoute(start: Point, end: Point): EdgeRoute {
 }
 
 /** Build a single cubic edge route and sample it. */
-export function cubicRoute(start: Point, c1: Point, c2: Point, end: Point, steps = 24): EdgeRoute {
+export function cubicRoute(start: Point, c1: Point, c2: Point, end: Point, steps: number = C.CURVE_SAMPLES): EdgeRoute {
   const points: Point[] = [];
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
@@ -117,7 +135,7 @@ export function cubicRoute(start: Point, c1: Point, c2: Point, end: Point, steps
  * corner, so the result still reads as a deliberate connector rather than a
  * schematic.
  */
-export function roundedPolylineRoute(waypoints: Point[], radius = 12, steps = 24): EdgeRoute {
+export function roundedPolylineRoute(waypoints: Point[], radius = 12, steps: number = C.CURVE_SAMPLES): EdgeRoute {
   const pts = dedupe(waypoints);
   if (pts.length < 2) {
     return { d: '', points: pts };
@@ -173,13 +191,7 @@ function dedupe(pts: Point[]): Point[] {
 /** Evenly resample a polyline so collision tests have uniform resolution. */
 function resamplePolyline(pts: Point[], steps: number): Point[] {
   if (pts.length < 2) return pts;
-  const segs: number[] = [];
-  let total = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-    segs.push(d);
-    total += d;
-  }
+  const { segs, total } = polylineLengths(pts);
   if (total === 0) return [pts[0]];
 
   const per = Math.max(1, Math.ceil(steps / Math.max(1, segs.length)));
@@ -211,7 +223,7 @@ export function routeBox(route: EdgeRoute): Box {
 
 /** Build an SVG <marker> definition for a directed arrowhead. */
 export function buildArrowMarker(id: string): string {
-  return `<defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto" markerUnits="strokeWidth"><path d="M0.5,0.8 L9.4,5 L0.5,9.2 L2.4,5 z" fill="var(--accent)"/></marker></defs>`;
+  return `<defs><marker id="${escHtml(id)}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto" markerUnits="strokeWidth"><path d="M0.5,0.8 L9.4,5 L0.5,9.2 L2.4,5 z" fill="var(--accent)"/></marker></defs>`;
 }
 
 /**
@@ -222,5 +234,5 @@ export function buildArrowMarker(id: string): string {
  * stopping short of it.
  */
 export function buildBackArrowMarker(id: string): string {
-  return `<defs><marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto" markerUnits="strokeWidth"><path d="M0.5,1.4 L9.4,5 L0.5,8.6 z" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round"/></marker></defs>`;
+  return `<defs><marker id="${escHtml(id)}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto" markerUnits="strokeWidth"><path d="M0.5,1.4 L9.4,5 L0.5,8.6 z" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linejoin="round"/></marker></defs>`;
 }

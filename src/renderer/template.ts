@@ -9,7 +9,7 @@ import { DEFAULT_ACCENT } from '../constants.js';
 import { processLogo } from './logo.js';
 import { minifyCss, minifyJs, minifyHtml } from '../util/minify.js';
 import { extractProse } from './html-extract.js';
-import { pruneSkeleton, serializeSkeletonPayload, type Skeleton } from './skeleton.js';
+import { pruneSkeleton, serializeSkeletonPayload, type Skeleton } from './skeleton/index.js';
 
 /**
  * Placeholder for the download payload, replaced post-minification.
@@ -49,7 +49,7 @@ export function assembleHtml(opts: AssembleOptions): string {
   let template = loadTemplate('shell.html');
 
   // Initial theme
-  const initialTheme = opts.theme ?? 'dark';
+  const initialTheme = opts.theme === 'light' ? 'light' : 'dark';
   template = template.replace('data-theme="dark"', `data-theme="${initialTheme}"`);
 
   // Basic replacements
@@ -70,7 +70,7 @@ export function assembleHtml(opts: AssembleOptions): string {
     logoMarkup = logoMarkup.replace(/\{L_(\d+)\}/g, (_, l) => hslToHex(targetH, targetS, parseInt(l, 10)));
   }
 
-  template = template.replace('{{favicon_href}}', () => faviconHref);
+  template = template.replace('{{favicon_href}}', () => escHtml(faviconHref));
   template = template.replace('{{logo_svg}}', () => logoMarkup);
 
   // Download payload: the tag ships a bare token that is swapped for the pruned
@@ -107,11 +107,11 @@ export function assembleHtml(opts: AssembleOptions): string {
   } else {
     template = template.replace(
       /<!-- SPLIT_LINK_CSS -->\n?/,`
-<link rel="stylesheet" href="${opts.cssHref ?? 'style.css'}">`
+<link rel="stylesheet" href="${escHtml(opts.cssHref ?? 'style.css')}">`
     );
     template = template.replace(
       /<!-- SPLIT_SCRIPT_SRC -->\n?/,`
-<script src="${opts.jsSrc ?? 'app.js'}"></script>`
+<script src="${escHtml(opts.jsSrc ?? 'app.js')}"></script>`
     );
     template = template.replace(/<style>\{\{css\}\}<\/style>/, '');
     template = template.replace(/<script>\{\{js\}\}<\/script>/, '');

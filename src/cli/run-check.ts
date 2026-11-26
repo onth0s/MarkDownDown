@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Options, CliOptions } from '../types.js';
+import type { CliOptions } from '../types.js';
 import { build } from '../compile.js';
+import { buildCompileOptions } from './options.js';
 import { createMarkdownParser } from '../parser/markdown.js';
 import { checkRoundTrip, resolveCheckTargets, extractEmbeddedSkeleton } from '../pipeline/check.js';
 import { printCheckReport, reportCliError } from './report.js';
-import { DEFAULT_ACCENT } from '../constants.js';
 
 export function executeCheck(
   input: string,
@@ -18,50 +18,47 @@ export function executeCheck(
     return 1;
   }
 
-  let htmlContent: string | null = null;
-  let rawSource: string | null = null;
-
-  if (sourceFile) {
-    if (!fs.existsSync(sourceFile)) {
-      process.stderr.write(`ERROR: Source file not found: ${sourceFile}\n`);
-      return 1;
-    }
-    rawSource = fs.readFileSync(sourceFile, 'utf8');
-  }
-
-  if (htmlFile) {
-    if (!fs.existsSync(htmlFile)) {
-      process.stderr.write(`ERROR: HTML artifact not found: ${htmlFile}\n`);
-      return 1;
-    }
-    htmlContent = fs.readFileSync(htmlFile, 'utf8');
-  }
-
-  if (!htmlContent && !sourceFile) {
-    process.stderr.write('ERROR: Neither an HTML artifact nor a source file could be resolved for --check.\n');
-    return 1;
-  }
-
   const inputFile = path.resolve(process.cwd(), input);
   const inputDir = path.dirname(inputFile);
   const stem = path.parse(inputFile).name;
 
   try {
+    let htmlContent: string | null = null;
+    let rawSource: string | null = null;
+
+    if (sourceFile) {
+      if (!fs.existsSync(sourceFile)) {
+        process.stderr.write(`ERROR: Source file not found: ${sourceFile}\n`);
+        return 1;
+      }
+      rawSource = fs.readFileSync(sourceFile, 'utf8');
+    }
+
+    if (htmlFile) {
+      if (!fs.existsSync(htmlFile)) {
+        process.stderr.write(`ERROR: HTML artifact not found: ${htmlFile}\n`);
+        return 1;
+      }
+      htmlContent = fs.readFileSync(htmlFile, 'utf8');
+    }
+
+    if (!htmlContent && !sourceFile) {
+      process.stderr.write('ERROR: Neither an HTML artifact nor a source file could be resolved for --check.\n');
+      return 1;
+    }
+
     if (!htmlContent && sourceFile) {
       // In-memory compile without writing to disk
-      const checkOptions: Options = {
-        title: stem,
-        assetsDir: opts.assetsDir ? path.resolve(process.cwd(), opts.assetsDir) : path.join(inputDir, 'assets'),
-        accent: DEFAULT_ACCENT,
-        logo: typeof opts.logo === 'string' ? opts.logo : undefined,
-        inputFile: sourceFile,
-        outputPath: path.join(inputDir, `${stem}.html`),
-        outputMode: 'single',
-        noDiagrams: opts.noDiagrams,
-        noTables: opts.noTables,
-        verbose: false,
-        minify: opts.minify !== false,
-      };
+      const { options: checkOptions, error: optErr } = buildCompileOptions(
+        sourceFile,
+        path.join(inputDir, `${stem}.html`),
+        'single',
+        { ...opts, verbose: false },
+      );
+      if (optErr || !checkOptions) {
+        process.stderr.write(`ERROR: ${optErr}\n`);
+        return 1;
+      }
       const compiled = build(checkOptions);
       for (const w of compiled.warnings) process.stderr.write(`WARN: ${w}\n`);
       htmlContent = compiled.html;

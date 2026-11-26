@@ -20,7 +20,7 @@ if (-not $LetItRip) {
   if ($LASTEXITCODE -ne 0) { throw "Lint failed" }
 
   Write-Host "Typechecking..." -ForegroundColor Cyan
-  npm run typecheck
+  npm run typecheck:all
   if ($LASTEXITCODE -ne 0) { throw "Typecheck failed" }
 } else {
   Write-Host "Skipping lint and typecheck (--LetItRip)..." -ForegroundColor Yellow
@@ -34,13 +34,15 @@ if ($LetItRip) {
 }
 if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
 
-Write-Host "Regenerating index.html..." -ForegroundColor Cyan
+Write-Host "Regenerating index.html and showcase.html..." -ForegroundColor Cyan
 node dist/cli.cjs .\README.md --single -o .\index.html -F
 if ($LASTEXITCODE -ne 0) { throw "index.html generation failed" }
+node dist/cli.cjs .\showcase\showcase.mdd --single -o .\showcase\showcase.html -F
+if ($LASTEXITCODE -ne 0) { throw "showcase.html generation failed" }
 
 Write-Host "All passed." -ForegroundColor Green
 Write-Host "Done." -ForegroundColor Green
 
-if (-not $LetItRip) {
+if (-not $LetItRip -and [Environment]::UserInteractive) {
   Read-Host -Prompt "Press Enter to close this window"
 }

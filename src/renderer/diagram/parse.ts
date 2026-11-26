@@ -77,14 +77,17 @@ const SPLIT_RE = /(?<!\\) — /;
 const cleanEscaped = (s: string): string => s.replace(/\\—/g, '—').trim();
 
 export function diagramParse(source: string, initialDirection?: string): DiagramModel {
-  const normalizedInitial = (initialDirection?.toUpperCase() ?? 'auto') as DiagramDirection;
+  const upperInit = initialDirection?.toUpperCase() ?? '';
+  const direction: DiagramDirection = /^(TB|TD|BT|LR|RL)$/.test(upperInit)
+    ? (upperInit as DiagramDirection)
+    : 'auto';
   const model: DiagramModel = {
     nodes: new Map(),
     edges: [],
     subgraphs: new Map(),
     nodeToSubgraph: new Map(),
     labels: [],
-    direction: /^(TB|TD|BT|LR|RL)$/i.test(normalizedInitial) ? normalizedInitial : 'auto',
+    direction,
     cx: new Map(),
     cy: new Map(),
     maxX: 0,
@@ -138,10 +141,12 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
     return node;
   };
 
-  const lines = source.split(/\r?\n/);
-  for (const rawLine of lines) {
+  const lineTokens = source.split(/(\r?\n)/);
+  for (let i = 0; i < lineTokens.length; i += 2) {
+    const rawLine = lineTokens[i];
+    const eolLen = lineTokens[i + 1]?.length ?? 0;
     const lineStartPos = charPos;
-    charPos += rawLine.length + 1;
+    charPos += rawLine.length + eolLen;
     const line = rawLine.trim();
     if (!line || line.startsWith('%%')) continue;
 
@@ -258,7 +263,7 @@ export function diagramParse(source: string, initialDirection?: string): Diagram
       continue;
     }
 
-    const bareNode = line.match(/^([A-Za-z0-9_.\\-]+)$/);
+    const bareNode = line.match(/^([A-Za-z0-9_.-]+)$/);
     if (bareNode) {
       ensureNode(bareNode[1], undefined, undefined, lineStartPos + rawLine.indexOf(line));
     }

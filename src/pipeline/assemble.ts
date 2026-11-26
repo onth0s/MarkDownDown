@@ -8,8 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type MarkdownIt from 'markdown-it';
 import type { Options, HeroMeta, CompileContext } from '../types.js';
-import type { FrontmatterResult } from '../parser/frontmatter.js';
-import type { Skeleton } from '../renderer/skeleton.js';
+import type { Skeleton } from '../renderer/skeleton/index.js';
 import { buildCss, computeLuminosityParams } from '../renderer/css.js';
 import { buildJs } from '../renderer/js.js';
 import { assembleHtml } from '../renderer/template.js';
@@ -82,7 +81,7 @@ export interface AssembleDocumentParams {
 export function assembleDocument(params: AssembleDocumentParams): AssembledDocument {
   const { ctx, bodyHtml, mddSkeleton, mddSourceName } = params;
   const options = ctx.options;
-  const meta = ctx.meta as FrontmatterResult['meta'];
+  const meta = ctx.meta;
   const hero = ctx.hero;
   const title = ctx.title;
   const accent = ctx.accent;
@@ -93,7 +92,7 @@ export function assembleDocument(params: AssembleDocumentParams): AssembledDocum
   const heroHtml = buildHeroHtml(hero, title, md);
   const accentRgb = hexToRgb(accent);
 
-  const routes: Record<string, string> = {};
+  const routes: Record<string, string> = Object.create(null);
   if (title) {
     routes['__doc-title__'] = title.length > 40 ? title.slice(0, 37) + '…' : title;
   }
@@ -190,8 +189,8 @@ export function writeOutput(
     const cssPath = path.join(outDir, 'style.css');
     const jsPath = path.join(outDir, 'app.js');
     fs.writeFileSync(htmlPath, assembled.html, 'utf8');
-    fs.writeFileSync(cssPath, assembled.css + (assembled.customCssContent ?? ''), 'utf8');
-    fs.writeFileSync(jsPath, assembled.js + (assembled.customJsContent ?? ''), 'utf8');
+    fs.writeFileSync(cssPath, assembled.customCssContent ? `${assembled.css}\n${assembled.customCssContent}` : assembled.css, 'utf8');
+    fs.writeFileSync(jsPath, assembled.customJsContent ? `${assembled.js}\n${assembled.customJsContent}` : assembled.js, 'utf8');
     finalSize =
       Buffer.byteLength(assembled.html, 'utf8') +
       Buffer.byteLength(assembled.css, 'utf8') +

@@ -37,4 +37,12 @@ function resolveSpec(): string {
   return spec;
 }
 
-export const SPEC = resolveSpec();
+let cachedSpec: string | undefined;
+
+/** Lazily load and cache the combined SPEC + DSL markdown string. */
+export function getSpec(): string {
+  if (cachedSpec === undefined) {
+    cachedSpec = resolveSpec();
+  }
+  return cachedSpec;
+}

@@ -1,3 +1,4 @@
+import yaml from 'js-yaml';
 import type MarkdownIt from 'markdown-it';
 import type Token from 'markdown-it/lib/token.mjs';
 import { FRONTMATTER_BLOCK_RE } from '../../parser/frontmatter.js';
@@ -5,6 +6,7 @@ import { FRONTMATTER_BLOCK_RE } from '../../parser/frontmatter.js';
 export function canonInline(children: Token[] | undefined | null): string {
   if (!children) return '';
   const parts: string[] = [];
+  const linkHrefStack: string[] = [];
   for (const c of children) {
     switch (c.type) {
       case 'text':
@@ -16,6 +18,12 @@ export function canonInline(children: Token[] | undefined | null): string {
         break;
       case 'code_inline':
         parts.push('`' + (c.content ?? '') + '`');
+        break;
+      case 'math_inline':
+        parts.push('$' + (c.content ?? '').trim() + '$');
+        break;
+      case 'math_display':
+        parts.push('$$' + (c.content ?? '').trim() + '$$');
         break;
       case 'em_open':
         parts.push('<em>');
@@ -38,10 +46,11 @@ export function canonInline(children: Token[] | undefined | null): string {
         parts.push('</s>');
         break;
       case 'link_open':
+        linkHrefStack.push(c.attrGet('href') ?? '');
         parts.push('[');
         break;
       case 'link_close':
-        parts.push('](' + (c.attrGet('href') ?? '') + ')');
+        parts.push('](' + (linkHrefStack.pop() ?? '') + ')');
         break;
       case 'image':
         parts.push('![' + canonInline(c.children as Token[]) + '](' + (c.attrGet('src') ?? '') + ')');
@@ -65,7 +74,27 @@ export function canonInline(children: Token[] | undefined | null): string {
   return parts.join('');
 }
 
+function canonicalSortJson(val: unknown): unknown {
+  if (Array.isArray(val)) return val.map(canonicalSortJson);
+  if (val && typeof val === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(val as Record<string, unknown>).sort()) {
+      out[k] = canonicalSortJson((val as Record<string, unknown>)[k]);
+    }
+    return out;
+  }
+  return val;
+}
+
 export function normalizeFrontmatter(block: string): string {
+  try {
+    const parsed = yaml.load(block);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return JSON.stringify(canonicalSortJson(parsed));
+    }
+  } catch {
+    // Fall back to line normalization on unparseable YAML
+  }
   return block
     .split('\n')
     .map(l => l.trim())
@@ -97,6 +126,8 @@ export function canonicalize(md: MarkdownIt, src: string): string {
       lines.push(`I(${canonInline(t.children as Token[])})`);
     } else if (t.type === 'fence' || t.type === 'code_block') {
       lines.push(`F(${t.info ?? ''})(${t.content.replace(/\r\n/g, '\n').trimEnd()})`);
+    } else if (t.type === 'math_block') {
+      lines.push(`M(${t.content.replace(/\r\n/g, '\n').trim()})`);
     } else if (t.type === 'def') {
       continue;
     } else if (t.type === 'hr') {

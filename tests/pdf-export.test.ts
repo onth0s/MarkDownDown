@@ -54,13 +54,12 @@ describe('PDF Export & Print Stylesheet', () => {
     expect(result.html).toContain('window.print()');
   });
 
-  test('findChromiumBinary locates installed browser or respects CHROME_PATH', () => {
+  const testIfChrome = findChromiumBinary() ? test : test.skip;
+
+  testIfChrome('findChromiumBinary locates installed browser or respects CHROME_PATH', () => {
     const detected = findChromiumBinary();
-    // In CI or environments with Chrome/Edge, this is a string
-    if (process.env.CHROME_PATH || fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe')) {
-      expect(typeof detected).toBe('string');
-      expect(fs.existsSync(detected!)).toBe(true);
-    }
+    expect(typeof detected).toBe('string');
+    expect(fs.existsSync(detected!)).toBe(true);
   });
 
   test('exportToPdf handles invalid inputs gracefully', () => {
@@ -72,12 +71,7 @@ describe('PDF Export & Print Stylesheet', () => {
     expect(res.error).toBeDefined();
   });
 
-  test('exportToPdf generates valid PDF file when browser is available', () => {
-    const binary = findChromiumBinary();
-    if (!binary) {
-      // Skip live rendering if no Chromium browser exists on the host
-      return;
-    }
+  testIfChrome('exportToPdf generates valid PDF file when browser is available', () => {
 
     const outHtml = path.join(tmpDir, 'test.html');
     const outPdf = path.join(tmpDir, 'test.pdf');
@@ -90,7 +84,7 @@ describe('PDF Export & Print Stylesheet', () => {
     const res = exportToPdf({
       htmlPath: outHtml,
       pdfPath: outPdf,
-      browserPath: binary,
+      browserPath: findChromiumBinary()!,
     });
 
     expect(res.success).toBe(true);

@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import esbuild from 'esbuild';
 import { CompileError } from './error.js';
 
 const templateCache = new Map<string, string>();
@@ -35,20 +36,38 @@ export function loadTemplate(filename: string): string {
 
   const baseName = filename.replace(/\.[^.]+$/, '');
   const candidateDirs = [
-    path.resolve(dir, '..', 'templates'),
-    path.resolve(dir, '..', '..', 'templates'),
+    ...(dir ? [path.resolve(dir, '..', 'templates'), path.resolve(dir, '..', '..', 'templates')] : []),
     path.resolve(process.cwd(), 'templates'),
     path.resolve(process.cwd(), 'src', 'templates'),
     path.resolve(process.cwd(), '..', 'templates'),
   ];
 
-  // 1. Check for modular subdirectory (e.g. templates/app/*.js -> merged app.js)
+  // 1. Check for modular subdirectory (e.g. templates/app/index.js -> esbuild IIFE, or templates/style/*.css)
   for (const tDir of candidateDirs) {
     const modDir = path.join(tDir, baseName);
     if (fs.existsSync(modDir) && fs.statSync(modDir).isDirectory()) {
-      const files = fs.readdirSync(modDir).filter(f => !f.startsWith('.')).sort();
+      const entryJs = path.join(modDir, 'index.js');
+      if (filename === 'app.js' && fs.existsSync(entryJs)) {
+        const built = esbuild.buildSync({
+          entryPoints: [entryJs],
+          bundle: true,
+          format: 'iife',
+          target: 'es2022',
+          write: false,
+        });
+        const content = built.outputFiles[0].text;
+        templateCache.set(filename, content);
+        return content;
+      }
+
+      const ext = path.extname(filename);
+      const files = fs
+        .readdirSync(modDir, { withFileTypes: true })
+        .filter((e) => e.isFile() && !e.name.startsWith('.') && (!ext || e.name.endsWith(ext)))
+        .map((e) => e.name)
+        .sort();
       if (files.length > 0) {
-        const parts = files.map(f => fs.readFileSync(path.join(modDir, f), 'utf8'));
+        const parts = files.map((f) => fs.readFileSync(path.join(modDir, f), 'utf8'));
         const content = filename.endsWith('.js')
           ? `(() => {\n  'use strict';\n\n${parts.join('\n\n')}\n})();\n`
           : `${parts.join('\n\n')}\n`;
@@ -75,7 +94,7 @@ export function loadTemplate(filename: string): string {
  * Replace all variable keys in a template string in a single regex pass.
  */
 export function substituteTokens(template: string, vars: Record<string, string | (() => string)>): string {
-  const keys = Object.keys(vars);
+  const keys = Object.keys(vars).sort((a, b) => b.length - a.length);
   if (keys.length === 0) return template;
   const pattern = new RegExp(keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
   return template.replace(pattern, (match) => {

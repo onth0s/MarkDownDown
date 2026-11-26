@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export interface ResolvedFileLink {
   href: string;
@@ -14,23 +14,29 @@ export interface ResolvedFileLink {
  * If not found, returns the original href and a warning message.
  */
 export function resolveFileLink(rawHref: string, inputDir: string = process.cwd()): ResolvedFileLink {
-  const isFileUri = rawHref.startsWith('file:') || rawHref.startsWith('file:///');
+  const isFileUri = /^file:/i.test(rawHref);
 
   if (!isFileUri) {
     return { href: rawHref, exists: true };
   }
 
-  // Separate URL from hash/fragment (e.g. #L73) and query
+  // Separate URL from hash/fragment (e.g. #L73) and query (?foo=bar)
   const hashIdx = rawHref.indexOf('#');
   const fragment = hashIdx >= 0 ? rawHref.slice(hashIdx) : '';
-  const urlWithoutHash = hashIdx >= 0 ? rawHref.slice(0, hashIdx) : rawHref;
+  const beforeHash = hashIdx >= 0 ? rawHref.slice(0, hashIdx) : rawHref;
+  const queryIdx = beforeHash.indexOf('?');
+  const urlWithoutHash = queryIdx >= 0 ? beforeHash.slice(0, queryIdx) : beforeHash;
 
   let filePath: string;
   try {
     filePath = fileURLToPath(urlWithoutHash);
   } catch {
     let clean = urlWithoutHash.replace(/^file:\/\/\/?/i, '');
-    clean = decodeURIComponent(clean);
+    try {
+      clean = decodeURIComponent(clean);
+    } catch {
+      // Keep raw string if percent-encoding is malformed
+    }
     if (/^[a-zA-Z]:[/\\]/.test(clean)) {
       filePath = path.normalize(clean);
     } else {
@@ -52,11 +58,7 @@ export function resolveFileLink(rawHref: string, inputDir: string = process.cwd(
 
   for (const candidate of candidateFixes) {
     if (candidate !== filePath && fs.existsSync(candidate)) {
-      const candidateNorm = candidate.replace(/\\/g, '/');
-      const newFileUrl = candidateNorm.startsWith('/')
-        ? `file://${candidateNorm}`
-        : `file:///${candidateNorm}`;
-      return { href: `${newFileUrl}${fragment}`, exists: true };
+      return { href: `${pathToFileURL(candidate).href}${fragment}`, exists: true };
     }
   }
 

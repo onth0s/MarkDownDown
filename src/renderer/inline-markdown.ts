@@ -4,7 +4,7 @@
  * inline code (`text`), and strikethrough (~~text~~), including combinations
  * like **`code`** or *`code`*.
  */
-import { escHtml } from '../util/escape.js';
+import { escHtml, isSafeUrl } from '../util/escape.js';
 
 export interface FormattedSpan {
   text: string;
@@ -182,7 +182,7 @@ export function renderSpansTspans(
 
     const content = escHtml(s.text);
     const inner = attrs.length > 0 ? `<tspan ${attrs.join(' ')}>${content}</tspan>` : content;
-    if (s.href) {
+    if (s.href && isSafeUrl(s.href)) {
       return `<a href="${escHtml(s.href)}">${inner}</a>`;
     }
     return inner;

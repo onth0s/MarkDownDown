@@ -46,7 +46,7 @@ describe('renderer / CSS & JS builders', () => {
 
   test('buildJs includes search reset and history push on heading anchor click', () => {
     const js = buildJs('#3b82f6');
-    expect(js).toContain('const currentSearch = search ? search.value.trim() : \'\'');
+    expect(js).toMatch(/const currentSearch = search \? search\.value\.trim\(\) : ['"]['"]/);
     expect(js).toContain('backStack.push({');
     expect(js).toContain('searchQuery: currentSearch');
   });
@@ -54,13 +54,13 @@ describe('renderer / CSS & JS builders', () => {
   test('buildJs search highlights inside code blocks (fenced code and inline code)', () => {
     const js = buildJs('#3b82f6');
     // Code text must no longer be excluded from search highlight.
-    expect(js).not.toContain("closest('code,pre,script,style')");
+    expect(js).not.toMatch(/closest\(['"]code,pre,script,style['"]\)/);
   });
 
   test('buildJs search still skips mirror DSL source, script/style, svg and anchors', () => {
     const js = buildJs('#3b82f6');
-    expect(js).toContain("closest('svg, .heading-anchor, .katex-mathml, script, style')");
-    expect(js).toContain("closest('code.language-mirror')");
+    expect(js).toMatch(/closest\(['"]svg, \.heading-anchor, \.katex-mathml, script, style['"]\)/);
+    expect(js).toMatch(/closest\(['"]code\.language-mirror['"]\)/);
   });
 
   test('substituteTokens handles string and function replacers', () => {
