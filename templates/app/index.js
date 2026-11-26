@@ -9,3 +9,4 @@ import './03f-pdf-export.js';
 import './04-scroll-spy.js';
 import './05-search.js';
 import './06-download.js';
+import './07-math-fit.js';

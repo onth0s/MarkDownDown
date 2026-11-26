@@ -43,6 +43,7 @@ Unlike traditional static site generators, Markdown++ produces self-contained or
 
 - **Dual-Mode Artifact (Read Mode & Mirror Mode)**: Seamlessly switch between a publication-grade reading experience and a document-native semantic audit layer with interactive author probes and divergence analysis.
 - **Native Wikilinks (`[[str]]` and `[[str|alias]]`)**: 4-pass fuzzy heading resolver (exact, normalized, prefix/substring, Levenshtein edit distance) and adjacent asset resolution.
+- **Native Multifile Stitching (`[[path/to/file.md]]`)**: Standalone `.md`/`.mdd` wikilink lines transclude modular chapters in place with child frontmatter stripping, optional `|+N` heading shifts, and cycle detection.
 - **Embedded Diagram DSL (` ```diagram `)**: Declarative flowchart syntax compiled directly into responsive SVG nodes with title/subtitle splits and search highlighting.
 - **Embedded Table DSL (` ```table `)**: GFM pipe table syntax rendered as interactive SVGs with custom headers and search match synchronization.
 - **Self-Contained & Split Distribution**: Output as a single standalone HTML file (`--single`) with base64 assets and inlined styles/scripts, or a modular directory (`--split`).
@@ -219,6 +220,20 @@ The resolver operates in 4 passes against headings:
 2. **Normalized match**: Case-insensitive with normalized whitespace and punctuation stripped.
 3. **Substring match**: Prefix or containment matching.
 4. **Levenshtein distance**: Fuzzy typo tolerance based on length threshold.
+
+### Multifile Stitching
+
+Place `[[path/to/file.md]]` or `[[path/to/file.mdd]]` on its own line to stitch modular files into a single compiled document (child YAML frontmatter is stripped automatically, and `|+N` shifts child heading levels):
+
+```markdown
+[[src/01_intro.md]]
+
+---
+
+[[src/02_architecture.md|+1]]
+```
+
+Inline references inside prose (e.g. `See [[docs/guide.md]].`) remain standard hyperlinks. Included paths are confined to the entry file's directory by default unless `--allow-external-paths` is passed.
 
 ### Diagram DSL
 

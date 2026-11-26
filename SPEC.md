@@ -17,6 +17,7 @@ Markdown++ (`.mdd`) is standard GitHub-Flavored Markdown extended with:
 
 - [[YAML Frontmatter]] for document metadata and theming
 - [[Inline Extension: Wikilinks|Wikilinks]] (`[[str]]` and `[[str|display]]`)
+- **Multifile Stitching** — Standalone `[[path/to/file.md]]` / `[[file.mdd]]` transclusion with child frontmatter stripping and optional heading shifts (`|+N`)
 - [[File Link Resolution]] (`[text](file:///path/to/file#L10)`)
 - [Diagram DSL](./DSL.md) (`diagram`) for interactive SVG flowcharts
 - [Table DSL](./DSL.md) (`table`) for interactive SVG data tables
@@ -142,6 +143,19 @@ FILE_MATCH -->|Not Found| FAIL
 2. **Heading match**: If `str` has no extension, it evaluates against document headings using the 4-pass fuzzy resolver.
 3. **File match**: Checked against the assets directory (supports images, videos, `.mdd`, and `.md` documents).
 4. **Ambiguity / Collision**: Multiple matches trigger a compile error with detailed candidate diagnostics.
+
+### 3.3 Multifile Stitching (`[[path/to/file.md]]`)
+
+A standalone line (outside code fences) containing `[[target.md]]` or `[[target.mdd]]` (supporting `/` or `\` separators) transcludes that file's body in place before parsing:
+
+```markdown
+[[src/01_intro.md]]
+[[src/02_details.md|+1]]
+```
+
+- **Extension & block-line detection**: Only standalone lines targeting `.md` or `.mdd` files are stitched; inline prose links (e.g. `See [[docs/guide.md]] for details.`) remain hyperlinks, and heading links with slashes (e.g. `[[Input/Output]]`) still resolve to headings.
+- **Child frontmatter & heading shift**: Leading YAML frontmatter in included files is stripped automatically. An optional `|+N` suffix shifts ATX headings (`#`–`######`) in the included file down by `N` levels (clamped to `######`, ignoring headings inside code fences).
+- **Path confinement & cycles**: Nested includes are expanded recursively with cycle detection. Included paths must stay within the entry document's directory unless `--allow-external-paths` is passed.
 
 ---
 

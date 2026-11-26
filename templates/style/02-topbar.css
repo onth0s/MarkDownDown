@@ -17,7 +17,7 @@
   transition: fill .2s ease, stroke .2s ease;
 }
 .brand span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.toolbar { display:flex; gap:8px; align-items:center; min-width:0; }
+.toolbar { display:flex; flex:none; gap:8px; align-items:center; min-width:0; }
 .icon-btn, .tool-btn {
   border:1px solid var(--border); background:var(--surface); color:var(--text);
   border-radius:10px; height:38px; padding:0 11px; cursor:pointer;
@@ -72,6 +72,7 @@ html[data-theme="light"] .theme-rays {
 }
 :root {
   --sidebar-w: 280px;
+  --svg-min-w: 0px;
 }
 .layout {
   display:flex;

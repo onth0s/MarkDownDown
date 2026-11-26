@@ -13,7 +13,6 @@
   .topbar { gap:10px; }
   .search-box { width:min(360px, 32vw); }
   .search-count { display:none; }
-  .toolbar { flex:none; }
 }
 .mobile-nav { display:none; flex:none; }
 @media (max-width:640px) {

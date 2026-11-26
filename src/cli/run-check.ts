@@ -5,6 +5,7 @@ import { build } from '../compile.js';
 import { buildCompileOptions } from './options.js';
 import { createMarkdownParser } from '../parser/markdown.js';
 import { checkRoundTrip, resolveCheckTargets, extractEmbeddedSkeleton } from '../pipeline/check.js';
+import { stitchDocument } from '../pipeline/stitch.js';
 import { printCheckReport, reportCliError } from './report.js';
 
 export function executeCheck(
@@ -31,7 +32,8 @@ export function executeCheck(
         process.stderr.write(`ERROR: Source file not found: ${sourceFile}\n`);
         return 1;
       }
-      rawSource = fs.readFileSync(sourceFile, 'utf8');
+      const rawInput = fs.readFileSync(sourceFile, 'utf8');
+      rawSource = stitchDocument(rawInput, sourceFile, opts.allowExternalPaths === true).source;
     }
 
     if (htmlFile) {

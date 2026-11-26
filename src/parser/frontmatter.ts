@@ -9,6 +9,7 @@ import path from 'node:path';
 import type { FrontmatterMeta, HeroMeta, BgLum } from '../types.js';
 import { CompileError, toErrorMessage } from '../util/error.js';
 import { isValidHex, formatHexWithHash } from '../util/color.js';
+import { resolveConfinedPath } from '../util/path-guard.js';
 
 export interface FrontmatterResult {
   /** Parsed option overrides from frontmatter */
@@ -138,20 +139,7 @@ export function parseFrontmatter(
   const resolvedInputDir = path.resolve(inputDir);
   const validatePath = (key: string): string => {
     const val = validateString(key, `Invalid frontmatter: "${key}" must be a file path string`);
-    const resolved = path.resolve(resolvedInputDir, val);
-    const rel = path.relative(resolvedInputDir, resolved);
-    const isExternal = rel.startsWith('..') || path.isAbsolute(rel);
-    if (isExternal) {
-      if (!allowExternalPaths) {
-        throw new CompileError(
-          `Frontmatter "${key}" ("${val}") resolves outside the input directory ("${resolvedInputDir}"). External paths are blocked by default for security; pass --allow-external-paths to override.`
-        );
-      }
-      warnings.push(
-        `Frontmatter "${key}" ("${val}") resolves outside the input directory ("${resolvedInputDir}"). External paths may break if files are moved or paths change.`
-      );
-    }
-    return resolved;
+    return resolveConfinedPath(`Frontmatter "${key}"`, val, resolvedInputDir, resolvedInputDir, allowExternalPaths, warnings);
   };
 
   if (parsed['title'] !== undefined) meta.title = validateString('title');

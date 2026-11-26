@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Options, CompileResult, Heading, Asset, CompileContext } from './types.js';
 import { parseFrontmatter } from './parser/frontmatter.js';
+import { stitchDocument } from './pipeline/stitch.js';
 import { createMarkdownParser } from './parser/markdown.js';
 import { extractHeadings } from './resolver/heading.js';
 import { scanAssets } from './resolver/asset.js';
@@ -30,8 +31,11 @@ export function build(options: Options): BuildResult {
   const warnings: string[] = [];
   const inputDir = path.dirname(options.inputFile);
 
-  // 1. Read source
-  const rawSource = options.rawSource ?? fs.readFileSync(options.inputFile, 'utf8');
+  // 1. Read source & stitch standalone [[*.md]] / [[*.mdd]] includes
+  const rawInput = options.rawSource ?? fs.readFileSync(options.inputFile, 'utf8');
+  const stitched = stitchDocument(rawInput, options.inputFile, options.allowExternalPaths === true);
+  const rawSource = stitched.source;
+  warnings.push(...stitched.warnings);
 
   // 2. Frontmatter
   const { meta, hero, body: markdownBody, warnings: fmWarnings } = parseFrontmatter(
